@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 /// Service for handling hardware scanner integration
 class ScanService {
-  static const EventChannel _eventChannel = EventChannel('com.example.jsonplaceholder_app/scanner');
-  static const MethodChannel _methodChannel = MethodChannel('com.example.jsonplaceholder_app');
+  static const EventChannel _eventChannel = EventChannel('com.example.architecture_scan_app/scanner');
+  static const MethodChannel _methodChannel = MethodChannel('com.example.architecture_scan_app');
   
   // Callback for scan events
   static Function(String)? onBarcodeScanned;
@@ -24,10 +24,12 @@ class ScanService {
     // Cancel any existing subscription
     _subscription?.cancel();
     
+    debugPrint("QR DEBUG: Initializing hardware scanner event channel");
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic scanData) {
-        if (scanData != null && scanData != "No Scan Data Found") {
-          debugPrint("📱 Received scan data: $scanData");
+        debugPrint("QR DEBUG: 📟 Hardware scanner data received: $scanData");
+        if (scanData != null && scanData.toString().isNotEmpty) {
+          // Process the data from hardware scanner
           onBarcodeScanned?.call(scanData.toString());
           
           // Add to local history if not already there
@@ -37,22 +39,29 @@ class ScanService {
         }
       },
       onError: (dynamic error) {
-        debugPrint("❌ Error receiving scan data: $error");
+        debugPrint("QR DEBUG: ❌ Hardware scanner error: $error");
       }
     );
     
     // Set up method channel handler for scanner button press
     _methodChannel.setMethodCallHandler((MethodCall call) async {
+      debugPrint("QR DEBUG: Method channel called: ${call.method}");
       if (call.method == "scannerKeyPressed") {
         String scannedData = call.arguments.toString();
-        debugPrint("🔑 Scanner key pressed: $scannedData");
+        debugPrint("QR DEBUG: Scanner key pressed: $scannedData");
         onBarcodeScanned?.call(scannedData);
       }
       return null;
     });
     
-    // Log that we've initialized the scanner
-    debugPrint("🚀 Scanner listener initialized");
+    debugPrint("QR DEBUG: Hardware scanner initialized");
+    
+    // Send a test event after initialization to check if channel is working
+    try {
+      _methodChannel.invokeMethod('testScanEvent');
+    } catch (e) {
+      debugPrint("QR DEBUG: Error invoking test method: $e");
+    }
   }
   
   // Dispose scanner listener
@@ -60,16 +69,16 @@ class ScanService {
     _subscription?.cancel();
     _subscription = null;
     onBarcodeScanned = null;
-    debugPrint("🛑 Scanner listener disposed");
+    debugPrint("QR DEBUG: Scanner listener disposed");
   }
 
   // Check if a key event is from the hardware scanner
   static bool isScannerButtonPressed(KeyEvent event) {
     // Common scanner button keycodes - adjusted for the hardware scanners
-    const scannerKeyCodes = [120, 121, 122, 293, 294];
+    const scannerKeyCodes = [120, 121, 122, 293, 294, 73014444552];
     final isScanner = scannerKeyCodes.contains(event.logicalKey.keyId);
     if (isScanner) {
-      debugPrint("🔍 Hardware scanner key detected: ${event.logicalKey.keyId}");
+      debugPrint("QR DEBUG: Hardware scanner key detected: ${event.logicalKey.keyId}");
     }
     return isScanner;
   }
@@ -77,6 +86,6 @@ class ScanService {
   // Clear scanned barcodes history
   static void clearScannedBarcodes() {
     scannedBarcodes.clear();
-    debugPrint("🧹 Scanned barcodes history cleared");
+    debugPrint("QR DEBUG: Scanned barcodes history cleared");
   }
 }

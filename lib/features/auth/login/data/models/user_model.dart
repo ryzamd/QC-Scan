@@ -26,17 +26,19 @@ class UserModel extends UserEntity {
     const UserModel(
       userId: 'admin',
       password: 'admin123',
-      department: 'QC Department',
+      department: 'QC 1',
       name: 'QC部门', // Chinese name
-      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9',
+      token:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9',
       role: 'admin',
     ),
     const UserModel(
       userId: 'user',
       password: 'user123',
-      department: 'Warehouse Department',
+      department: 'QC 2',
       name: '仓库部门', // Chinese name
-      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyIiwicm9sZSI6InVzZXIifQ',
+      token:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyIiwicm9sZSI6InVzZXIifQ',
       role: 'user',
     ),
   ];
