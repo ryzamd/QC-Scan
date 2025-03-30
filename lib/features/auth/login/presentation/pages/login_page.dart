@@ -76,10 +76,12 @@ class _LoginPageState extends State<LoginPage> {
       child: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
-            // If login is successful, navigate to the processing page
+            // If login is successful, navigate to the scan page (processing route)
+            // Pass the user entity to the processing page
             Navigator.pushReplacementNamed(
               context,
               AppRoutes.processing,
+              arguments: state.user,
             );
           } else if (state is LoginFailure) {
             // If login fails, show an error dialog
