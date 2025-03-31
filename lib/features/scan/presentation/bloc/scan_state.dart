@@ -28,7 +28,12 @@ class ScanningState extends ScanState {
   });
 
   @override
-  List<Object?> get props => [isCameraActive, isTorchEnabled, controller, scannedItems];
+  List<Object?> get props => [
+    isCameraActive,
+    isTorchEnabled,
+    controller,
+    scannedItems,
+  ];
 
   /// Create a copy of this state with updated values
   ScanningState copyWith({
@@ -66,12 +71,12 @@ class MaterialInfoLoaded extends ScanState {
 
   @override
   List<Object?> get props => [
-    isCameraActive, 
-    isTorchEnabled, 
-    controller, 
-    scannedItems, 
-    materialInfo, 
-    currentBarcode
+    isCameraActive,
+    isTorchEnabled,
+    controller,
+    scannedItems,
+    materialInfo,
+    currentBarcode,
   ];
 
   /// Create a copy of this state with updated values
@@ -114,12 +119,12 @@ class SavingDataState extends ScanState {
 
   @override
   List<Object?> get props => [
-    isCameraActive, 
-    isTorchEnabled, 
-    controller, 
-    scannedItems, 
-    materialInfo, 
-    currentBarcode
+    isCameraActive,
+    isTorchEnabled,
+    controller,
+    scannedItems,
+    materialInfo,
+    currentBarcode,
   ];
 }
 
@@ -128,10 +133,7 @@ class DataSavedState extends ScanState {
   final ScanRecordEntity savedRecord;
   final List<List<String>> scannedItems;
 
-  const DataSavedState({
-    required this.savedRecord,
-    required this.scannedItems,
-  });
+  const DataSavedState({required this.savedRecord, required this.scannedItems});
 
   @override
   List<Object> get props => [savedRecord, scannedItems];
@@ -141,9 +143,7 @@ class DataSavedState extends ScanState {
 class SendingToProcessingState extends ScanState {
   final List<ScanRecordEntity> records;
 
-  const SendingToProcessingState({
-    required this.records,
-  });
+  const SendingToProcessingState({required this.records});
 
   @override
   List<Object> get props => [records];
@@ -154,10 +154,7 @@ class ScanErrorState extends ScanState {
   final String message;
   final ScanState previousState;
 
-  const ScanErrorState({
-    required this.message,
-    required this.previousState,
-  });
+  const ScanErrorState({required this.message, required this.previousState});
 
   @override
   List<Object> get props => [message, previousState];
@@ -166,4 +163,16 @@ class ScanErrorState extends ScanState {
 /// State representing processing complete
 class ProcessingCompleteState extends ScanState {
   const ProcessingCompleteState();
+}
+
+class ScannerReadyState extends ScanState {}
+
+/// State representing scanner error
+class ScannerErrorState extends ScanState {
+  final String message;
+
+  const ScannerErrorState({required this.message});
+
+  @override
+  List<Object> get props => [message];
 }
