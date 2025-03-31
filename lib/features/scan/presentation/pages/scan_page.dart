@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +29,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   bool _cameraActive = false;
   bool _torchEnabled = false;
   bool _isSaving = false;
+  bool _isDeductionDialogOpen = false;
   String? _currentScannedValue;
   DateTime? _lastSnackbarTime;
   String? _lastSnackbarMessage;
@@ -55,7 +57,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       _processScannedData(scannedData, isFromHardwareScanner: true);
     });
 
-    _initializeCamera();
+    _initializeCameraController();
   }
 
   @override
@@ -74,21 +76,17 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       _cleanUpCamera();
     } else if (state == AppLifecycleState.resumed) {
       if (_cameraActive) {
-        _initializeCamera();
+        _initializeCameraController();
       }
     }
   }
 
-  void _initializeCamera() {
-    // Dispose of any existing controller first
+  // 2. Tách biệt việc khởi tạo controller và việc bật camera
+  void _initializeCameraController() {
     _cleanUpCamera();
 
-    debugPrint("QR DEBUG: Initializing camera scanner");
-
     try {
-      // Create a new controller with appropriate settings
       _controller = MobileScannerController(
-        // Include all common barcode formats
         formats: const [
           BarcodeFormat.qrCode,
           BarcodeFormat.code128,
@@ -101,27 +99,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         ],
         detectionSpeed: DetectionSpeed.normal,
         facing: CameraFacing.back,
-        returnImage: false, // Optimize memory
+        returnImage: false,
         torchEnabled: _torchEnabled,
       );
 
-      setState(() {
-        _cameraActive = true;
-      });
-
-      if (_cameraActive) {
-        debugPrint("QR DEBUG: Starting camera scanner");
-        _controller?.start();
-      }
-
-      debugPrint("QR DEBUG: Camera initialization successful");
-
-      // Initialize scanner in BLoC
+      // Khởi tạo scanner trong BLoC với camera không active
       context.read<ScanBloc>().add(InitializeScanner(_controller!));
     } catch (e) {
       debugPrint("QR DEBUG: ⚠️ Camera initialization error: $e");
-
-      // Show error to user
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Camera initialization error: $e"),
@@ -144,32 +129,31 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     }
   }
 
-void _toggleCamera() {
-  debugPrint("QR DEBUG: Toggle camera button pressed");
-  setState(() {
-    _cameraActive = !_cameraActive;
+  void _toggleCamera() {
+    debugPrint("QR DEBUG: Toggle camera button pressed");
+    setState(() {
+      _cameraActive = !_cameraActive;
 
-    if (_cameraActive) {
-      try {
-        if (_controller == null) {
-          _initializeCamera();
-        } else {
+      if (_cameraActive) {
+        try {
+          if (_controller == null) {
+            _initializeCameraController();
+          }
           _controller!.start();
+        } catch (e) {
+          debugPrint("QR DEBUG: Error starting camera: $e");
+          _cleanUpCamera();
+          _initializeCameraController();
+          _controller?.start();
         }
-      } catch (e) {
-        debugPrint("QR DEBUG: Error starting camera: $e");
-        // Nếu có lỗi, thử tạo controller mới
-        _cleanUpCamera();
-        _initializeCamera();
+      } else if (_controller != null) {
+        _controller?.stop();
       }
-    } else if (_controller != null) {
-      _controller?.stop();
-    }
-  });
+    });
 
-  // Update bloc with camera state
-  context.read<ScanBloc>().add(ToggleCamera(_cameraActive));
-}
+    // Update bloc with camera state
+    context.read<ScanBloc>().add(ToggleCamera(_cameraActive));
+  }
 
   Future<void> _toggleTorch() async {
     debugPrint("QR DEBUG: Toggle torch button pressed");
@@ -359,28 +343,83 @@ void _toggleCamera() {
       return;
     }
 
+    // Set flag khi hiển thị dialog
     setState(() {
-      _isSaving = true;
+      _isDeductionDialogOpen = true;
     });
 
-    // Use BLoC to save the data
-    if (_currentScannedValue != null) {
-      context.read<ScanBloc>().add(
-        SaveScannedData(
-          barcode: _currentScannedValue!,
-          quantity: _materialData['Quantity'] ?? '1',
-          materialInfo: _materialData,
-          userId: widget.user.userId,
-        ),
+    try {
+      // Hiển thị dialog deduction
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (dialogContext) => DeductionDialog(
+              productName: _materialData['Material Name'] ?? '',
+              productCode: _materialData['Material ID'] ?? '',
+              currentQuantity: _materialData['Quantity'] ?? '0',
+              onCancel: () {
+                Navigator.of(dialogContext).pop();
+                setState(() {
+                  _isDeductionDialogOpen = false;
+                });
+              },
+              onConfirm: (deduction) {
+                Navigator.of(dialogContext).pop();
+
+                // Gửi event tới bloc
+                context.read<ScanBloc>().add(
+                  ConfirmDeductionEvent(
+                    barcode: _currentScannedValue!,
+                    quantity: _materialData['Quantity'] ?? '0',
+                    deduction: deduction,
+                    materialInfo: _materialData,
+                    userId: widget.user.userId,
+                  ),
+                );
+
+                // Hiển thị thông báo thành công
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (_) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        title: const Text('SUCCESS', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),),
+                        content: const Text(
+                          'Data transfer to Process Page successfully',
+                        ),
+                      ),
+                );
+
+                // Tự động đóng sau 1 giây
+                Future.delayed(const Duration(seconds: 3), () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  }
+
+                  // Reset state
+                  setState(() {
+                    _isDeductionDialogOpen = false;
+                    _materialData = {
+                      'Material Name': '',
+                      'Material ID': '',
+                      'Quantity': '',
+                      'Receipt Date': '',
+                      'Supplier': '',
+                    };
+                    _currentScannedValue = null;
+                  });
+
+                  // Reset scan
+                  context.read<ScanBloc>().add(StartNewScan());
+                });
+              },
+            ),
       );
-    }
-
-    // Simulate data saving process
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
+    } catch (e) {
       setState(() {
-        _isSaving = false;
+        _isDeductionDialogOpen = false;
       });
     }
   }
@@ -446,7 +485,7 @@ void _toggleCamera() {
           // Map keys from repository to UI format
           Map<String, String> formattedData = {
             'Material Name': state.materialInfo['Material Name'] ?? '',
-            'ID Number':
+            'Material ID':
                 state.materialInfo['Material ID'] ??
                 state.materialInfo['ID Number'] ??
                 state.currentBarcode,
@@ -643,7 +682,11 @@ void _toggleCamera() {
               ],
             ),
           ),
-          bottomNavigationBar: const CustomNavBar(currentIndex: 1),
+          bottomNavigationBar: CustomNavBar(
+            currentIndex: 1,
+            user: widget.user,
+            disableNavigation: _isDeductionDialogOpen,
+          ),
         );
       },
     );

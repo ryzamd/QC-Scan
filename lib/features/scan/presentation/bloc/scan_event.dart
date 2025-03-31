@@ -102,3 +102,22 @@ class HardwareScanButtonPressed extends ScanEvent {
   @override
   List<Object> get props => [scannedData];
 }
+
+class ConfirmDeductionEvent extends ScanEvent {
+  final String barcode;
+  final String quantity;
+  final int deduction;
+  final Map<String, String> materialInfo;
+  final String userId;
+
+  const ConfirmDeductionEvent({
+    required this.barcode,
+    required this.quantity,
+    required this.deduction,
+    required this.materialInfo,
+    required this.userId,
+  });
+
+  @override
+  List<Object> get props => [barcode, quantity, deduction, materialInfo, userId];
+}

@@ -1,4 +1,5 @@
 // lib/core/di/dependencies.dart
+import 'package:architecture_scan_app/core/services/processing_data_service.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -26,9 +27,20 @@ import '../../features/scan/domain/usecases/send_to_processing.dart';
 import '../../features/scan/presentation/bloc/scan_bloc.dart';
 import '../../features/auth/login/domain/entities/user_entity.dart';
 
+// Process feature
+import '../../features/process/data/datasources/processing_remote_datasource.dart';
+import '../../features/process/data/repositories/processing_repository_impl.dart';
+import '../../features/process/domain/repositories/processing_repository.dart';
+import '../../features/process/domain/usecases/get_processing_items.dart';
+import '../../features/process/domain/usecases/refresh_processing_items.dart';
+import '../../features/process/presentation/bloc/processing_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
+
+  sl.registerLazySingleton(() => ProcessingDataService());
+  
   //! Features - Login
   // BLoC
   sl.registerFactory(
@@ -87,6 +99,31 @@ Future<void> init() async {
   
   sl.registerLazySingleton<ScanRemoteDataSource>(
     () => ScanRemoteDataSourceImpl(dio: sl()),
+  );
+
+  // BLoC
+  sl.registerFactory(
+    () => ProcessingBloc(
+      getProcessingItems: sl(),
+      refreshProcessingItems: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetProcessingItems(sl()));
+  sl.registerLazySingleton(() => RefreshProcessingItems(sl()));
+
+  // Repository
+  sl.registerLazySingleton<ProcessingRepository>(
+    () => ProcessingRepositoryImpl(
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<ProcessingRemoteDataSource>(
+    () => ProcessingRemoteDataSourceImpl(dio: sl(), useMockData: true),
   );
 
   //! Core

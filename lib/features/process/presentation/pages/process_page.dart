@@ -1,125 +1,102 @@
-// lib/features/process/presentation/pages/process_page.dart
+// lib/features/process/presentation/pages/processing_page.dart
+import 'package:architecture_scan_app/core/widgets/scafford_custom.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../auth/login/domain/entities/user_entity.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
+import 'package:architecture_scan_app/features/process/presentation/bloc/processing_event.dart';
+import '../widgets/data_table_widget.dart';
 
-class ProcessPage extends StatelessWidget {
-  final UserEntity user;
-
-  const ProcessPage({super.key, required this.user});
+class ProcessingPage extends StatelessWidget {
+  const ProcessingPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Process Records'), elevation: 2),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // User info card
-              Card(
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.person, size: 48, color: AppColors.primary),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'User: ${user.userId}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Department: ${user.department}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Role: ${user.role}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+    return CustomScaffold(
+      title: 'PROCESSING',
+      currentIndex: 0, // Assuming this is the home tab
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          children: [
+            // Thêm thanh tìm kiếm trực tiếp trên trang
+            _buildSearchBar(context),
+            const SizedBox(height: 8),
+            // Phần còn lại là bảng dữ liệu
+            Expanded(
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: ProcessingDataTable(),
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Processing records section
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.move_to_inbox,
-                        size: 80,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Records ready for processing',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'This is a placeholder for the process page.\nThe full implementation will be done in a future task.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 12,
-                          ),
-                        ),
-                        child: const Text(
-                          'Return to Scanning',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: Colors.white),
+          onPressed: () {
+            // Refresh data
+            context.read<ProcessingBloc>().add(RefreshProcessingItemsEvent());
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Refreshing data...'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          },
+          tooltip: 'Refresh data',
+        ),
+      ],
+    );
+  }
+  
+  // Xây dựng thanh tìm kiếm
+  Widget _buildSearchBar(BuildContext context) {
+    final TextEditingController controller = TextEditingController();
+
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Search',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              // Clear search và reset data
+              context.read<ProcessingBloc>().add(
+                const SearchProcessingItemsEvent(query: ''),
+              );
+              // Clear text field
+              FocusScope.of(context).unfocus();
+              // Clear text bằng cách đặt controller.clear() nếu bạn có controller
+              controller.clear();
+            },
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        onChanged: (value) {
+          // Gửi search event khi text thay đổi
+          context.read<ProcessingBloc>().add(
+            SearchProcessingItemsEvent(query: value),
+          );
+        },
       ),
     );
   }

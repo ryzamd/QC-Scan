@@ -1,11 +1,14 @@
 // lib/common/widgets/custom_navbar.dart
 import 'package:architecture_scan_app/core/constants/app_routes.dart';
+import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 
 class CustomNavBar extends StatelessWidget {
   final int currentIndex;
+  final UserEntity? user;
+  final bool disableNavigation;
 
-  const CustomNavBar({super.key, required this.currentIndex});
+  const CustomNavBar({super.key, required this.currentIndex, this.user, this.disableNavigation = false});
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +61,12 @@ class CustomNavBar extends StatelessWidget {
     final isSelected = currentIndex == index;
 
     return InkWell(
-      onTap: () {
+      onTap: disableNavigation ? null : () {
         if (!isSelected) {
           Navigator.of(context).pushNamedAndRemoveUntil(
             route,
-            (r) => false, // Remove all previous routes
+            (r) => false,
+            arguments: user,
           );
         }
       },
