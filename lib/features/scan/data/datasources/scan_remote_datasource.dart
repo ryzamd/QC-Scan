@@ -41,7 +41,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
           'Category': 'Raw Material',
           'Supplier': 'ProWell Industries',
           'Batch': 'B-${barcode.hashCode.toString().substring(0, 4)}',
-          'Quantity': '1',
+          'Quantity': '10',
         };
       } else if (barcode.contains('PROD')) {
         return {
