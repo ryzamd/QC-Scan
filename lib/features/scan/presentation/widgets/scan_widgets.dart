@@ -68,18 +68,21 @@ class QRScannerWidget extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.error, color: Colors.red, size: 50),
-                            const SizedBox(height: 16),
                             Text(
                               "Camera error: ${error.errorCode}",
+                              textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.red),
                             ),
                             const SizedBox(height: 8),
                             ElevatedButton(
+                              style: ButtonStyle(
+                                backgroundColor: WidgetStatePropertyAll(Color(0xFFFF9D23)),
+                                shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)))),
                               onPressed: () {
                                 controller!.stop();
                                 controller!.start();
                               },
-                              child: const Text("Try Again"),
+                              child: const Text("Try Again", style: TextStyle(color: Color(0xFFFEF9E1)),),
                             ),
                           ],
                         ),
