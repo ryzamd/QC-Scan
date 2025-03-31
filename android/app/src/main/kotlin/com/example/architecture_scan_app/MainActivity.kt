@@ -16,8 +16,11 @@ import io.flutter.Log
 
 class MainActivity : FlutterActivity() {
     private val EVENT_CHANNEL = "com.example.architecture_scan_app/scanner"
+    private val BACK_BUTTON_CHANNEL = "com.example.architecture_scan_app/back_button"
     private val METHOD_CHANNEL = "com.example.architecture_scan_app"
+
     private var eventSink: EventChannel.EventSink? = null
+    private var backButtonEventSink: EventChannel.EventSink? = null
     private val handler = Handler(Looper.getMainLooper())
     
     // Broadcast receiver for scanner events
@@ -113,6 +116,20 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+        
+        // Thiết lập EventChannel cho back button
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, BACK_BUTTON_CHANNEL)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    backButtonEventSink = events
+                    Log.d("MainActivity", "🔙 Back Button EventChannel Listener Started")
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    backButtonEventSink = null
+                    Log.d("MainActivity", "🔙 Back Button EventChannel Listener Stopped")
+                }
+            })
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -152,6 +169,24 @@ class MainActivity : FlutterActivity() {
                 Log.e("MainActivity", "❌ Error sending data to Flutter: ${e.message}")
                 e.printStackTrace()
             }
+        }
+    }
+
+    @Override
+    public override fun onBackPressed() {
+        if (backButtonEventSink != null) {
+            handler.post {
+                try {
+                    Log.d("MainActivity", "🔙 Back button pressed, sending event to Flutter")
+                    backButtonEventSink?.success("BACK_PRESSED")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error sending back button event: ${e.message}")
+                    super.onBackPressed()
+                }
+            }
+        } else {
+            Log.d("MainActivity", "🔙 Back button pressed, but no event sink available")
+            super.onBackPressed()
         }
     }
 }
