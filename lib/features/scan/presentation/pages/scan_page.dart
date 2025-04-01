@@ -333,96 +333,78 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _saveData() async {
-    debugPrint("QR DEBUG: Save button pressed");
+  // Thêm vào _showDeductionDialog trong scan_page.dart
+Future<void> _saveData() async {
+  debugPrint("QR DEBUG: Save button pressed");
 
-    if (_materialData['Material ID']?.isEmpty ?? true) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No data to save')));
-      return;
-    }
-
-    // Set flag khi hiển thị dialog
-    setState(() {
-      _isDeductionDialogOpen = true;
-    });
-
-    try {
-      // Hiển thị dialog deduction
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (dialogContext) => DeductionDialog(
-              productName: _materialData['Material Name'] ?? '',
-              productCode: _materialData['Material ID'] ?? '',
-              currentQuantity: _materialData['Quantity'] ?? '0',
-              onCancel: () {
-                Navigator.of(dialogContext).pop();
-                setState(() {
-                  _isDeductionDialogOpen = false;
-                });
-              },
-              onConfirm: (deduction) {
-                Navigator.of(dialogContext).pop();
-
-                // Gửi event tới bloc
-                context.read<ScanBloc>().add(
-                  ConfirmDeductionEvent(
-                    barcode: _currentScannedValue!,
-                    quantity: _materialData['Quantity'] ?? '0',
-                    deduction: deduction,
-                    materialInfo: _materialData,
-                    userId: widget.user.userId,
-                  ),
-                );
-
-                // Hiển thị thông báo thành công
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder:
-                      (_) => AlertDialog(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        title: const Text('SUCCESS', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),),
-                        content: const Text(
-                          'Data transfer to Process Page successfully',
-                        ),
-                      ),
-                );
-
-                // Tự động đóng sau 1 giây
-                Future.delayed(const Duration(seconds: 3), () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.of(context).pop();
-                  }
-
-                  // Reset state
-                  setState(() {
-                    _isDeductionDialogOpen = false;
-                    _materialData = {
-                      'Material Name': '',
-                      'Material ID': '',
-                      'Quantity': '',
-                      'Receipt Date': '',
-                      'Supplier': '',
-                    };
-                    _currentScannedValue = null;
-                  });
-
-                  // Reset scan
-                  context.read<ScanBloc>().add(StartNewScan());
-                });
-              },
-            ),
-      );
-    } catch (e) {
-      setState(() {
-        _isDeductionDialogOpen = false;
-      });
-    }
+  if (_materialData['Material ID']?.isEmpty ?? true) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No data to save'))
+    );
+    return;
   }
+
+  // Hiển thị dialog khấu trừ
+  setState(() {
+    _isDeductionDialogOpen = true;
+  });
+
+  try {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => DeductionDialog(
+        productName: _materialData['Material Name'] ?? '',
+        productCode: _materialData['Material ID'] ?? '',
+        currentQuantity: _materialData['Quantity'] ?? '0',
+        onCancel: () {
+          Navigator.of(dialogContext).pop();
+          setState(() {
+            _isDeductionDialogOpen = false;
+          });
+        },
+        onConfirm: (deduction) {
+          Navigator.of(dialogContext).pop();
+
+          // Hiển thị dialog loading
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => const AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Processing data...'),
+                ],
+              ),
+            ),
+          );
+
+          // Gửi event đến bloc
+          context.read<ScanBloc>().add(
+            ConfirmDeductionEvent(
+              barcode: _materialData['code'] ?? _currentScannedValue!,
+              quantity: _materialData['m_qty'] ?? _materialData['Quantity'] ?? '0',
+              deduction: deduction,
+              materialInfo: _materialData,
+              userId: widget.user.name,
+            ),
+          );
+        },
+      ),
+    );
+  } catch (e) {
+    setState(() {
+      _isDeductionDialogOpen = false;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
+    );
+  }
+}
 
   void _clearScannedItems() {
     debugPrint("QR DEBUG: Clear button pressed");
@@ -476,40 +458,51 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
     return BlocConsumer<ScanBloc, ScanState>(
       listener: (context, state) {
-        // Update local state based on bloc state changes
-        if (state is MaterialInfoLoaded) {
-          debugPrint(
-            "QR DEBUG: MaterialInfoLoaded state received with data: ${state.materialInfo}",
+        if (Navigator.of(context).canPop() &&
+            state is! ScanProcessingState &&
+            state is! SavingDataState) {
+          Navigator.of(context).pop();
+        }
+        
+        if (state is ScanErrorState) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red)
           );
-
-          // Map keys from repository to UI format
-          Map<String, String> formattedData = {
-            'Material Name': state.materialInfo['Material Name'] ?? '',
-            'Material ID':
-                state.materialInfo['Material ID'] ??
-                state.materialInfo['ID Number'] ??
-                state.currentBarcode,
-            'Quantity': state.materialInfo['Quantity'] ?? '1',
-            'Receipt Date':
-                state.materialInfo['Receipt Date'] ??
-                state.materialInfo['Scan Time'] ??
-                DateTime.now().toString().substring(0, 19),
-            'Supplier': state.materialInfo['Supplier'] ?? '',
-          };
-
-          setState(() {
-            _materialData = formattedData;
-            _currentScannedValue = state.currentBarcode;
-
-            // Add to scanned items if not already present
-            if (!_scannedItems.any((item) => item[0] == state.currentBarcode)) {
-              _scannedItems.add([state.currentBarcode, 'Scanned', '1']);
-            }
-          });
-        } else if (state is ScanErrorState) {
-          _showSnackbar(state.message, backgroundColor: Colors.red);
         } else if (state is DataSavedState) {
-          _showSnackbar('Saved successfully', backgroundColor: Colors.green);
+          // Hiển thị thông báo thành công
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              title: const Text('SUCCESS', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              content: const Text('Data processed successfully'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    
+                    // Reset state
+                    setState(() {
+                      _isDeductionDialogOpen = false;
+                      _materialData = {
+                        'Material Name': '',
+                        'Material ID': '',
+                        'Quantity': '',
+                        'Receipt Date': '',
+                        'Supplier': '',
+                      };
+                      _currentScannedValue = null;
+                    });
+                    
+                    // Reset scan
+                    context.read<ScanBloc>().add(StartNewScan());
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
         }
       },
       builder: (context, state) {

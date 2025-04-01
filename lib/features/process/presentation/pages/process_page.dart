@@ -1,5 +1,6 @@
 // lib/features/process/presentation/pages/processing_page.dart
 import 'package:architecture_scan_app/core/widgets/scafford_custom.dart';
+import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
@@ -7,12 +8,14 @@ import 'package:architecture_scan_app/features/process/presentation/bloc/process
 import '../widgets/data_table_widget.dart';
 
 class ProcessingPage extends StatelessWidget {
-  const ProcessingPage({super.key});
+  final UserEntity user;
+  const ProcessingPage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
       title: 'PROCESSING',
+      user: user,
       currentIndex: 0, // Assuming this is the home tab
       body: Padding(
         padding: const EdgeInsets.all(8.0),

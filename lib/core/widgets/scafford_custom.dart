@@ -1,5 +1,6 @@
 // lib/common/widgets/custom_scaffold.dart
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
+import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
@@ -12,6 +13,7 @@ class CustomScaffold extends StatelessWidget {
   final bool showBackButton;
   final Color? backgroundColor;
   final PreferredSizeWidget? customAppBar;
+  final UserEntity? user;
 
   const CustomScaffold({
     super.key,
@@ -23,6 +25,7 @@ class CustomScaffold extends StatelessWidget {
     this.showBackButton = false,
     this.backgroundColor,
     this.customAppBar,
+    this.user
   });
 
   @override
@@ -34,7 +37,7 @@ class CustomScaffold extends StatelessWidget {
         child: body,
       ),
       bottomNavigationBar: showNavBar
-          ? CustomNavBar(currentIndex: currentIndex)
+          ? CustomNavBar(currentIndex: currentIndex, user: user,)
           : null,
     );
   }

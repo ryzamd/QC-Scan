@@ -10,7 +10,8 @@ abstract class UserRepository {
   Future<Either<Failure, UserEntity>> loginUser({
     required String userId,
     required String password,
-    required String department,
+    required String name,
+    
   });
   
   /// Validates a JWT token

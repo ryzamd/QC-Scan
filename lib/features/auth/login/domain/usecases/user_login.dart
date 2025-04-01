@@ -11,27 +11,27 @@ class UserLogin {
   UserLogin(this.repository);
 
   /// Execute the login use case with given parameters
-  Future<Either<Failure, UserEntity>> call(LoginParams params) async {
-    return await repository.loginUser(
-      userId: params.userId,
-      password: params.password,
-      department: params.department,
-    );
-  }
+Future<Either<Failure, UserEntity>> call(LoginParams params) async {
+  return await repository.loginUser(
+    userId: params.userId,
+    password: params.password,
+    name: params.name,
+  );
+}
 }
 
 /// Parameters for the login use case
 class LoginParams extends Equatable {
   final String userId;
   final String password;
-  final String department;
+  final String name;
 
   const LoginParams({
     required this.userId,
     required this.password,
-    required this.department,
+    required this.name,
   });
 
   @override
-  List<Object> get props => [userId, password, department];
+  List<Object> get props => [userId, password, name];
 }

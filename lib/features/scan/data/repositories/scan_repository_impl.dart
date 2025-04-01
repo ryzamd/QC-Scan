@@ -49,35 +49,11 @@ class ScanRepositoryImpl implements ScanRepository {
   Future<Either<Failure, Map<String, String>>> getMaterialInfo(String barcode) async {
     if (await networkInfo.isConnected) {
       try {
-        // First attempt to get material info from the remote data source
-        final materialInfo = await remoteDataSource.getMaterialInfo(barcode);
+        // Lấy thông tin vật liệu từ API với userName của người dùng hiện tại
+        final materialInfo = await remoteDataSource.getMaterialInfo(barcode, "品管質檢");
         return Right(materialInfo);
       } on MaterialNotFoundException catch (_) {
-        // If material not found remotely, generate mock data
-        // This is only for demo purposes
-        try {
-          Map<String, String> mockInfo = {};
-          if (barcode.contains('/')) {
-            mockInfo = {
-              'Material Name': '本白1-400ITPG 荷布DJT-8543 GUSTI TEX EPM 100% 315G 44"',
-              'Material ID': barcode,
-              'Quantity': '50.5',
-              'Receipt Date': DateTime.now().toString().substring(0, 19),
-              'Supplier': 'DONGJIN-USD',
-            };
-          } else {
-            mockInfo = {
-              'Material Name': 'Material ${barcode.hashCode % 1000}',
-              'Material ID': barcode,
-              'Quantity': '${(barcode.hashCode % 100).abs() + 10}',
-              'Receipt Date': DateTime.now().toString().substring(0, 19),
-              'Supplier': 'Supplier ${barcode.hashCode % 5 + 1}',
-            };
-          }
-          return Right(mockInfo);
-        } catch (e) {
-          return Left(ServerFailure('Error generating mock data: ${e.toString()}'));
-        }
+        return Left(ServerFailure('Material with code $barcode not found in the system.'));
       } on ScanException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -88,21 +64,25 @@ class ScanRepositoryImpl implements ScanRepository {
     }
   }
 
+
   @override
   Future<Either<Failure, bool>> sendToProcessing(List<ScanRecordEntity> records) async {
     if (await networkInfo.isConnected) {
       try {
-        final recordModels = records.map((record) => record as ScanRecordModel).toList();
-        final success = await remoteDataSource.sendToProcessing(recordModels);
-        
-        if (success) {
-          // Clear records after successful processing
-          // This is optional and depends on your business logic
-          // await localDataSource.clearScanRecordsForUser(records.first.userId);
-          return const Right(true);
-        } else {
-          return Left(ServerFailure('Failed to send records to processing.'));
+        // Xử lý mỗi record - trong trường hợp này chỉ cần record cuối cùng
+        if (records.isEmpty) {
+          return const Left(ServerFailure('No records to process'));
         }
+        
+        final lastRecord = records.last;
+        final code = lastRecord.code;
+        final userName = lastRecord.userId;
+        final deduction = 0; // Default nếu không có khấu trừ
+        
+        // Gọi API để lưu thông tin
+        final success = await remoteDataSource.saveQualityInspection(code, userName, deduction);
+        
+        return Right(success);
       } on ProcessingException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {

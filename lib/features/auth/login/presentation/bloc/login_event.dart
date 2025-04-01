@@ -13,15 +13,17 @@ class LoginButtonPressed extends LoginEvent {
   final String userId;
   final String password;
   final String department;
+  final String name;
 
   const LoginButtonPressed({
     required this.userId,
     required this.password,
-    required this.department,
+    this.department = "",
+    required this.name
   });
 
   @override
-  List<Object> get props => [userId, password, department];
+  List<Object> get props => [userId, password, department, name];
 }
 
 /// Event triggered when the department selection changes
