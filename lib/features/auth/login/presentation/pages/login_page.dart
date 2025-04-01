@@ -26,8 +26,8 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   
   // Selected department state
-  String _selectedDepartment = 'QC 1';
-  final List<String> _departments = ['QC 1', 'QC 2', 'QC 3'];
+  String _selectedDepartment = '品管質檢';
+  final List<String> _departments = ['品管質檢', '品管正式倉'];
   
   // Focus nodes to control keyboard focus
   final FocusNode _userIdFocusNode = FocusNode();
@@ -76,8 +76,6 @@ class _LoginPageState extends State<LoginPage> {
       child: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
-            // If login is successful, navigate to the scan page (processing route)
-            // Pass the user entity to the processing page
             Navigator.pushReplacementNamed(
               context,
               AppRoutes.processing,
@@ -209,12 +207,13 @@ class _LoginPageState extends State<LoginPage> {
                                                   if (_formKey.currentState!.validate()) {
                                                     // Dispatch login event to the bloc
                                                     context.read<LoginBloc>().add(
-                                                          LoginButtonPressed(
-                                                            userId: _userIdController.text,
-                                                            password: _passwordController.text,
-                                                            department: _selectedDepartment,
-                                                          ),
-                                                        );
+                                                            LoginButtonPressed(
+                                                              userId: _userIdController.text,
+                                                              password: _passwordController.text,
+                                                              department: "", // Không cần truyền department nữa
+                                                              name: _selectedDepartment, // Truyền tên thay vì department
+                                                            ),
+                                                          );
                                                   }
                                                 },
                                               );

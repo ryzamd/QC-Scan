@@ -36,7 +36,6 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final BackButtonService _backButtonService = BackButtonService();
 
@@ -58,66 +57,63 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        navigatorKey: _navigatorKey,
-        title: 'Pro Well',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: AppColors.primary,
-          colorScheme: ColorScheme.fromSwatch().copyWith(
-            primary: AppColors.primary,
-            secondary: AppColors.accent,
-          ),
-          fontFamily: 'Poppins',
-          scaffoldBackgroundColor: AppColors.scaffoldBackground,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            systemOverlayStyle: SystemUiOverlayStyle.light,
-          ),
+      navigatorKey: _navigatorKey,
+      title: 'Pro Well',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: AppColors.primary,
+        colorScheme: ColorScheme.fromSwatch().copyWith(
+          primary: AppColors.primary,
+          secondary: AppColors.accent,
         ),
-        initialRoute: AppRoutes.login,
-        onGenerateRoute: (settings) {
-          // For routes that need to pass parameters
-          if (settings.name == AppRoutes.processing) {
-            // Extract user from arguments
+        fontFamily: 'Poppins',
+        scaffoldBackgroundColor: AppColors.scaffoldBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+        ),
+      ),
+      initialRoute: AppRoutes.login,
+      onGenerateRoute: (settings) {
+        // For routes that need to pass parameters
+        if (settings.name == AppRoutes.processing) {
+          // Extract user from arguments
+          final args = settings.arguments as UserEntity;
+          return MaterialPageRoute(
+            builder:
+                (context) => BlocProvider(
+                  create: (context) => di.sl<ProcessingBloc>(),
+                  child: ProcessingPage(user: args),
+                ),
+          );
+        } else if (settings.name == AppRoutes.scan) {
+          // Kiểm tra arguments không null
+          if (settings.arguments != null) {
             final args = settings.arguments as UserEntity;
             return MaterialPageRoute(
-              builder:
-                  (context) => BlocProvider(
-                    create: (context) => di.sl<ProcessingBloc>(),
-                    child: const ProcessingPage(),
-                  ),
+              builder: (context) => ScanPageProvider(user: args),
             );
-          } else if (settings.name == AppRoutes.scan) {
-            // Nếu arguments là null, lấy từ mockdata
-            if (settings.arguments == null) {
-              // Sử dụng user mặc định từ mockdata
-              final defaultUser =
-                  UserModel.dummyUsers[0]; // Lấy admin hoặc user tùy nhu cầu
-              return MaterialPageRoute(
-                builder: (context) => ScanPageProvider(user: defaultUser),
-              );
-            } else {
-              // Nếu có arguments hợp lệ
-              final args = settings.arguments as UserEntity;
-              return MaterialPageRoute(
-                builder: (context) => ScanPageProvider(user: args),
-              );
-            }
-          } else if (settings.name == AppRoutes.processRecords) {
-            // Extract user from arguments
-            final args = settings.arguments as UserEntity;
-            return MaterialPageRoute(builder: (context) => ProcessingPage());
+          } else {
+            // Không có user, chuyển về login
+            return MaterialPageRoute(builder: (_) => const LoginPage());
           }
+        } else if (settings.name == AppRoutes.processRecords) {
+          // Extract user from arguments
+          final args = settings.arguments as UserEntity;
+          return MaterialPageRoute(
+            builder: (context) => ProcessingPage(user: args),
+          );
+        }
 
-          // Standard routes
-          switch (settings.name) {
-            case AppRoutes.login:
-              return MaterialPageRoute(builder: (_) => const LoginPage());
-            default:
-              return MaterialPageRoute(builder: (_) => const LoginPage());
-          }
-        },
-      );
+        // Standard routes
+        switch (settings.name) {
+          case AppRoutes.login:
+            return MaterialPageRoute(builder: (_) => const LoginPage());
+          default:
+            return MaterialPageRoute(builder: (_) => const LoginPage());
+        }
+      },
+    );
   }
 }

@@ -1,4 +1,6 @@
 // lib/features/auth/login/presentation/bloc/login_bloc.dart
+import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
+import 'package:architecture_scan_app/core/network/dio_client.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/user_login.dart';
 import '../../domain/usecases/validate_token.dart';
@@ -30,14 +32,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       LoginParams(
         userId: event.userId,
         password: event.password,
-        department: event.department,
+        name: event.name,
       ),
     );
 
     // Emit success or failure based on the result
     result.fold(
       (failure) => emit(LoginFailure(message: failure.message)),
-      (user) => emit(LoginSuccess(user: user)),
+      (user) { di.sl<DioClient>().setAuthToken(user.token); emit(LoginSuccess(user: user)); },
     );
   }
 

@@ -15,31 +15,20 @@ class UserModel extends UserEntity {
     required super.role,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    if (json['user'] != null && json['user']['users'] != null) {
+      final users = json['user']['users'];
+      return UserModel(
+        userId: users['userID'] ?? '',
+        password: users['password'] ?? '',
+        department: users['department'] ?? '',
+        name: users['name'] ?? '',
+        token: json['token'] ?? users['token'] ?? '',
+        role: 'user', // API không trả về role, gán mặc định
+      );
+    }
+    return _$UserModelFromJson(json);
+  }
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
-
-  // Dummy data for testing purposes
-  // This will be used only during development and testing
-  static List<UserModel> dummyUsers = [
-    const UserModel(
-      userId: 'admin',
-      password: 'admin123',
-      department: 'QC 1',
-      name: 'QC部门', // Chinese name
-      token:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9',
-      role: 'admin',
-    ),
-    const UserModel(
-      userId: 'user',
-      password: 'user123',
-      department: 'QC 2',
-      name: '仓库部门', // Chinese name
-      token:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyIiwicm9sZSI6InVzZXIifQ',
-      role: 'user',
-    ),
-  ];
 }

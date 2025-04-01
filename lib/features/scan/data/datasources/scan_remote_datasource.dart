@@ -1,19 +1,20 @@
+// lib/features/scan/data/datasources/scan_remote_datasource.dart
+import 'package:architecture_scan_app/core/constants/api_constants.dart';
+import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
 import 'package:dio/dio.dart';
-import '../models/scan_record_model.dart';
-
 
 abstract class ScanRemoteDataSource {
-  /// Get material information based on a barcode
-  ///
+  /// Get material information from server based on scanned code
+  /// 
   /// Throws [MaterialNotFoundException] if material not found
   /// Throws [ScanException] if operation fails
-  Future<Map<String, String>> getMaterialInfo(String barcode);
+  Future<Map<String, String>> getMaterialInfo(String code, String userName);
   
-  /// Send scan records to processing
+  /// Save quality inspection data with deduction
   ///
   /// Throws [ProcessingException] if processing fails
-  Future<bool> sendToProcessing(List<ScanRecordModel> records);
+  Future<bool> saveQualityInspection(String code, String userName, int deduction);
 }
 
 class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
@@ -22,47 +23,45 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   ScanRemoteDataSourceImpl({required this.dio});
   
   @override
-  Future<Map<String, String>> getMaterialInfo(String barcode) async {
+  Future<Map<String, String>> getMaterialInfo(String code, String userName) async {
     try {
-      // Simulate API call to get material info
-      // In production, you would call a real API
-      await Future.delayed(const Duration(milliseconds: 500));
+      final response = await dio.post( ApiConstants.checkCodeUrl,
+        data: {
+          'code': code,
+          'user_name': userName
+        }
+      );
       
-      // Simulated material info for testing
-      if (barcode.isEmpty) {
-        throw MaterialNotFoundException(barcode);
-      }
-      
-      // Mock different material info based on barcode
-      if (barcode.contains('MAT')) {
-        return {
-          'Material ID': barcode,
-          'Material Name': 'Steel Plate ${barcode.substring(3)}',
-          'Category': 'Raw Material',
-          'Supplier': 'ProWell Industries',
-          'Batch': 'B-${barcode.hashCode.toString().substring(0, 4)}',
-          'Quantity': '10',
-        };
-      } else if (barcode.contains('PROD')) {
-        return {
-          'Material ID': barcode,
-          'Material Name': 'Finished Product ${barcode.substring(4)}',
-          'Category': 'Finished Good',
-          'Production Date': DateTime.now().subtract(const Duration(days: 2)).toString().substring(0, 10),
-          'Inspector': 'QC Team',
-          'Quantity': '1',
-        };
+      if (response.statusCode == 200) {
+        if (response.data['message'] == 'Success') {
+          final materialData = response.data['data'];
+          // Convert dynamic data to Map<String, String>
+          return {
+            'Material Name': materialData['m_name'] ?? '',
+            'Material ID': materialData['code'] ?? code,
+            'Quantity': materialData['m_qty']?.toString() ?? '0',
+            'Receipt Date': materialData['m_date'] ?? '',
+            'Supplier': materialData['m_vendor'] ?? '',
+            'Unit': materialData['m_unit'] ?? '',
+            'Status': materialData['qty_state'] ?? '',
+            // Lưu lại các trường gốc cần thiết
+            'code': materialData['code'] ?? code,
+            'm_name': materialData['m_name'] ?? '',
+            'm_qty': materialData['m_qty']?.toString() ?? '0'
+          };
+        } else {
+          throw MaterialNotFoundException(code);
+        }
       } else {
-        return {
-          'Material ID': barcode,
-          'Material Name': 'Generic Material',
-          'Category': 'Miscellaneous',
-          'Location': 'Warehouse',
-          'Scan Time': DateTime.now().toString().substring(0, 19),
-          'Quantity': '1',
-        };
+        throw ServerException('Server returned error code: ${response.statusCode}');
       }
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw ScanException('Connection timeout. Please check your network.');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw ScanException('Cannot connect to server. Please check your network.');
+      }
       throw ScanException('Network error: ${e.message}');
     } catch (e) {
       if (e is MaterialNotFoundException) {
@@ -73,18 +72,36 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
   
   @override
-  Future<bool> sendToProcessing(List<ScanRecordModel> records) async {
+  Future<bool> saveQualityInspection(String code, String userName, int deduction) async {
     try {
-      // Simulate API call to send records to processing
-      // In production, you would call a real API
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await dio.post(
+        'http://192.168.6.141:7053/api/qc_scan/qc_int/NoFormal_save',
+        data: {
+          'post_no_qc_code': code,
+          'post_no_qc_UserName': userName,
+          'post_no_qc_qty': deduction
+        }
+      );
       
-      // For testing purposes, always return true
-      return true;
+      if (response.statusCode == 200) {
+        if (response.data['message'] == 'Success') {
+          return true;
+        } else {
+          throw ProcessingException('Failed to save quality inspection: ${response.data['message']}');
+        }
+      } else {
+        throw ServerException('Server returned error code: ${response.statusCode}');
+      }
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw ProcessingException('Connection timeout. Please check your network.');
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw ProcessingException('Cannot connect to server. Please check your network.');
+      }
       throw ProcessingException('Network error: ${e.message}');
     } catch (e) {
-      throw ProcessingException('Failed to send records to processing: ${e.toString()}');
+      throw ProcessingException('Failed to save quality inspection: ${e.toString()}');
     }
   }
 }

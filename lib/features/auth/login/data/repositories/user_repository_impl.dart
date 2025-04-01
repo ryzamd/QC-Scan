@@ -20,7 +20,7 @@ class UserRepositoryImpl implements UserRepository {
   Future<Either<Failure, UserEntity>> loginUser({
     required String userId,
     required String password,
-    required String department,
+    required String name,
   }) async {
     // First check network connectivity
     if (await networkInfo.isConnected) {
@@ -29,7 +29,7 @@ class UserRepositoryImpl implements UserRepository {
         final user = await remoteDataSource.loginUser(
           userId: userId,
           password: password,
-          department: department,
+          name: name,
         );
         
         return Right(user);

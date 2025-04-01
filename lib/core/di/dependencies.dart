@@ -40,6 +40,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
 
   sl.registerLazySingleton(() => ProcessingDataService());
+  sl.registerLazySingleton<DioClient>(() => DioClient());
   
   //! Features - Login
   // BLoC
@@ -74,6 +75,7 @@ Future<void> init() async {
       getMaterialInfo: sl(),
       saveScanRecord: sl(),
       sendToProcessing: sl(),
+      remoteDataSource: sl<ScanRemoteDataSource>(),
       currentUser: user,
     ),
   );

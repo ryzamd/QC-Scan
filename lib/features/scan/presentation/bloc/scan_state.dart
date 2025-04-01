@@ -139,6 +139,15 @@ class DataSavedState extends ScanState {
   List<Object> get props => [savedRecord, scannedItems];
 }
 
+  class ScanProcessingState extends ScanState {
+    final String barcode;
+
+    const ScanProcessingState({required this.barcode});
+
+    @override
+    List<Object> get props => [barcode];
+  }
+
 /// State representing data being sent to processing
 class SendingToProcessingState extends ScanState {
   final List<ScanRecordEntity> records;
