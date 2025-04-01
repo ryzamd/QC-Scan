@@ -11,10 +11,8 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final UserLogin userLogin;
   final ValidateToken validateToken;
 
-  LoginBloc({
-    required this.userLogin,
-    required this.validateToken,
-  }) : super(LoginInitial()) {
+  LoginBloc({required this.userLogin, required this.validateToken})
+    : super(LoginInitial()) {
     on<LoginButtonPressed>(_onLoginButtonPressed);
     on<CheckToken>(_onCheckToken);
   }
@@ -37,24 +35,22 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     );
 
     // Emit success or failure based on the result
-    result.fold(
-      (failure) => emit(LoginFailure(message: failure.message)),
-      (user) { di.sl<DioClient>().setAuthToken(user.token); emit(LoginSuccess(user: user)); },
-    );
+    result.fold((failure) => emit(LoginFailure(message: failure.message)), (
+      user,
+    ) {
+      // Set token immediately after successful login
+      di.sl<DioClient>().setAuthToken(user.token);
+      emit(LoginSuccess(user: user));
+    });
   }
 
   /// Handle token check event
-  Future<void> _onCheckToken(
-    CheckToken event,
-    Emitter<LoginState> emit,
-  ) async {
+  Future<void> _onCheckToken(CheckToken event, Emitter<LoginState> emit) async {
     // Show loading state
     emit(TokenChecking());
 
     // Call the validate token use case
-    final result = await validateToken(
-      TokenParams(token: event.token),
-    );
+    final result = await validateToken(TokenParams(token: event.token));
 
     // Emit success or failure based on the result
     result.fold(

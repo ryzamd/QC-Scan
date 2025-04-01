@@ -21,7 +21,11 @@ class BackButtonService {
   void initialize(BuildContext context) {
     _subscription?.cancel();
     _subscription = _eventChannel.receiveBroadcastStream().listen(
-      (_) => _showExitConfirmationDialog(context),
+      (_) {
+        if (context.mounted) {
+          _showExitConfirmationDialog(context);
+        }
+      },
     );
   }
 

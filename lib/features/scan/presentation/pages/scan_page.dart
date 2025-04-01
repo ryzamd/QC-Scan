@@ -28,7 +28,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   // State variables
   bool _cameraActive = false;
   bool _torchEnabled = false;
-  bool _isSaving = false;
+  final bool _isSaving = false;
   bool _isDeductionDialogOpen = false;
   String? _currentScannedValue;
   DateTime? _lastSnackbarTime;
@@ -158,23 +158,28 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   Future<void> _toggleTorch() async {
     debugPrint("QR DEBUG: Toggle torch button pressed");
     if (_controller != null) {
+      final scanBloc = context.read<ScanBloc>();
       await _controller!.toggleTorch();
+      if (!mounted) return;
+      
       setState(() {
         _torchEnabled = !_torchEnabled;
       });
 
       // Update bloc with torch state
-      context.read<ScanBloc>().add(ToggleTorch(_torchEnabled));
+      scanBloc.add(ToggleTorch(_torchEnabled));
     }
   }
 
   Future<void> _switchCamera() async {
     debugPrint("QR DEBUG: Switch camera button pressed");
     if (_controller != null) {
+      final scanBloc = context.read<ScanBloc>();
       await _controller!.switchCamera();
+      if (!mounted) return;
 
       // Notify bloc
-      context.read<ScanBloc>().add(SwitchCamera());
+      scanBloc.add(SwitchCamera());
     }
   }
 
@@ -222,8 +227,8 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       debugPrint("QR DEBUG: ---------- BARCODE INFO ----------");
       debugPrint("QR DEBUG: Format: $format");
       debugPrint("QR DEBUG: RawValue: $rawValue");
-      debugPrint("QR DEBUG: Has corners: ${corners != null}");
-      if (corners != null) {
+      debugPrint("QR DEBUG: Has corners: ${corners.isNotEmpty}");
+      if (corners.isNotEmpty) {
         debugPrint("QR DEBUG: Number of corners: ${corners.length}");
       }
 
@@ -338,11 +343,15 @@ Future<void> _saveData() async {
   debugPrint("QR DEBUG: Save button pressed");
 
   if (_materialData['Material ID']?.isEmpty ?? true) {
+    
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('No data to save'))
     );
     return;
   }
+
+  if (!mounted) return;
 
   // Hiển thị dialog khấu trừ
   setState(() {
@@ -399,7 +408,9 @@ Future<void> _saveData() async {
     setState(() {
       _isDeductionDialogOpen = false;
     });
-    
+
+    if(!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
     );

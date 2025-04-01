@@ -26,30 +26,52 @@ class MainActivity : FlutterActivity() {
     // Broadcast receiver for scanner events
     private val scannerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d("MainActivity", "Direct BroadcastReceiver triggered in MainActivity")
+            Log.d("MainActivity", "Direct BroadcastReceiver triggered in MainActivity with action: ${intent?.action}")
             if (intent == null) return
             
-            // Log all extras
-            intent.extras?.keySet()?.forEach { key ->
-                Log.d("MainActivity", "Key in MainActivity receiver: $key = ${intent.getStringExtra(key)}")
+            // Log all extras in detail
+            intent.extras?.let { bundle ->
+                Log.d("MainActivity", "Bundle contains ${bundle.size()} items")
+                bundle.keySet()?.forEach { key ->
+                    when {
+                        bundle.getString(key) != null -> Log.d("MainActivity", "String: $key = ${bundle.getString(key)}")
+                        bundle.getByteArray(key) != null -> Log.d("MainActivity", "ByteArray: $key = ${String(bundle.getByteArray(key)!!)}")
+                        else -> Log.d("MainActivity", "Other: $key = ${bundle.getString(key)}")
+                    }
+                }
             }
             
-            val scanData = intent.getStringExtra("scan_data")
-                ?: intent.getStringExtra("com.ubx.datawedge.data_string")
-                ?: intent.getStringExtra("barcode_string")
-                ?: intent.getStringExtra("urovo.rcv.message")
-                ?: intent.getStringExtra("scannerdata")
-                ?: intent.getStringExtra("data")
-                ?: intent.getStringExtra("decode_data")
-                ?: intent.getStringExtra("barcode")
-                ?: intent.getStringExtra("data_string")
-                ?: intent.getStringExtra("scan_result")
-                ?: intent.getStringExtra("SCAN_BARCODE1")
-                ?: intent.getByteArrayExtra("barcode_values")?.let { String(it) }
+            // Try to get scan data from various sources
+            val scanData = when {
+                // Check for byte array data first
+                intent.hasExtra("barcode_values") -> {
+                    intent.getByteArrayExtra("barcode_values")?.let { String(it) }
+                }
+                // Check for bundle data
+                intent.hasExtra("data_bundle") -> {
+                    intent.getBundleExtra("data_bundle")?.getString("barcode_data")
+                }
+                // Check for common string extras
+                else -> {
+                    intent.getStringExtra("scan_data")
+                        ?: intent.getStringExtra("com.ubx.datawedge.data_string")
+                        ?: intent.getStringExtra("barcode_string")
+                        ?: intent.getStringExtra("urovo.rcv.message")
+                        ?: intent.getStringExtra("scannerdata")
+                        ?: intent.getStringExtra("data")
+                        ?: intent.getStringExtra("decode_data")
+                        ?: intent.getStringExtra("barcode")
+                        ?: intent.getStringExtra("data_string")
+                        ?: intent.getStringExtra("scan_result")
+                        ?: intent.getStringExtra("SCAN_BARCODE1")
+                }
+            }
                 
             if (scanData != null) {
-                Log.d("MainActivity", "📱 Direct receiver got scan data: $scanData")
+                Log.d("MainActivity", "📱 Scan data found: $scanData")
                 sendScanDataToFlutter(scanData)
+            } else {
+                Log.e("MainActivity", "❌ No scan data found in intent")
             }
         }
     }
@@ -91,9 +113,9 @@ class MainActivity : FlutterActivity() {
                     Log.d("MainActivity", "📡 EventChannel Listener Started")
                     
                     // Send test data to verify channel is working
-                    handler.postDelayed({
-                        sendScanDataToFlutter("TEST_CHANNEL_DATA")
-                    }, 3000)
+                    // handler.postDelayed({
+                    //     sendScanDataToFlutter("TEST_CHANNEL_DATA")
+                    // }, 3000)
                 }
 
                 override fun onCancel(arguments: Any?) {
@@ -108,7 +130,7 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "testScanEvent" -> {
                         Log.d("MainActivity", "testScanEvent method called from Flutter")
-                        sendScanDataToFlutter("TEST_METHOD_CHANNEL")
+                        // sendScanDataToFlutter("TEST_METHOD_CHANNEL")
                         result.success(true)
                     }
                     else -> {
