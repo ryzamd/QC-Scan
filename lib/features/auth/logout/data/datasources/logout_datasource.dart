@@ -1,5 +1,4 @@
 import 'package:architecture_scan_app/core/network/dio_client.dart';
-import 'package:architecture_scan_app/core/services/processing_data_service.dart';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_service_impl.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';

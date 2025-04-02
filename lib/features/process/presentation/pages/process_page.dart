@@ -1,3 +1,5 @@
+import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
+import 'package:architecture_scan_app/core/repositories/auth_repository.dart';
 import 'package:architecture_scan_app/core/widgets/scafford_custom.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
@@ -6,20 +8,42 @@ import 'package:architecture_scan_app/features/process/presentation/bloc/process
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_event.dart';
 import '../widgets/data_table_widget.dart';
 
-class ProcessingPage extends StatelessWidget {
+class ProcessingPage extends StatefulWidget {
   final UserEntity user;
   const ProcessingPage({super.key, required this.user});
 
   @override
+  State<ProcessingPage> createState() => _ProcessingPageState();
+}
+
+class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObserver {
+
+  @override
+    void initState() {
+      super.initState();
+      
+      // Debug token state before loading data
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        di.sl<AuthRepository>().debugTokenState().then((_) {
+          if (mounted) {
+            context.read<ProcessingBloc>().add(GetProcessingItemsEvent(userName: widget.user.name));
+          }
+        });
+      });
+    }
+
+  @override
   Widget build(BuildContext context) {
+
+
     // Fetch data when page is loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ProcessingBloc>().add(GetProcessingItemsEvent(userName: user.name));
+      context.read<ProcessingBloc>().add(GetProcessingItemsEvent(userName: widget.user.name));
     });
 
     return CustomScaffold(
       title: 'PROCESSING',
-      user: user,
+      user: widget.user,
       currentIndex: 0,
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -47,7 +71,7 @@ class ProcessingPage extends StatelessWidget {
           icon: const Icon(Icons.refresh, color: Colors.white),
           onPressed: () {
             // Refresh data with user's name
-            context.read<ProcessingBloc>().add(RefreshProcessingItemsEvent(userName: user.name));
+            context.read<ProcessingBloc>().add(RefreshProcessingItemsEvent(userName: widget.user.name));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Refreshing data...'),
@@ -60,7 +84,7 @@ class ProcessingPage extends StatelessWidget {
       ],
     );
   }
-  
+
   // Search bar widget
   Widget _buildSearchBar(BuildContext context) {
     final TextEditingController controller = TextEditingController();

@@ -1,8 +1,11 @@
 // lib/features/process/data/datasources/processing_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
+import 'package:architecture_scan_app/core/di/dependencies.dart';
 import 'package:architecture_scan_app/core/enums/enums.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
+import 'package:architecture_scan_app/core/services/secure_storage_service.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
@@ -28,6 +31,9 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
 
  @override
   Future<List<ProcessingItemModel>> getProcessingItems(String userName) async {
+
+     final token = await sl<SecureStorageService>().getAccessToken();
+     
     if (useMockData) {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 800));
@@ -56,24 +62,46 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
       ];
     }
 
-    try {
-      final response = await dio.get(
-        'http://192.168.6.141:7053/api/login/data_list/user_name?name=$userName',
-        data: {'name': userName},
-      );
+     try {
+    // Make sure we're using POST with correct format
+    final response = await dio.post(
+      ApiConstants.homeListUrl,
+      data: {"name": userName}, // Ensure this exact format matches Postman
+      options: Options(
+        headers: {"Authorization": "Bearer $token"},
+        
+        contentType: 'application/json',
+        extra: {'log_request': true}
+      ),
+    );
+    
+    // Add detailed logging
+    debugPrint('Processing API response code: ${response.statusCode}');
+    debugPrint('Processing API response headers: ${response.headers}');
+    debugPrint('Processing API response data type: ${response.data.runtimeType}');
+    
+    if (response.statusCode == 200) {
+      final List<dynamic> itemsJson = response.data;
+      final result = itemsJson.map((itemJson) =>
+        ProcessingItemModel.fromJson(itemJson)
+      ).toList();
       
-      if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = response.data;
-        return itemsJson.map((itemJson) => ProcessingItemModel.fromJson(itemJson)).toList();
-      } else {
-        throw ServerException('Failed to load processing items: ${response.statusCode}');
-      }
-    } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Error fetching processing items');
-    } catch (e) {
-      throw ServerException(e.toString());
+      return result;
+    } else {
+      throw ServerException('Failed to load processing items: ${response.statusCode}');
     }
+  } on DioException catch (e) {
+    debugPrint('DioException in getProcessingItems: ${e.message}');
+    debugPrint('Request path: ${e.requestOptions.path}');
+    debugPrint('Request headers: ${e.requestOptions.headers}');
+    debugPrint('Request method: ${e.requestOptions.method}');
+    debugPrint('Request data: ${e.requestOptions.data}');
+    throw ServerException(e.message ?? 'Error fetching processing items');
+  } catch (e) {
+    debugPrint('Unexpected error in getProcessingItems: $e');
+    throw ServerException(e.toString());
   }
+}
   
   // @override
   // Future<List<ProcessingItemModel>> refreshProcessingItems() async {

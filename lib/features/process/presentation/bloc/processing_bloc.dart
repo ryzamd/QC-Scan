@@ -204,8 +204,8 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   void _sortItemsByTimestamp(List<ProcessingItemEntity> items, bool ascending) {
     items.sort((a, b) {
       return ascending
-          ? a.cDate.compareTo(b.cDate)
-          : b.cDate.compareTo(a.cDate);
+          ? a.cDate!.compareTo(b.cDate!)
+          : b.cDate!.compareTo(a.cDate!);
     });
   }
 
@@ -221,8 +221,8 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
     return items.where((item) {
       // Search by name and project code
-      if (item.mName.toLowerCase().contains(lowercaseQuery) ||
-          item.mPrjcode.toLowerCase().contains(lowercaseQuery)) {
+      if (item.mName!.toLowerCase().contains(lowercaseQuery) ||
+          item.mPrjcode!.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
 
@@ -232,7 +232,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
       }
 
       // Search by supplier
-      if (item.mVendor.toLowerCase().contains(lowercaseQuery)) {
+      if (item.mVendor!.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
 

@@ -1,5 +1,9 @@
 // lib/core/di/dependencies.dart
+import 'package:architecture_scan_app/core/network/token_interceptor.dart';
+import 'package:architecture_scan_app/core/repositories/auth_repository.dart';
+import 'package:architecture_scan_app/core/services/secure_storage_service.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,7 +18,6 @@ import '../../features/auth/login/domain/repositories/user_repository.dart';
 import '../../features/auth/login/domain/usecases/user_login.dart';
 import '../../features/auth/login/domain/usecases/validate_token.dart';
 import '../../features/auth/login/presentation/bloc/login_bloc.dart';
-import '../../core/services/processing_data_service.dart';
 import '../../features/auth/logout/data/datasources/logout_datasource.dart';
 import '../../features/auth/logout/data/repositories/logout_repository_impl.dart';
 import '../../features/auth/logout/domain/repositories/logout_repository.dart';
@@ -37,14 +40,40 @@ import '../../features/process/data/datasources/processing_remote_datasource.dar
 import '../../features/process/data/repositories/processing_repository_impl.dart';
 import '../../features/process/domain/repositories/processing_repository.dart';
 import '../../features/process/domain/usecases/get_processing_items.dart';
-import '../../features/process/domain/usecases/refresh_processing_items.dart';
 import '../../features/process/presentation/bloc/processing_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
 
-  sl.registerLazySingleton<DioClient>(() => DioClient());
+  //Sytem
+  // Register SecureStorageService first
+  sl.registerLazySingleton(() => SecureStorageService());
+  
+  // Create DioClient instance
+  final dioClient = DioClient();
+  sl.registerLazySingleton<DioClient>(() => dioClient);
+  
+  // Register AuthRepository
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepository(sl<SecureStorageService>(), sl<DioClient>()),
+  );
+  
+  // Register navigator key
+  final navigatorKey = GlobalKey<NavigatorState>();
+  sl.registerLazySingleton<GlobalKey<NavigatorState>>(() => navigatorKey);
+  
+  // Create TokenInterceptor and add it to DioClient immediately
+  final tokenInterceptor = TokenInterceptor(
+    authRepository: sl<AuthRepository>(),
+    navigatorKey: sl<GlobalKey<NavigatorState>>(),
+  );
+  
+  // Add interceptor to dio client directly
+  dioClient.dio.interceptors.insert(0, tokenInterceptor);
+  
+  // Register the individual Dio instance for components that need direct access
+  sl.registerLazySingleton<Dio>(() => dioClient.dio);
   
   //! Features - Login
   // BLoC
@@ -165,5 +194,5 @@ Future<void> init() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
   sl.registerLazySingleton(() => InternetConnectionChecker());
-  sl.registerLazySingleton(() => DioClient().dio);
+ // sl.registerLazySingleton(() => DioClient().dio);
 }

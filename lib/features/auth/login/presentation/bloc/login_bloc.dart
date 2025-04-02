@@ -1,6 +1,6 @@
 // lib/features/auth/login/presentation/bloc/login_bloc.dart
 import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
-import 'package:architecture_scan_app/core/network/dio_client.dart';
+import 'package:architecture_scan_app/core/repositories/auth_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/user_login.dart';
 import '../../domain/usecases/validate_token.dart';
@@ -25,23 +25,23 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     // Show loading state
     emit(LoginLoading());
 
-    // Call the login use case
-    final result = await userLogin(
-      LoginParams(
-        userId: event.userId,
-        password: event.password,
-        name: event.name,
-      ),
+    // Call the authRepository directly
+    final result = await di.sl<AuthRepository>().loginUser(
+      userId: event.userId,
+      password: event.password,
+      name: event.name,
     );
 
     // Emit success or failure based on the result
-    result.fold((failure) => emit(LoginFailure(message: failure.message)), (
-      user,
-    ) {
-      // Set token immediately after successful login
-      di.sl<DioClient>().setAuthToken(user.token);
-      emit(LoginSuccess(user: user));
-    });
+    result.fold(
+      (failure) => emit(LoginFailure(message: failure.message)),
+      (user) async {
+        emit(LoginSuccess(user: user));
+        
+        // Debug token state after login success
+        await di.sl<AuthRepository>().debugTokenState();
+      }
+    );
   }
 
   /// Handle token check event
