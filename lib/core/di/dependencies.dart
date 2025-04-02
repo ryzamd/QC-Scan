@@ -1,5 +1,4 @@
 // lib/core/di/dependencies.dart
-import 'package:architecture_scan_app/core/services/processing_data_service.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -15,6 +14,12 @@ import '../../features/auth/login/domain/repositories/user_repository.dart';
 import '../../features/auth/login/domain/usecases/user_login.dart';
 import '../../features/auth/login/domain/usecases/validate_token.dart';
 import '../../features/auth/login/presentation/bloc/login_bloc.dart';
+import '../../core/services/processing_data_service.dart';
+import '../../features/auth/logout/data/datasources/logout_datasource.dart';
+import '../../features/auth/logout/data/repositories/logout_repository_impl.dart';
+import '../../features/auth/logout/domain/repositories/logout_repository.dart';
+import '../../features/auth/logout/domain/usecases/logout_usecase.dart';
+import '../../features/auth/logout/presentation/bloc/logout_bloc.dart';
 
 // Scan feature
 import '../../features/scan/data/datasources/scan_local_datasource.dart';
@@ -66,6 +71,30 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<LoginRemoteDataSource>(
     () => LoginRemoteDataSourceImpl(dio: sl<Dio>()),
+  );
+
+    // Logout feature dependencies
+  sl.registerLazySingleton<LogoutDataSource>(
+    () => LogoutDataSourceImpl(
+      sharedPreferences: sl(),
+      dioClient: sl(),
+      processingDataService: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton<LogoutRepository>(
+    () => LogoutRepositoryImpl(
+      dataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(() => LogoutUseCase(sl()));
+
+  sl.registerFactory(
+    () => LogoutBloc(
+      logoutUseCase: sl(),
+    ),
   );
 
   //! Features - Scan
