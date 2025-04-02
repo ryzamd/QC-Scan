@@ -44,7 +44,6 @@ final sl = GetIt.instance;
 
 Future<void> init() async {
 
-  sl.registerLazySingleton(() => ProcessingDataService());
   sl.registerLazySingleton<DioClient>(() => DioClient());
   
   //! Features - Login
@@ -78,7 +77,7 @@ Future<void> init() async {
     () => LogoutDataSourceImpl(
       sharedPreferences: sl(),
       dioClient: sl(),
-      processingDataService: sl(),
+      //processingDataService: sl(),
     ),
   );
 
@@ -136,13 +135,13 @@ Future<void> init() async {
   sl.registerFactory(
     () => ProcessingBloc(
       getProcessingItems: sl(),
-      refreshProcessingItems: sl(),
+      //refreshProcessingItems: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetProcessingItems(sl()));
-  sl.registerLazySingleton(() => RefreshProcessingItems(sl()));
+  //sl.registerLazySingleton(() => RefreshProcessingItems(sl()));
 
   // Repository
   sl.registerLazySingleton<ProcessingRepository>(
@@ -154,7 +153,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<ProcessingRemoteDataSource>(
-    () => ProcessingRemoteDataSourceImpl(dio: sl(), useMockData: true),
+    () => ProcessingRemoteDataSourceImpl(dio: sl(), useMockData: false),
   );
 
   //! Core

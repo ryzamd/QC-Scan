@@ -1,4 +1,3 @@
-// lib/features/process/domain/usecases/get_processing_items.dart
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:architecture_scan_app/features/process/domain/repositories/processing_repository.dart';
@@ -11,12 +10,16 @@ class GetProcessingItems {
   GetProcessingItems(this.repository);
 
   /// Execute the get processing items use case
-  Future<Either<Failure, List<ProcessingItemEntity>>> call(NoParams params) async {
-    return await repository.getProcessingItems();
+  Future<Either<Failure, List<ProcessingItemEntity>>> call(GetProcessingParams params) async {
+    return await repository.getProcessingItems(params.userName);
   }
 }
 
-class NoParams extends Equatable {
+class GetProcessingParams extends Equatable {
+  final String userName;
+
+  const GetProcessingParams({required this.userName});
+  
   @override
-  List<Object> get props => [];
+  List<Object> get props => [userName];
 }
