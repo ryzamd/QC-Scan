@@ -24,7 +24,7 @@ class DeductionDialog extends StatefulWidget {
 
 class _DeductionDialogState extends State<DeductionDialog> {
   final TextEditingController _deductionController = TextEditingController(text: '0');
-  int _remainingQuantity = 0;
+  double _remainingQuantity = 0;
 
   @override
   void initState() {
@@ -39,8 +39,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
   }
 
   void _updateRemainingQuantity() {
-    final currentQuantity = int.tryParse(widget.currentQuantity) ?? 0;
-    final deduction = int.tryParse(_deductionController.text) ?? 0;
+    final double currentQuantity = double.tryParse(widget.currentQuantity) ?? 0;
+    final double deduction = double.tryParse(_deductionController.text) ?? 0;
     setState(() {
       _remainingQuantity = currentQuantity - deduction;
       if (_remainingQuantity < 0) _remainingQuantity = 0;
@@ -60,6 +60,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 5,
           children: [
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -81,7 +82,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
             ),
 
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -98,8 +99,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
                     ),
                   ),
                   
-                  const SizedBox(height: 12),
-                  
                   // Product code
                   RichText(
                     text: TextSpan(
@@ -113,9 +112,9 @@ class _DeductionDialogState extends State<DeductionDialog> {
                       ],
                     ),
                   ),
-                  
-                  const SizedBox(height: 12),
-                  
+
+                  const SizedBox(height: 5),
+
                   // Current quantity
                   RichText(
                     text: TextSpan(
@@ -125,12 +124,12 @@ class _DeductionDialogState extends State<DeductionDialog> {
                           text: 'Current Quantity: ',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        TextSpan(text: widget.currentQuantity),
+                        TextSpan(text: widget.currentQuantity, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
                       ],
                     ),
                   ),
                   
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 5),
                   
                   // Deduction input
                   Column(
@@ -143,7 +142,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.all(Radius.circular(5)),
@@ -165,7 +164,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                       )
                     ],
                   ),
-                  
+                 
                   // Remaining
                   Container(
                     padding: const EdgeInsets.only(top: 10),
@@ -193,7 +192,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
               ),
             ),
 
-            
             Container(
               padding: EdgeInsets.only(left: 20, right: 20),
               child: Row(
@@ -250,7 +248,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                 ],
               ),
             ),
-            SizedBox(height: 16,)
+           SizedBox(height: 12)
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+// Modified scan_page.dart
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,13 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     // Initialize hardware scanner listener
     ScanService.initializeScannerListener((scannedData) {
       debugPrint("QR DEBUG: Hardware scanner callback with data: $scannedData");
-      _processScannedData(scannedData, isFromHardwareScanner: true);
+      
+      // For hardware scanner, we'll directly add the event to the bloc
+      // rather than calling _processScannedData, to ensure consistent state handling
+      context.read<ScanBloc>().add(HardwareScanButtonPressed(scannedData));
+      
+      // Show feedback for hardware scanner
+      _showSnackbar("Hardware scan: $scannedData", backgroundColor: Colors.green);
     });
 
     _initializeCameraController();
@@ -240,13 +247,10 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       // Print QR value in console
       debugPrint("QR DEBUG: ✅ QR value success: $rawValue");
 
-      // Process barcode directly
-      _processScannedData(rawValue);
-
       // Use controlled snackbar display
       _showSnackbar("Scanned QR: $rawValue");
 
-      // Process barcode through BLoC as well
+      // Process barcode directly through BLoC
       context.read<ScanBloc>().add(BarcodeDetected(rawValue));
 
       // Stop processing after finding the first valid barcode
@@ -254,88 +258,26 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     }
   }
 
-  void _processScannedData(String data, {bool isFromHardwareScanner = false}) {
-    debugPrint(
-      "QR DEBUG: Starting to process scanned data: $data (Hardware: $isFromHardwareScanner)",
-    );
+  // This method is now only used for UI updates
+  void _updateUIFromMaterialInfo(Map<String, String> materialInfo, String barcode) {
+    debugPrint("QR DEBUG: Updating UI with new material data");
+    
+    setState(() {
+      _currentScannedValue = barcode;
+      _materialData = Map<String, String>.from(materialInfo);
 
-    if (data.isEmpty) {
-      debugPrint("QR DEBUG: ⚠️ Empty data, skipping");
-      return;
-    }
-
-    // Implement debounce for rapid scans
-    final now = DateTime.now();
-    if (_lastScanTime != null &&
-        now.difference(_lastScanTime!).inMilliseconds < 500) {
-      debugPrint("QR DEBUG: ⚠️ Scan too fast, ignoring");
-      return;
-    }
-    _lastScanTime = now;
-
-    // Skip if already processed this data
-    if (_currentScannedValue == data) {
-      debugPrint("QR DEBUG: ⚠️ Data already processed, skipping");
-
-      // Still show feedback for hardware scanner, even if duplicate
-      if (isFromHardwareScanner) {
-        _showSnackbar("Already scanned: $data", backgroundColor: Colors.orange);
+      // Add to scanned items list if not already present
+      if (!_scannedItems.any((item) => item[0] == barcode)) {
+        _scannedItems.add([barcode, 'Scanned', materialInfo['Quantity'] ?? '1']);
+        debugPrint("QR DEBUG: Added to scanned items list");
       }
-      return;
-    }
+    });
 
-    debugPrint("QR DEBUG: Updating UI with new data");
-
-    try {
-      setState(() {
-        _currentScannedValue = data;
-
-        // Process data into material information
-        if (data.contains('/')) {
-          debugPrint("QR DEBUG: Format contains '/'");
-          _materialData = {
-            'Material Name':
-                '本白1-400ITPG 荷布DJT-8543 GUSTI TEX EPM 100% 315G 44"',
-            'Material ID': data,
-            'Quantity': '50.5',
-            'Receipt Date': DateTime.now().toString().substring(0, 19),
-            'Supplier': 'DONGJIN-USD',
-          };
-        } else {
-          debugPrint("QR DEBUG: Standard format");
-          _materialData = {
-            'Material Name': 'Material ${data.hashCode % 1000}',
-            'Material ID': data,
-            'Quantity': '${(data.hashCode % 100).abs() + 10}',
-            'Receipt Date': DateTime.now().toString().substring(0, 19),
-            'Supplier': 'Supplier ${data.hashCode % 5 + 1}',
-          };
-        }
-
-        // Add to scanned items list if not already present
-        if (!_scannedItems.any((item) => item[0] == data)) {
-          _scannedItems.add([data, 'Scanned', '1']);
-          debugPrint("QR DEBUG: Added to scanned items list");
-        }
-      });
-
-      // Update BLoC with the scanned data for further processing
-      context.read<ScanBloc>().add(GetMaterialInfoEvent(data));
-
-      // Show appropriate feedback
-      if (isFromHardwareScanner) {
-        _showSnackbar("Hardware scan: $data", backgroundColor: Colors.green);
-      }
-
-      debugPrint("QR DEBUG: ✅ Data processing successful");
-      // Print material data values for checking
-      _materialData.forEach((key, value) {
-        debugPrint("QR DEBUG: $key: $value");
-      });
-    } catch (e) {
-      debugPrint("QR DEBUG: ⚠️ Error processing data: $e");
-      _showSnackbar("Error processing data: $e", backgroundColor: Colors.red);
-    }
+    debugPrint("QR DEBUG: ✅ UI updated with material info");
+    // Print material data values for checking
+    _materialData.forEach((key, value) {
+      debugPrint("QR DEBUG: $key: $value");
+    });
   }
 
   // Thêm vào _showDeductionDialog trong scan_page.dart
@@ -446,7 +388,7 @@ Future<void> _saveData() async {
                     _scannedItems.clear();
                     _materialData = {
                       'Material Name': '',
-                      'ID Number': '',
+                      'Material ID': '',
                       'Quantity': '',
                       'Receipt Date': '',
                       'Supplier': '',
@@ -469,6 +411,12 @@ Future<void> _saveData() async {
 
     return BlocConsumer<ScanBloc, ScanState>(
       listener: (context, state) {
+        // Critical fix: Update the UI based on BLoC state changes
+        if (state is MaterialInfoLoaded) {
+          // Update the local state with material info from the BLoC
+          _updateUIFromMaterialInfo(state.materialInfo, state.currentBarcode);
+        }
+        
         if (Navigator.of(context).canPop() &&
             state is! ScanProcessingState &&
             state is! SavingDataState) {
@@ -730,7 +678,7 @@ Future<void> _saveData() async {
               child: Text(
                 value.isEmpty ? 'No Scan data' : value,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: value.isEmpty ? Colors.black : Colors.black87,
                 ),

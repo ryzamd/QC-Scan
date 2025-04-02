@@ -352,8 +352,76 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   ) async {
     debugPrint("ScanBloc: Hardware scan button pressed: ${event.scannedData}");
 
-    // Process the hardware scan the same way as a camera scan
-    add(BarcodeDetected(event.scannedData));
+    // Don't just add another event, process it directly
+    // This prevents potential race conditions or state inconsistencies
+    
+    // First check for valid data and debounce
+    if (event.scannedData.isEmpty) {
+      debugPrint("ScanBloc: Empty hardware scanner data, ignoring");
+      return;
+    }
+
+    // Show processing state
+    emit(ScanProcessingState(barcode: event.scannedData));
+
+    try {
+      // Directly get material info using the hardware scanner data
+      final result = await getMaterialInfo(
+        GetMaterialInfoParams(barcode: event.scannedData),
+      );
+
+      result.fold(
+        (failure) {
+          debugPrint("ScanBloc: Error getting material info from hardware scan: ${failure.message}");
+          emit(
+            ScanErrorState(
+              message: failure.message,
+              previousState: state,
+            ),
+          );
+        },
+        (materialInfo) {
+          debugPrint("ScanBloc: Successfully loaded material info from hardware scan");
+          
+          // Create or update scanned items list
+          List<List<String>> scannedItems = [];
+          if (state is ScanningState) {
+            scannedItems = List.from((state as ScanningState).scannedItems);
+          } else if (state is MaterialInfoLoaded) {
+            scannedItems = List.from((state as MaterialInfoLoaded).scannedItems);
+          }
+          
+          // Add to scanned items if not already there
+          final isAlreadyScanned = scannedItems.any(
+            (item) => item.isNotEmpty && item[0] == event.scannedData,
+          );
+          
+          if (!isAlreadyScanned) {
+            scannedItems.add([event.scannedData, 'Scanned', materialInfo['Quantity'] ?? '0']);
+          }
+          
+          // Emit the new state with material info from hardware scan
+          emit(
+            MaterialInfoLoaded(
+              isCameraActive: state is ScanningState ? (state as ScanningState).isCameraActive : true,
+              isTorchEnabled: state is ScanningState ? (state as ScanningState).isTorchEnabled : false,
+              controller: scannerController,
+              scannedItems: scannedItems,
+              materialInfo: materialInfo,
+              currentBarcode: event.scannedData,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint("ScanBloc: Unexpected error processing hardware scan: $e");
+      emit(
+        ScanErrorState(
+          message: "Error processing scan: $e",
+          previousState: state,
+        ),
+      );
+    }
   }
 
   @override

@@ -1,4 +1,4 @@
-// lib/features/scan/data/datasources/scan_service_impl.dart
+// Fixed implementation for ScanService class
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,19 +16,37 @@ class ScanService {
   
   // Stream subscription for event channel
   static StreamSubscription? _subscription;
+  
+  // Debounce timer to avoid duplicate scans
+  static Timer? _debounceTimer;
+  
+  // Flag to track if the service is initialized
+  static bool _isInitialized = false;
 
   // Initialize scanner listener
   static void initializeScannerListener(Function(String) onScanned) {
+    // If already initialized, dispose first to avoid memory leaks
+    if (_isInitialized) {
+      disposeScannerListener();
+    }
+    
+    _isInitialized = true;
     onBarcodeScanned = onScanned;
     
-    // Cancel any existing subscription
-    _subscription?.cancel();
-    
     debugPrint("QR DEBUG: Initializing hardware scanner event channel");
+    
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic scanData) {
         debugPrint("QR DEBUG: 📟 Hardware scanner data received: $scanData");
         if (scanData != null && scanData.toString().isNotEmpty) {
+          // Apply debounce to avoid duplicate scans
+          if (_debounceTimer?.isActive ?? false) {
+            debugPrint("QR DEBUG: Debouncing rapid scan");
+            return;
+          }
+          
+          _debounceTimer = Timer(const Duration(milliseconds: 500), () {});
+          
           // Process the data from hardware scanner
           onBarcodeScanned?.call(scanData.toString());
           
@@ -49,6 +67,14 @@ class ScanService {
       if (call.method == "scannerKeyPressed") {
         String scannedData = call.arguments.toString();
         debugPrint("QR DEBUG: Scanner key pressed: $scannedData");
+        
+        // Apply same debounce as above
+        if (_debounceTimer?.isActive ?? false) {
+          debugPrint("QR DEBUG: Debouncing rapid scan");
+          return null;
+        }
+        
+        _debounceTimer = Timer(const Duration(milliseconds: 500), () {});
         onBarcodeScanned?.call(scannedData);
       }
       return null;
@@ -69,6 +95,9 @@ class ScanService {
     _subscription?.cancel();
     _subscription = null;
     onBarcodeScanned = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _isInitialized = false;
     debugPrint("QR DEBUG: Scanner listener disposed");
   }
 
