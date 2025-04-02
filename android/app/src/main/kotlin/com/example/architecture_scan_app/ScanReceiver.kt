@@ -57,7 +57,6 @@ class ScanReceiver : BroadcastReceiver() {
             // Kiểm tra các String extras phổ biến
             else -> {
                 val commonKeys = listOf(
-                    "com.ubx.datawedge.data_string",
                     "barcode_string",
                     "urovo.rcv.message",
                     "scannerdata",
@@ -69,7 +68,9 @@ class ScanReceiver : BroadcastReceiver() {
                     "SCAN_BARCODE1"
                 )
 
-                commonKeys.firstNotNullOf { key -> 
+                commonKeys.firstOrNull { key ->
+                    intent.getStringExtra(key) != null
+                }?.let { key ->
                     intent.getStringExtra(key)?.also { data ->
                         Log.d("ScanReceiver", "📤 Found data in $key: $data")
                     }

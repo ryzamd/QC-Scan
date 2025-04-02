@@ -45,7 +45,7 @@
                 <!--  Zebra/Symbol Scanner  -->
                 <action android:name="com.symbol.datawedge.api.NOTIFICATION_ACTION" />
                 <!--  DataWedge Scanner  -->
-                <action android:name="com.ubx.datawedge.action" />
+                <!-- <action android:name="com.ubx.datawedge.action" /> -->
                 <action android:name="urovo.rcv.message.ACTION" />
                 <action android:name="android.intent.action.DECODE_DATA" />
                 <action android:name="scanner.action" />

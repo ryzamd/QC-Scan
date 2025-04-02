@@ -54,7 +54,6 @@ class MainActivity : FlutterActivity() {
                 // Check for common string extras
                 else -> {
                     intent.getStringExtra("scan_data")
-                        ?: intent.getStringExtra("com.ubx.datawedge.data_string")
                         ?: intent.getStringExtra("barcode_string")
                         ?: intent.getStringExtra("urovo.rcv.message")
                         ?: intent.getStringExtra("scannerdata")
@@ -64,6 +63,7 @@ class MainActivity : FlutterActivity() {
                         ?: intent.getStringExtra("data_string")
                         ?: intent.getStringExtra("scan_result")
                         ?: intent.getStringExtra("SCAN_BARCODE1")
+                        //?: intent.getStringExtra("com.ubx.datawedge.data_string")
                 }
             }
                 
