@@ -1,4 +1,3 @@
-// lib/features/process/presentation/pages/processing_page.dart
 import 'package:architecture_scan_app/core/widgets/scafford_custom.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
@@ -13,18 +12,23 @@ class ProcessingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Fetch data when page is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProcessingBloc>().add(GetProcessingItemsEvent(userName: user.name));
+    });
+
     return CustomScaffold(
       title: 'PROCESSING',
       user: user,
-      currentIndex: 0, // Assuming this is the home tab
+      currentIndex: 0,
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            // Thêm thanh tìm kiếm trực tiếp trên trang
+            // Search bar
             _buildSearchBar(context),
             const SizedBox(height: 8),
-            // Phần còn lại là bảng dữ liệu
+            // Data table
             Expanded(
               child: Card(
                 elevation: 8,
@@ -42,8 +46,8 @@ class ProcessingPage extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.refresh, color: Colors.white),
           onPressed: () {
-            // Refresh data
-            context.read<ProcessingBloc>().add(RefreshProcessingItemsEvent());
+            // Refresh data with user's name
+            context.read<ProcessingBloc>().add(RefreshProcessingItemsEvent(userName: user.name));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Refreshing data...'),
@@ -57,7 +61,7 @@ class ProcessingPage extends StatelessWidget {
     );
   }
   
-  // Xây dựng thanh tìm kiếm
+  // Search bar widget
   Widget _buildSearchBar(BuildContext context) {
     final TextEditingController controller = TextEditingController();
 
@@ -75,27 +79,26 @@ class ProcessingPage extends StatelessWidget {
         ],
       ),
       child: TextField(
+        controller: controller,
         decoration: InputDecoration(
           hintText: 'Search',
           prefixIcon: const Icon(Icons.search),
           suffixIcon: IconButton(
             icon: const Icon(Icons.clear),
             onPressed: () {
-              // Clear search và reset data
+              // Clear search and reset data
               context.read<ProcessingBloc>().add(
                 const SearchProcessingItemsEvent(query: ''),
               );
-              // Clear text field
-              FocusScope.of(context).unfocus();
-              // Clear text bằng cách đặt controller.clear() nếu bạn có controller
               controller.clear();
+              FocusScope.of(context).unfocus();
             },
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         onChanged: (value) {
-          // Gửi search event khi text thay đổi
+          // Send search event when text changes
           context.read<ProcessingBloc>().add(
             SearchProcessingItemsEvent(query: value),
           );

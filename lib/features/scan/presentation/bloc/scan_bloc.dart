@@ -390,12 +390,12 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     
     if (result) {
       // Cập nhật processing service nếu thành công
-      di.sl<ProcessingDataService>().addItem(
-        event.materialInfo,
-        event.barcode,
-        event.quantity,
-        event.deduction,
-      );
+      // di.sl<ProcessingDataService>().addItem(
+      //   event.materialInfo,
+      //   event.barcode,
+      //   event.quantity,
+      //   event.deduction,
+      // );
       
       // Tạo record với số lượng đã trừ
       final remainingQuantity = (int.tryParse(event.quantity) ?? 0 - event.deduction).toString();

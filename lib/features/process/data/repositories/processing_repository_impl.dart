@@ -16,11 +16,11 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
     required this.networkInfo,
   });
 
-  @override
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems() async {
+   @override
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String userName) async {
     if (await networkInfo.isConnected) {
       try {
-        final processingItems = await remoteDataSource.getProcessingItems();
+        final processingItems = await remoteDataSource.getProcessingItems(userName);
         return Right(processingItems);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
@@ -32,19 +32,19 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
     }
   }
   
-  @override
-  Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems() async {
-    if (await networkInfo.isConnected) {
-      try {
-        final processingItems = await remoteDataSource.refreshProcessingItems();
-        return Right(processingItems);
-      } on ServerException catch (e) {
-        return Left(ServerFailure(e.message));
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
-      }
-    } else {
-      return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
-    }
-  }
+  // @override
+  // Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems() async {
+  //   if (await networkInfo.isConnected) {
+  //     try {
+  //       final processingItems = await remoteDataSource.refreshProcessingItems();
+  //       return Right(processingItems);
+  //     } on ServerException catch (e) {
+  //       return Left(ServerFailure(e.message));
+  //     } catch (e) {
+  //       return Left(ServerFailure(e.toString()));
+  //     }
+  //   } else {
+  //     return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
+  //   }
+  // }
 }

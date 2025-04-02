@@ -1,31 +1,20 @@
-// lib/features/process/presentation/bloc/processing_bloc.dart
-import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
-import 'package:architecture_scan_app/core/enums/enums.dart';
-import 'package:architecture_scan_app/core/services/processing_data_service.dart';
-import 'package:architecture_scan_app/features/process/data/models/processing_item_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:architecture_scan_app/core/enums/enums.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
-import 'package:architecture_scan_app/features/process/domain/usecases/get_processing_items.dart'
-    as get_process;
-import 'package:architecture_scan_app/features/process/domain/usecases/refresh_processing_items.dart';
+import 'package:architecture_scan_app/features/process/domain/usecases/get_processing_items.dart';
 import 'processing_event.dart';
 import 'processing_state.dart';
 
 class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
-  final get_process.GetProcessingItems getProcessingItems;
-  final RefreshProcessingItems refreshProcessingItems;
+  final GetProcessingItems getProcessingItems;
 
   ProcessingBloc({
     required this.getProcessingItems,
-    required this.refreshProcessingItems,
   }) : super(ProcessingInitial()) {
     on<GetProcessingItemsEvent>(_onGetProcessingItems);
     on<RefreshProcessingItemsEvent>(_onRefreshProcessingItems);
     on<SortProcessingItemsEvent>(_onSortProcessingItems);
     on<SearchProcessingItemsEvent>(_onSearchProcessingItems);
-    on<UpdateItemStatusEvent>(
-      _onUpdateItemStatus,
-    ); // Thêm handler cho event mới
   }
 
   Future<void> _onGetProcessingItems(
@@ -35,36 +24,18 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     emit(ProcessingLoading());
 
     try {
-      final result = await getProcessingItems(get_process.NoParams());
+      final result = await getProcessingItems(GetProcessingParams(userName: event.userName));
 
       result.fold(
         (failure) => emit(ProcessingError(message: failure.message)),
-        (apiItems) {
-          // Thêm dữ liệu từ service
-          final serviceItems = di.sl<ProcessingDataService>().getAllItems();
-
-          // Kết hợp tất cả các nguồn dữ liệu
-          final allItems = [...apiItems, ...serviceItems];
-
-          // Loại bỏ trùng lặp
-          final processedItems = <String, ProcessingItemEntity>{};
-
-          for (final item in allItems) {
-            final key = '${item.orderNumber}_${item.itemName}';
-            if (!processedItems.containsKey(key)) {
-              processedItems[key] = item;
-            }
-          }
-
-          final uniqueItems = processedItems.values.toList();
-
-          // Sắp xếp mặc định theo status
-          final sortedItems = List<ProcessingItemEntity>.from(uniqueItems);
+        (items) {
+          // Default sort by status
+          final sortedItems = List<ProcessingItemEntity>.from(items);
           _sortItemsByStatus(sortedItems, true);
 
           emit(
             ProcessingLoaded(
-              items: uniqueItems,
+              items: items,
               filteredItems: sortedItems,
               sortColumn: 'status',
               ascending: true,
@@ -77,24 +48,23 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  // Cập nhật hàm _onRefreshProcessingItems trong ProcessingBloc
   Future<void> _onRefreshProcessingItems(
     RefreshProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
-      // Lưu lại state hiện tại để đảm bảo không mất dữ liệu
+      // Keep current state to avoid UI flashing
       final existingItems = List<ProcessingItemEntity>.from(currentState.items);
 
       emit(ProcessingRefreshing(items: existingItems));
 
       try {
-        final result = await refreshProcessingItems(NoParams());
+        final result = await getProcessingItems(GetProcessingParams(userName: event.userName));
 
         result.fold(
           (failure) {
-            // Nếu API lỗi, vẫn giữ nguyên dữ liệu hiện tại
+            // If API fails, keep current data
             emit(
               ProcessingLoaded(
                 items: existingItems,
@@ -108,36 +78,13 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
               ),
             );
 
-            // Thông báo lỗi
+            // Show error
             emit(ProcessingError(message: failure.message));
           },
-          (apiItems) {
-            // Lấy dữ liệu từ service, BẮT BUỘC dùng forceRefresh: true
-            final serviceItems = di.sl<ProcessingDataService>().getAllItems(
-              forceRefresh: true,
-            );
-
-            // Hợp nhất dữ liệu: API + Service + Existing
-            // Chú ý thứ tự ưu tiên: API -> Service -> Existing
-            final allItems = [...apiItems, ...serviceItems, ...existingItems];
-
-            // Map để theo dõi các item đã xử lý để loại bỏ trùng lặp
-            final processedItems = <String, ProcessingItemEntity>{};
-
-            // Ưu tiên các item mới hơn (đầu mảng) khi loại bỏ trùng lặp
-            for (final item in allItems) {
-              final key = '${item.orderNumber}_${item.itemName}';
-              if (!processedItems.containsKey(key)) {
-                processedItems[key] = item;
-              }
-            }
-
-            // Chuyển đổi từ Map trở lại thành List
-            final uniqueItems = processedItems.values.toList();
-
-            // Áp dụng lọc và sắp xếp
+          (items) {
+            // Apply current filters and sorting
             final filteredItems = _filterItems(
-              uniqueItems,
+              items,
               currentState.searchQuery,
             );
             _sortItems(
@@ -148,7 +95,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
             emit(
               ProcessingLoaded(
-                items: uniqueItems,
+                items: items,
                 filteredItems: filteredItems,
                 sortColumn: currentState.sortColumn,
                 ascending: currentState.ascending,
@@ -158,7 +105,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           },
         );
       } catch (e) {
-        // Xử lý bất kỳ lỗi nào và vẫn giữ nguyên dữ liệu hiện tại
+        // Handle errors and keep current data
         emit(
           ProcessingLoaded(
             items: existingItems,
@@ -177,8 +124,8 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         );
       }
     } else {
-      // Nếu không phải trạng thái ProcessingLoaded, gọi GetProcessingItemsEvent
-      add(GetProcessingItemsEvent());
+      // If not in loaded state, initiate a fresh load
+      add(GetProcessingItemsEvent(userName: event.userName));
     }
   }
 
@@ -233,66 +180,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  // Handler mới cho việc cập nhật status
-  void _onUpdateItemStatus(
-    UpdateItemStatusEvent event,
-    Emitter<ProcessingState> emit,
-  ) {
-    final currentState = state;
-    if (currentState is ProcessingLoaded) {
-      // Tạo bản sao của danh sách items
-      final updatedItems = List<ProcessingItemEntity>.from(currentState.items);
-
-      // Tìm và cập nhật item
-      final index = updatedItems.indexWhere(
-        (item) =>
-            item.orderNumber == event.item.orderNumber &&
-            item.itemName == event.item.itemName,
-      );
-
-      if (index != -1) {
-        // Tạo item mới với status đã cập nhật
-        final updatedItem = ProcessingItemModel(
-          itemName: event.item.itemName,
-          orderNumber: event.item.orderNumber,
-          quantity: event.item.quantity,
-          exception: event.item.exception,
-          timestamp: event.item.timestamp,
-          status: event.newStatus,
-        );
-
-        // Thay thế item cũ bằng item mới
-        updatedItems[index] = updatedItem;
-
-        // Cập nhật service
-        di.sl<ProcessingDataService>().updateItemStatus(
-          updatedItem.orderNumber,
-          updatedItem.itemName,
-          event.newStatus,
-        );
-
-        // Áp dụng bộ lọc và sắp xếp hiện tại
-        final filteredItems = _filterItems(
-          updatedItems,
-          currentState.searchQuery,
-        );
-        _sortItems(
-          filteredItems,
-          currentState.sortColumn,
-          currentState.ascending,
-        );
-
-        // Emit state mới
-        emit(
-          currentState.copyWith(
-            items: updatedItems,
-            filteredItems: filteredItems,
-          ),
-        );
-      }
-    }
-  }
-
   // Helper methods for sorting and filtering
   void _sortItems(
     List<ProcessingItemEntity> items,
@@ -317,12 +204,11 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   void _sortItemsByTimestamp(List<ProcessingItemEntity> items, bool ascending) {
     items.sort((a, b) {
       return ascending
-          ? a.timestamp.compareTo(b.timestamp)
-          : b.timestamp.compareTo(a.timestamp);
+          ? a.cDate.compareTo(b.cDate)
+          : b.cDate.compareTo(a.cDate);
     });
   }
 
-  // Cập nhật phương thức filter để tìm kiếm theo nhiều tiêu chí hơn
   List<ProcessingItemEntity> _filterItems(
     List<ProcessingItemEntity> items,
     String query,
@@ -334,23 +220,23 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     final lowercaseQuery = query.toLowerCase();
 
     return items.where((item) {
-      // Tìm kiếm theo name và order number
-      if (item.itemName.toLowerCase().contains(lowercaseQuery) ||
-          item.orderNumber.toLowerCase().contains(lowercaseQuery)) {
+      // Search by name and project code
+      if (item.mName.toLowerCase().contains(lowercaseQuery) ||
+          item.mPrjcode.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
 
-      // Tìm kiếm theo quantity
-      if (item.quantity.toString().contains(lowercaseQuery)) {
+      // Search by quantity
+      if (item.mQty.toString().contains(lowercaseQuery)) {
         return true;
       }
 
-      // Tìm kiếm theo exception
-      if (item.exception.toString().contains(lowercaseQuery)) {
+      // Search by supplier
+      if (item.mVendor.toLowerCase().contains(lowercaseQuery)) {
         return true;
       }
 
-      // Tìm kiếm theo status
+      // Search by status
       if (lowercaseQuery == 'success' && item.status == SignalStatus.success) {
         return true;
       }

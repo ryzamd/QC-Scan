@@ -4,13 +4,13 @@ import 'package:architecture_scan_app/features/process/domain/entities/processin
 import 'package:dartz/dartz.dart';
 
 abstract class ProcessingRepository {
-  /// Get all processing items from remote source
+  /// Get all processing items from remote source with userName
   ///
   /// Returns list of [ProcessingItemEntity] if successful, [Failure] otherwise
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems();
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String userName);
   
   /// Refresh processing items from remote source
   ///
   /// Returns list of [ProcessingItemEntity] if successful, [Failure] otherwise
-  Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems();
+  // Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems();
 }

@@ -14,12 +14,12 @@ abstract class LogoutDataSource {
 class LogoutDataSourceImpl implements LogoutDataSource {
   final SharedPreferences sharedPreferences;
   final DioClient dioClient;
-  final ProcessingDataService processingDataService;
+  //final ProcessingDataService processingDataService;
 
   LogoutDataSourceImpl({
     required this.sharedPreferences,
     required this.dioClient,
-    required this.processingDataService,
+    // required this.processingDataService,
   });
 
   @override
@@ -32,7 +32,7 @@ class LogoutDataSourceImpl implements LogoutDataSource {
       ScanService.disposeScannerListener();
       
       // 3. Clear processing data
-      processingDataService.clearItems();
+     // processingDataService.clearItems();
       
       // 4. Clear user token from SharedPreferences
       await sharedPreferences.remove('user_token');
