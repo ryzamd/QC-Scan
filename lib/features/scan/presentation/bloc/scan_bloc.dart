@@ -1,6 +1,4 @@
 // lib/features/scan/presentation/bloc/scan_bloc.dart
-import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
-import 'package:architecture_scan_app/core/services/processing_data_service.dart';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

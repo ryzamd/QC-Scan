@@ -1,4 +1,5 @@
 // lib/core/network/dio_client.dart
+import 'package:architecture_scan_app/core/network/token_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../constants/api_constants.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/foundation.dart';
 class DioClient {
   late Dio dio;
   final Logger logger = Logger();
+  TokenInterceptor? _tokenInterceptor;
 
   DioClient() {
     dio = Dio(
@@ -15,8 +17,12 @@ class DioClient {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           'Accept': 'application/json',
+        },
+        validateStatus: (status) {
+          // Don't throw errors here - let the interceptors handle them
+          return true;
         },
       ),
     );
@@ -29,7 +35,8 @@ class DioClient {
             logger.d(
               'REQUEST[${options.method}] => PATH: ${options.path}\n'
               'Headers: ${options.headers}\n'
-              'Data: ${options.data}',
+              'Data: ${options.data}\n'
+              'QueryParams: ${options.queryParameters}'
             );
             handler.next(options);
           } catch (e) {
@@ -56,19 +63,30 @@ class DioClient {
     );
   }
 
-  // Add token to request headers
+  // Set up token interceptor (called after repository is created)
+  void setupTokenInterceptor(TokenInterceptor interceptor) {
+    // Remove existing token interceptor if any
+    if (_tokenInterceptor != null) {
+      dio.interceptors.remove(_tokenInterceptor);
+    }
+    
+    // Add the new token interceptor
+    _tokenInterceptor = interceptor;
+    dio.interceptors.add(_tokenInterceptor!);
+    debugPrint('Token interceptor set up');
+  }
+
+  // Methods below kept for backward compatibility
   void setAuthToken(String token) {
     dio.options.headers['Authorization'] = 'Bearer $token';
     debugPrint('Set Auth Token: Bearer $token');
   }
 
-  // Clear token from request headers
   void clearAuthToken() {
     dio.options.headers.remove('Authorization');
     debugPrint('Cleared Auth Token');
   }
 
-  // Thêm method để kiểm tra token
   bool hasValidToken() {
     return dio.options.headers['Authorization'] != null;
   }
