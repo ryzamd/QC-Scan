@@ -16,31 +16,9 @@ class ProcessingItemModel extends ProcessingItemEntity {
     required super.status,
   });
 
-  factory ProcessingItemModel.fromJson(Map<String, dynamic> json) {
-    return ProcessingItemModel(
-      itemName: json['itemName'] ?? '',
-      orderNumber: json['orderNumber'] ?? '',
-      quantity: json['quantity'] ?? 0,
-      exception: json['exception'] ?? 0,
-      timestamp: json['timestamp'] ?? '',
-      status: _parseStatus(json['status']),
-    );
-  }
+  // Remove the fromJson factory constructor if not needed
+  factory ProcessingItemModel.fromJson(Map<String, dynamic> json) =>
+      _$ProcessingItemModelFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'itemName': itemName,
-      'orderNumber': orderNumber,
-      'quantity': quantity,
-      'exception': exception,
-      'timestamp': timestamp,
-      'status': status.toString().split('.').last,
-    };
-  }
-
-  static SignalStatus _parseStatus(String? status) {
-    if (status == 'success') return SignalStatus.success;
-    if (status == 'failed') return SignalStatus.failed;
-    return SignalStatus.pending;
-  }
+  Map<String, dynamic> toJson() => _$ProcessingItemModelToJson(this);
 }

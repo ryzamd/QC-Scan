@@ -27,7 +27,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   }) async {
     try {
       final response = await dio.post(
-        '${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}',
+        ApiConstants.loginUrl,
         data: {
           'userID': userId,
           'password': password,

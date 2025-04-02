@@ -21,7 +21,7 @@ class ProcessingDataService {
     final itemName = materialInfo['Material Name'] ?? 'Unknown Material';
     
     // Tạo key để kiểm tra trùng lặp
-    final key = '${orderNumber}_${itemName}';
+    final key = '${orderNumber}_$itemName';
     
     // Kiểm tra xem item đã tồn tại chưa
     if (_itemKeys.contains(key)) {

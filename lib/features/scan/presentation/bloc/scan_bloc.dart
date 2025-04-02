@@ -186,27 +186,6 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       isTorchEnabled = currentState.isTorchEnabled;
     }
 
-    // If we don't have a real repository, create mock material info directly
-    // In a real app, you would use the repository from the use case
-    Map<String, String> mockMaterialInfo = {};
-    if (event.barcode.contains('/')) {
-      mockMaterialInfo = {
-        'Material Name': '本白1-400ITPG 荷布DJT-8543 GUSTI TEX EPM 100% 315G 44"',
-        'Material ID': event.barcode,
-        'Quantity': '50.5',
-        'Receipt Date': DateTime.now().toString().substring(0, 19),
-        'Supplier': 'DONGJIN-USD',
-      };
-    } else {
-      mockMaterialInfo = {
-        'Material Name': 'Material ${event.barcode.hashCode % 1000}',
-        'Material ID': event.barcode,
-        'Quantity': '${(event.barcode.hashCode % 100).abs() + 10}',
-        'Receipt Date': DateTime.now().toString().substring(0, 19),
-        'Supplier': 'Supplier ${event.barcode.hashCode % 5 + 1}',
-      };
-    }
-
     // Assuming real repository call would look like this:
     final result = await getMaterialInfo(
       GetMaterialInfoParams(barcode: event.barcode),

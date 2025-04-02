@@ -320,7 +320,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
   void _showStatusUpdateDialog(BuildContext context, ProcessingItemEntity item) {
   // Lưu tham chiếu đến bloc trước khi mở dialog
   final bloc = context.read<ProcessingBloc>();
-  final scaffoldMessenger = ScaffoldMessenger.of(context);
   
   showDialog(
     context: context,

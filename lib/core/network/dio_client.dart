@@ -2,6 +2,7 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import '../constants/api_constants.dart';
+import 'package:flutter/foundation.dart';
 
 class DioClient {
   late Dio dio;
@@ -24,20 +25,31 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          logger.d('REQUEST[${options.method}] => PATH: ${options.path}\n'
+          try {
+            logger.d(
+              'REQUEST[${options.method}] => PATH: ${options.path}\n'
               'Headers: ${options.headers}\n'
-              'Data: ${options.data}');
-          return handler.next(options);
+              'Data: ${options.data}',
+            );
+            handler.next(options);
+          } catch (e) {
+            debugPrint('Dio interceptor error: $e');
+            handler.reject(DioException(requestOptions: options, error: e));
+          }
         },
         onResponse: (response, handler) {
-          logger.d('RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}\n'
-              'Data: ${response.data}');
+          logger.d(
+            'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}\n'
+            'Data: ${response.data}',
+          );
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          logger.e('ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}\n'
-              'Message: ${e.message}\n'
-              'Data: ${e.response?.data}');
+          logger.e(
+            'ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}\n'
+            'Message: ${e.message}\n'
+            'Data: ${e.response?.data}',
+          );
           return handler.next(e);
         },
       ),
@@ -47,10 +59,17 @@ class DioClient {
   // Add token to request headers
   void setAuthToken(String token) {
     dio.options.headers['Authorization'] = 'Bearer $token';
+    debugPrint('Set Auth Token: Bearer $token');
   }
 
   // Clear token from request headers
   void clearAuthToken() {
     dio.options.headers.remove('Authorization');
+    debugPrint('Cleared Auth Token');
+  }
+
+  // Thêm method để kiểm tra token
+  bool hasValidToken() {
+    return dio.options.headers['Authorization'] != null;
   }
 }
