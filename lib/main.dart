@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:architecture_scan_app/core/services/exit_confirmation_service.dart';
+import 'package:architecture_scan_app/features/auth/logout/presentation/pages/profile_page.dart';
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
 import 'package:architecture_scan_app/features/process/presentation/pages/process_page.dart';
 import 'package:flutter/material.dart';
@@ -102,6 +103,11 @@ class _MyAppState extends State<MyApp> {
           final args = settings.arguments as UserEntity;
           return MaterialPageRoute(
             builder: (context) => ProcessingPage(user: args),
+          );
+        } else if (settings.name == AppRoutes.profile) {
+          final args = settings.arguments as UserEntity;
+          return MaterialPageRoute(
+            builder: (context) => ProfilePage(user: args),
           );
         }
 
