@@ -46,3 +46,20 @@ class SearchProcessingItemsEvent extends ProcessingEvent {
   @override
   List<Object> get props => [query];
 }
+
+class UpdateQC2QuantityEvent extends ProcessingEvent {
+  final String code;
+  final String userName;
+  final double deduction;
+  final double currentQuantity;
+
+  const UpdateQC2QuantityEvent({
+    required this.code,
+    required this.userName,
+    required this.deduction,
+    required this.currentQuantity,
+  });
+
+  @override
+  List<Object> get props => [code, userName, deduction, currentQuantity];
+}

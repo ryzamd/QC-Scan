@@ -71,3 +71,25 @@ class ProcessingError extends ProcessingState {
   @override
   List<Object> get props => [message];
 }
+
+class ProcessingUpdatingState extends ProcessingState {
+  final ProcessingItemEntity item;
+
+  const ProcessingUpdatingState({required this.item});
+
+  @override
+  List<Object> get props => [item];
+}
+
+class ProcessingUpdatedState extends ProcessingState {
+  final ProcessingItemEntity updatedItem;
+  final String message;
+
+  const ProcessingUpdatedState({
+    required this.updatedItem,
+    required this.message,
+  });
+
+  @override
+  List<Object> get props => [updatedItem, message];
+}
