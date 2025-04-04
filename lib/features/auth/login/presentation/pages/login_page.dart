@@ -76,11 +76,17 @@ class _LoginPageState extends State<LoginPage> {
       child: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
-            Navigator.pushReplacementNamed(
-              context,
-              AppRoutes.processing,
-              arguments: state.user,
-            );
+            // Use a post-frame callback to ensure navigation happens correctly
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              try {
+                Navigator.of(context).pushReplacementNamed(
+                  AppRoutes.processing,
+                  arguments: state.user,
+                );
+              } catch (e) {
+                debugPrint("Navigation error: $e");
+              }
+            });
           } else if (state is LoginFailure) {
             // If login fails, show an error dialog
             showDialog(

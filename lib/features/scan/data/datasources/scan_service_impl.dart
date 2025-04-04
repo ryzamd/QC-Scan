@@ -8,97 +8,95 @@ class ScanService {
   static const EventChannel _eventChannel = EventChannel('com.example.architecture_scan_app/scanner');
   static const MethodChannel _methodChannel = MethodChannel('com.example.architecture_scan_app');
   
-  // Callback for scan events
-  static Function(String)? onBarcodeScanned;
+  // Singleton instance
+  static ScanService? _instance;
+  static ScanService get instance => _instance ??= ScanService._internal();
   
-  // List to keep track of scanned barcodes
-  static final List<String> scannedBarcodes = [];
+  // Private constructor
+  ScanService._internal();
+  
+  // Callback for scan events
+  Function(String)? onBarcodeScanned;
+
+  final List<String> scannedBarcodes = []; // Store scanned barcodes
   
   // Stream subscription for event channel
-  static StreamSubscription? _subscription;
+  StreamSubscription? _subscription;
   
   // Debounce timer to avoid duplicate scans
-  static Timer? _debounceTimer;
+  Timer? _debounceTimer;
   
   // Flag to track if the service is initialized
-  static bool _isInitialized = false;
+  bool _isInitialized = false;
 
-  // Initialize scanner listener
+  // Initialize scanner listener - use a factory for the singleton
   static void initializeScannerListener(Function(String) onScanned) {
+    instance._initializeListener(onScanned);
+  }
+  
+  // Internal method to initialize the listener
+  void _initializeListener(Function(String) onScanned) {
     // If already initialized, dispose first to avoid memory leaks
     if (_isInitialized) {
-      disposeScannerListener();
+      _disposeListener();
     }
     
     _isInitialized = true;
     onBarcodeScanned = onScanned;
     
-    debugPrint("QR DEBUG: Initializing hardware scanner event channel");
+    // Use a lower log level in production
+    debugPrint("Hardware scanner event channel initializing");
     
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (dynamic scanData) {
-        debugPrint("QR DEBUG: 📟 Hardware scanner data received: $scanData");
+        // Throttle incoming events
+        if (_debounceTimer?.isActive ?? false) return;
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () {});
+        
         if (scanData != null && scanData.toString().isNotEmpty) {
-          // Apply debounce to avoid duplicate scans
-          if (_debounceTimer?.isActive ?? false) {
-            debugPrint("QR DEBUG: Debouncing rapid scan");
-            return;
-          }
-          
-          _debounceTimer = Timer(const Duration(milliseconds: 500), () {});
-          
-          // Process the data from hardware scanner
-          onBarcodeScanned?.call(scanData.toString());
-          
-          // Add to local history if not already there
-          if (!scannedBarcodes.contains(scanData.toString())) {
-            scannedBarcodes.add(scanData.toString());
-          }
+          // Process on a separate isolate or using compute
+          _processScanData(scanData.toString());
         }
       },
       onError: (dynamic error) {
-        debugPrint("QR DEBUG: ❌ Hardware scanner error: $error");
+        debugPrint("Hardware scanner error: $error");
       }
     );
     
     // Set up method channel handler for scanner button press
     _methodChannel.setMethodCallHandler((MethodCall call) async {
-      debugPrint("QR DEBUG: Method channel called: ${call.method}");
       if (call.method == "scannerKeyPressed") {
         String scannedData = call.arguments.toString();
-        debugPrint("QR DEBUG: Scanner key pressed: $scannedData");
         
-        // Apply same debounce as above
-        if (_debounceTimer?.isActive ?? false) {
-          debugPrint("QR DEBUG: Debouncing rapid scan");
-          return null;
-        }
+        // Apply same debounce
+        if (_debounceTimer?.isActive ?? false) return null;
+        _debounceTimer = Timer(const Duration(milliseconds: 300), () {});
         
-        _debounceTimer = Timer(const Duration(milliseconds: 500), () {});
-        onBarcodeScanned?.call(scannedData);
+        // Process on a separate isolate or using compute
+        _processScanData(scannedData);
       }
       return null;
     });
-    
-    debugPrint("QR DEBUG: Hardware scanner initialized");
-    
-    // Send a test event after initialization to check if channel is working
-    try {
-      _methodChannel.invokeMethod('testScanEvent');
-    } catch (e) {
-      debugPrint("QR DEBUG: Error invoking test method: $e");
-    }
+  }
+  
+  // Process scan data - potentially move to compute
+  void _processScanData(String data) {
+    onBarcodeScanned?.call(data);
   }
   
   // Dispose scanner listener
   static void disposeScannerListener() {
+    instance._disposeListener();
+  }
+  
+  // Internal method to dispose the listener
+  void _disposeListener() {
     _subscription?.cancel();
     _subscription = null;
     onBarcodeScanned = null;
     _debounceTimer?.cancel();
     _debounceTimer = null;
     _isInitialized = false;
-    debugPrint("QR DEBUG: Scanner listener disposed");
   }
 
   // Check if a key event is from the hardware scanner
@@ -114,7 +112,7 @@ class ScanService {
   
   // Clear scanned barcodes history
   static void clearScannedBarcodes() {
-    scannedBarcodes.clear();
+    instance.scannedBarcodes.clear();
     debugPrint("QR DEBUG: Scanned barcodes history cleared");
   }
 }

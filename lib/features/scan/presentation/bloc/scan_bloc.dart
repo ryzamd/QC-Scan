@@ -1,5 +1,7 @@
 // lib/features/scan/presentation/bloc/scan_bloc.dart
+import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -63,62 +65,65 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     );
   }
 
-  Future<void> _onBarcodeDetected(
-    BarcodeDetected event,
-    Emitter<ScanState> emit,
-  ) async {
-    debugPrint("ScanBloc: Barcode detected: ${event.barcode}");
-
-    // Hiển thị trạng thái đang xử lý
+  Future<void> _onBarcodeDetected(BarcodeDetected event, Emitter<ScanState> emit) async {
+  // Skip if we're already processing a barcode
+    if (state is ScanProcessingState) return;
+    
+    // Lightweight state emission
     emit(ScanProcessingState(barcode: event.barcode));
 
-    // Gọi API để lấy thông tin vật liệu
-    final result = await getMaterialInfo(
-      GetMaterialInfoParams(barcode: event.barcode),
-    );
-
-    result.fold(
-      (failure) {
-        debugPrint("ScanBloc: Error getting material info: ${failure.message}");
-        emit(
-          ScanErrorState(
-            message: failure.message,
-            previousState: state,
-          ),
-        );
-      },
-      (materialInfo) {
-        debugPrint("ScanBloc: Successfully loaded material info");
-        
-        // Cập nhật scanned items
-        List<List<String>> scannedItems = [];
-        if (state is ScanningState) {
-          scannedItems = List.from((state as ScanningState).scannedItems);
-        } else if (state is MaterialInfoLoaded) {
-          scannedItems = List.from((state as MaterialInfoLoaded).scannedItems);
-        }
-        
-        // Thêm vào danh sách scanned items nếu chưa có
-        final isAlreadyScanned = scannedItems.any(
-          (item) => item.isNotEmpty && item[0] == event.barcode,
-        );
-        
-        if (!isAlreadyScanned) {
-          scannedItems.add([event.barcode, 'Scanned', materialInfo['Quantity'] ?? '0']);
-        }
-        
-        emit(
-          MaterialInfoLoaded(
+    try {
+      // Use compute to move processing off main thread
+      final result = await compute(_fetchMaterialInfo, 
+        {'barcode': event.barcode, 'repository': getMaterialInfo});
+      
+      result.fold(
+        (failure) {
+          emit(ScanErrorState(message: failure.message, previousState: state));
+        },
+        (materialInfo) {
+          // Optimize list operations
+          List<List<String>> scannedItems = _efficientlyGetScannedItems(state);
+          
+          // Only add if not already in the list - use efficient lookup
+          final isAlreadyScanned = scannedItems.any((item) => 
+            item.isNotEmpty && item[0] == event.barcode);
+          
+          if (!isAlreadyScanned) {
+            // Avoid creating a new list unnecessarily
+            scannedItems.add([event.barcode, 'Scanned', materialInfo['Quantity'] ?? '0']);
+          }
+          
+          emit(MaterialInfoLoaded(
             isCameraActive: state is ScanningState ? (state as ScanningState).isCameraActive : true,
             isTorchEnabled: state is ScanningState ? (state as ScanningState).isTorchEnabled : false,
             controller: scannerController,
             scannedItems: scannedItems,
             materialInfo: materialInfo,
             currentBarcode: event.barcode,
-          ),
-        );
-      },
-    );
+          ));
+        },
+      );
+    } catch (e) {
+      emit(ScanErrorState(message: "Error processing scan: $e", previousState: state));
+    }
+  }
+
+  // Helper function that runs on a separate isolate
+  Future<Either<Failure, Map<String, String>>> _fetchMaterialInfo(Map<String, dynamic> params) async {
+    final barcode = params['barcode'];
+    final repository = params['repository'];
+    return await repository(GetMaterialInfoParams(barcode: barcode));
+  }
+
+  // Efficiently get scanned items without unnecessary allocations
+  List<List<String>> _efficientlyGetScannedItems(ScanState state) {
+    if (state is ScanningState) {
+      return state.scannedItems;
+    } else if (state is MaterialInfoLoaded) {
+      return state.scannedItems;
+    }
+    return [];
   }
 
   void _onToggleCamera(ToggleCamera event, Emitter<ScanState> emit) {

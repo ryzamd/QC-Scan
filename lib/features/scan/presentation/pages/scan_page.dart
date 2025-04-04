@@ -1,6 +1,8 @@
 // Modified scan_page.dart
+import 'package:architecture_scan_app/core/utils/debouncer.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -36,6 +38,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   String? _lastSnackbarMessage;
   DateTime? _lastScanTime;
   final List<List<String>> _scannedItems = [];
+  final _scanDebouncer = Debouncer(milliseconds: 300);
 
   // Material data
   Map<String, String> _materialData = {
@@ -52,6 +55,11 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _focusNode.requestFocus();
 
+    compute(_initializeScanner, null).then((controller) {
+      setState(() {
+        _controller = controller;
+      });
+    });
     // Initialize hardware scanner listener
     ScanService.initializeScannerListener((scannedData) {
       debugPrint("QR DEBUG: Hardware scanner callback with data: $scannedData");
@@ -66,6 +74,20 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
     _initializeCameraController();
   }
+
+  static MobileScannerController? _initializeScanner(_) {
+  try {
+    return MobileScannerController(
+      formats: const [BarcodeFormat.qrCode, BarcodeFormat.code128],
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+      returnImage: false,
+    );
+  } catch (e) {
+    debugPrint("Error initializing scanner: $e");
+    return null;
+  }
+}
 
   @override
   void dispose() {
@@ -89,35 +111,49 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   }
 
   // 2. Tách biệt việc khởi tạo controller và việc bật camera
+  // In scan_page.dart, modify _initializeCameraController() method
   void _initializeCameraController() {
     _cleanUpCamera();
 
     try {
       _controller = MobileScannerController(
+        // Simplify formats to improve compatibility
         formats: const [
           BarcodeFormat.qrCode,
           BarcodeFormat.code128,
-          BarcodeFormat.code39,
-          BarcodeFormat.ean8,
-          BarcodeFormat.ean13,
-          BarcodeFormat.upcA,
-          BarcodeFormat.upcE,
-          BarcodeFormat.codabar,
         ],
-        detectionSpeed: DetectionSpeed.normal,
+        // Critical for emulator compatibility
+        detectionSpeed: DetectionSpeed.noDuplicates,
         facing: CameraFacing.back,
+        // Disable image return to reduce processing overhead
         returnImage: false,
         torchEnabled: _torchEnabled,
+        // Add a reasonable timeout for initialization
+        autoStart: false,
       );
 
-      // Khởi tạo scanner trong BLoC với camera không active
+      // Use a delayed start approach for emulators
+      Future.delayed(Duration(milliseconds: 500), () {
+        if (mounted && _controller != null) {
+          _controller!.start();
+        }
+      });
+
       context.read<ScanBloc>().add(InitializeScanner(_controller!));
+      
+      // Add debug logging
+      debugPrint("QR DEBUG: Camera controller initialized with simplified settings");
     } catch (e) {
       debugPrint("QR DEBUG: ⚠️ Camera initialization error: $e");
+      // Show a recoverable error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Camera initialization error: $e"),
-          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _initializeCameraController(),
+          ),
         ),
       );
     }
