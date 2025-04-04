@@ -2,6 +2,7 @@
 import 'package:architecture_scan_app/core/network/token_interceptor.dart';
 import 'package:architecture_scan_app/core/repositories/auth_repository.dart';
 import 'package:architecture_scan_app/core/services/secure_storage_service.dart';
+import 'package:architecture_scan_app/features/process/domain/usecases/update_qc2_quantity.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -160,11 +161,13 @@ Future<void> init() async {
     () => ScanRemoteDataSourceImpl(dio: sl()),
   );
 
-  // BLoC
+  sl.registerLazySingleton(() => UpdateQC2Quantity(sl()));
+
+  // Update BLoC registration
   sl.registerFactory(
     () => ProcessingBloc(
       getProcessingItems: sl(),
-      //refreshProcessingItems: sl(),
+      updateQC2Quantity: sl(),
     ),
   );
 

@@ -3,6 +3,7 @@ import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:architecture_scan_app/core/network/network_infor.dart';
 import 'package:architecture_scan_app/features/process/data/datasources/processing_remote_datasource.dart';
+import 'package:architecture_scan_app/features/process/data/models/processing_item_model.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:architecture_scan_app/features/process/domain/repositories/processing_repository.dart';
 import 'package:dartz/dartz.dart';
@@ -29,6 +30,26 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
       }
     } else {
       return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProcessingItemEntity>> updateQC2Quantity(
+    String code, String userName, double deduction) async {
+    if (await networkInfo.isConnected) {
+      try {
+        
+        final response = await remoteDataSource.saveQC2Deduction(code, userName, deduction);
+
+        return Right(ProcessingItemModel.fromJson(response));
+        
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      } catch (e) {
+        return Left(ServerFailure(e.toString()));
+      }
+    } else {
+      return Left(ConnectionFailure('No internet connection'));
     }
   }
   

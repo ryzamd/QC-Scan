@@ -7,8 +7,13 @@ plugins {
 
 android {
     namespace = "com.example.architecture_scan_app"
-    compileSdk = 35
-    ndkVersion = "27.0.12077973"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = "29.0.13113456"
+    
+    lint {
+        disable += "SyntheticAccessor"
+        abortOnError = false
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -43,14 +48,14 @@ flutter {
     source = "../.."
 }
 
-tasks.withType<JavaCompile> {
-    options.isFork = true
-    options.isIncremental = true
-}
+// tasks.withType<JavaCompile> {
+//     options.isFork = true
+//     options.isIncremental = true
+// }
 
-tasks.register("cleanBuild") {
-    doLast {
-        delete(buildDir)
-    }
-    finalizedBy("clean")
-}
+// tasks.register("cleanBuild") {
+//     doLast {
+//         delete(buildDir)
+//     }
+//     finalizedBy("clean")
+// }

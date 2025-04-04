@@ -9,18 +9,16 @@ import 'package:flutter/material.dart';
 import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
-  /// Get all processing items from the server with userName
-  ///
-  /// Throws [ServerException] for all server-related errors
+
   Future<List<ProcessingItemModel>> getProcessingItems(String userName);
+
+  Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction);
   
   /// Refresh processing items from the server
   ///
   /// Throws [ServerException] for all server-related errors
   // Future<List<ProcessingItemModel>> refreshProcessingItems();
 }
-
-// lib/features/process/data/datasources/processing_remote_datasource.dart
 
 class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
   final Dio dio;
@@ -102,6 +100,45 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
     throw ServerException(e.toString());
   }
 }
+
+  @override
+  Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction) async {
+    try {
+      final response = await dio.post(
+        ApiConstants.saveQC2DeductionUrl,
+        data: {
+          'post_qc_code': code,
+          'post_qc_UserName': userName,
+          'post_qc_qty': deduction,
+        },
+      );
+      
+      debugPrint('QC2Deduction response: ${response.data}');
+      
+      if (response.statusCode == 200) {
+        if (response.data['message'] == 'Success') {
+          return response.data;
+        } else {
+
+          if (response.data['message'] == 'Too large a quantity') {
+            throw ServerException('Error: ${response.data['error'] ?? 'La cantidad ingresada excede el límite permitido'}');
+          }
+
+          throw ServerException(response.data['error'] ?? response.data['message'] ?? 'Unknown error');
+        }
+      } else {
+        throw ServerException('Failed to save QC2 deduction: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      debugPrint('DioException in saveQC2Deduction: ${e.message}');
+      debugPrint('Request path: ${e.requestOptions.path}');
+      debugPrint('Request data: ${e.requestOptions.data}');
+      throw ServerException(e.message ?? 'Error processing QC2 deduction');
+    } catch (e) {
+      debugPrint('Unexpected error in saveQC2Deduction: $e');
+      throw ServerException(e.toString());
+    }
+  }
   
   // @override
   // Future<List<ProcessingItemModel>> refreshProcessingItems() async {

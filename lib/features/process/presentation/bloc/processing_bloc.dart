@@ -1,3 +1,5 @@
+import 'package:architecture_scan_app/core/errors/failures.dart';
+import 'package:architecture_scan_app/features/process/domain/usecases/update_qc2_quantity.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:architecture_scan_app/core/enums/enums.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
@@ -7,14 +9,17 @@ import 'processing_state.dart';
 
 class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   final GetProcessingItems getProcessingItems;
+  final UpdateQC2Quantity updateQC2Quantity;
 
   ProcessingBloc({
     required this.getProcessingItems,
+    required this.updateQC2Quantity,
   }) : super(ProcessingInitial()) {
     on<GetProcessingItemsEvent>(_onGetProcessingItems);
     on<RefreshProcessingItemsEvent>(_onRefreshProcessingItems);
     on<SortProcessingItemsEvent>(_onSortProcessingItems);
     on<SearchProcessingItemsEvent>(_onSearchProcessingItems);
+    on<UpdateQC2QuantityEvent>(_onUpdateQC2Quantity);
   }
 
   Future<void> _onGetProcessingItems(
@@ -24,7 +29,9 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     emit(ProcessingLoading());
 
     try {
-      final result = await getProcessingItems(GetProcessingParams(userName: event.userName));
+      final result = await getProcessingItems(
+        GetProcessingParams(userName: event.userName),
+      );
 
       result.fold(
         (failure) => emit(ProcessingError(message: failure.message)),
@@ -60,7 +67,9 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
       emit(ProcessingRefreshing(items: existingItems));
 
       try {
-        final result = await getProcessingItems(GetProcessingParams(userName: event.userName));
+        final result = await getProcessingItems(
+          GetProcessingParams(userName: event.userName),
+        );
 
         result.fold(
           (failure) {
@@ -83,10 +92,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           },
           (items) {
             // Apply current filters and sorting
-            final filteredItems = _filterItems(
-              items,
-              currentState.searchQuery,
-            );
+            final filteredItems = _filterItems(items, currentState.searchQuery);
             _sortItems(
               filteredItems,
               currentState.sortColumn,
@@ -249,5 +255,63 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
       return false;
     }).toList();
+  }
+
+  Future<void> _onUpdateQC2Quantity(
+    UpdateQC2QuantityEvent event,
+    Emitter<ProcessingState> emit,
+  ) async {
+    final currentState = state;
+
+    if (currentState is ProcessingLoaded) {
+      try {
+        ProcessingItemEntity? targetItem = currentState.items.firstWhere(
+          (item) => item.code == event.code,
+          orElse: () => throw ServerFailure('Item not found'),
+        );
+
+        emit(ProcessingUpdatingState(item: targetItem));
+
+        final result = await updateQC2Quantity(
+          UpdateQC2QuantityParams(
+            code: event.code,
+            userName: event.userName,
+            deduction: event.deduction,
+            currentQuantity: event.currentQuantity,
+          ),
+        );
+
+        result.fold(
+          (failure) {
+            emit(currentState);
+            emit(ProcessingError(message: failure.message));
+          },
+          (updatedItem) {
+            final updatedItems = List<ProcessingItemEntity>.from(
+              currentState.items,
+            );
+            final index = updatedItems.indexWhere(
+              (item) => item.code == updatedItem.code,
+            );
+
+            if (index != -1) {
+              updatedItems[index] = updatedItem;
+            }
+
+            emit(currentState.copyWith(items: updatedItems));
+
+            emit(
+              ProcessingUpdatedState(
+                updatedItem: updatedItem,
+                message: 'Deduction successful: ${event.deduction}',
+              ),
+            );
+          },
+        );
+      } catch (e) {
+        emit(currentState);
+        emit(ProcessingError(message: e.toString()));
+      }
+    }
   }
 }
