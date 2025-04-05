@@ -23,8 +23,14 @@ class AuthRepository {
     required String password,
     required String name,
   }) async {
+
+    final authDio = Dio()
+    ..options.baseUrl = _dioClient.dio.options.baseUrl
+    ..options.connectTimeout = _dioClient.dio.options.connectTimeout
+    ..options.receiveTimeout = _dioClient.dio.options.receiveTimeout;
+    
     try {
-      final response = await _dioClient.dio.post(
+      final response = await authDio.post(
         ApiConstants.loginUrl,
         data: {
           'userID': userId,

@@ -14,18 +14,23 @@ class TokenInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    // Skip adding token for authentication endpoints
+    if (options.path.contains('/auth/login')) {
+      debugPrint('TokenInterceptor: Skipping token for login request to ${options.path}');
+      return handler.next(options);
+    }
+    
     // Get token from secure storage (not from DioClient instance)
     final token = await authRepository.getAccessToken();
     
-   // Always add the token if available
-  if (token != null && token.isNotEmpty) {
+    // Add the token if available
+    if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
       debugPrint('TokenInterceptor: Added token to request for ${options.path}');
-
-  } else {
+    } else {
       debugPrint('TokenInterceptor: No token available for request to ${options.path}');
-  }
-    
+    }
+      
     handler.next(options);
   }
 

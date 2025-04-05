@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +8,28 @@ import 'package:architecture_scan_app/features/process/presentation/bloc/process
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_event.dart';
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_state.dart';
 
-class ProcessingDataTable extends StatelessWidget {
+class ProcessingDataTable extends StatefulWidget {
   final UserEntity user;
 
   const ProcessingDataTable({super.key, required this.user});
+
+  @override
+  State<ProcessingDataTable> createState() => _ProcessingDataTableState();
+}
+
+class _ProcessingDataTableState extends State<ProcessingDataTable> {
+  // Precalculated values
   
+  // Cache flags to avoid calculations
+  late final bool _isQC2User;
+  final int _pageSize = 15; // Show smaller chunks of data
+  int _currentPage = 0;
+  
+  @override
+  void initState() {
+    super.initState();
+    _isQC2User = widget.user.name == "品管正式倉";
+  }
 
   void _onSortColumn(BuildContext context, String column) {
     context.read<ProcessingBloc>().add(
@@ -22,21 +40,42 @@ class ProcessingDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProcessingBloc, ProcessingState>(
+      buildWhen: (previous, current) {
+        if (previous is ProcessingLoaded && current is ProcessingLoaded) {
+          return previous.filteredItems != current.filteredItems ||
+                 previous.sortColumn != current.sortColumn ||
+                 previous.ascending != current.ascending;
+        }
+        return true;
+      },
       builder: (context, state) {
         if (state is ProcessingInitial || state is ProcessingLoading) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is ProcessingError) {
           return Center(child: Text('Error: ${state.message}'));
         } else if (state is ProcessingLoaded || state is ProcessingRefreshing) {
-          final items =
-              state is ProcessingLoaded
-                  ? state.filteredItems
-                  : (state as ProcessingRefreshing).items;
+          final items = state is ProcessingLoaded 
+              ? state.filteredItems 
+              : (state as ProcessingRefreshing).items;
+          
+          // Reset current page if data changes
+          if (items.length <= _currentPage * _pageSize) {
+            _currentPage = 0;
+          }
 
-          final sortColumn =
-              state is ProcessingLoaded ? state.sortColumn : 'status';
+          final sortColumn = state is ProcessingLoaded ? state.sortColumn : 'status';
           final ascending = state is ProcessingLoaded ? state.ascending : true;
           final isRefreshing = state is ProcessingRefreshing;
+
+          // Split into pages
+          final int totalItems = items.length;
+          final int totalPages = (totalItems / _pageSize).ceil();
+          final int startIndex = _currentPage * _pageSize;
+          final int endIndex = (startIndex + _pageSize < totalItems)
+              ? startIndex + _pageSize
+              : totalItems;
+              
+          final currentPageItems = items.sublist(startIndex, endIndex);
 
           return Stack(
             children: [
@@ -44,11 +83,12 @@ class ProcessingDataTable extends StatelessWidget {
                 children: [
                   _buildTableHeader(context, sortColumn, ascending),
                   Expanded(
-                    child:
-                        items.isEmpty
-                            ? const Center(child: Text('No data available'))
-                            : _buildTableBody(items),
+                    child: items.isEmpty
+                        ? const Center(child: Text('No data available'))
+                        : _buildTableContent(context, currentPageItems),
                   ),
+                  if (totalPages > 1)
+                    _buildPagination(totalPages),
                 ],
               ),
               if (isRefreshing)
@@ -64,98 +104,46 @@ class ProcessingDataTable extends StatelessWidget {
     );
   }
 
-  Widget _buildTableHeader(
-    BuildContext context,
-    String sortColumn,
-    bool ascending,
-  ) {
+  Widget _buildTableHeader(BuildContext context, String sortColumn, bool ascending) {
     return Container(
       height: 58,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1d3557),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
+      color: AppColors.headerColor,
       child: Row(
         children: [
-          _buildSignalHeader(context, sortColumn, ascending),
           _buildHeaderCell('Name', flex: 2),
           _buildHeaderCell('Order\nNumber', flex: 2),
           _buildHeaderCell('Quantity', flex: 2),
           _buildHeaderCell('Minus', flex: 2),
-          _buildTimestampHeader(context, sortColumn, ascending),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSignalHeader(
-    BuildContext context,
-    String sortColumn,
-    bool ascending,
-  ) {
-    return Expanded(
-      flex: 1,
-      child: GestureDetector(
-        onTap: () => _onSortColumn(context, "status"),
-        child: Container(
-          alignment: Alignment.center,
-          child: Icon(
-            sortColumn == "status"
-                ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                : Icons.unfold_more,
-            color: Colors.white,
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimestampHeader(
-    BuildContext context,
-    String sortColumn,
-    bool ascending,
-  ) {
-    return Expanded(
-      flex: 2,
-      child: GestureDetector(
-        onTap: () => _onSortColumn(context, "timestamp"),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Flexible(
-                child: Text(
-                  'Times',
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
+          Expanded(
+            flex: 2,
+            child: GestureDetector(
+              onTap: () => _onSortColumn(context, "timestamp"),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Times',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      sortColumn == "timestamp"
+                          ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
+                          : Icons.unfold_more,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 2),
-              Icon(
-                sortColumn == "timestamp"
-                    ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                    : Icons.unfold_more,
-                color: Colors.white,
-                size: 20,
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -163,127 +151,92 @@ class ProcessingDataTable extends StatelessWidget {
   Widget _buildHeaderCell(String text, {int flex = 1}) {
     return Expanded(
       flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7),
+      child: Center(
         child: Text(
           text,
-          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 11,
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
-  Widget _buildTableBody(List<ProcessingItemEntity> items) {
+  // Ultra-optimized table content
+  Widget _buildTableContent(BuildContext context, List<ProcessingItemEntity> items) {
     return ListView.builder(
       itemCount: items.length,
+      addAutomaticKeepAlives: false,
+      addRepaintBoundaries: false,
       itemBuilder: (context, index) {
-        return Container(
-          height: 50,
-          color:
-              index % 2 == 0
-                  ? const Color(0xFFFAF1E6)
-                  : const Color(0xFFF5E6CC),
-          child: Padding(
-            padding: const EdgeInsets.all(0),
-            child: _buildDataRow(context, items[index], index),
-          ),
-        );
+        final item = items[index];
+        final backgroundColor = index % 2 == 0 ? AppColors.evenRowColor : AppColors.oddRowColor;
+        
+        return _buildSimpleRow(context, item, backgroundColor);
       },
     );
   }
 
-  Widget _buildDataRow(BuildContext context, ProcessingItemEntity item, int index) {
-    final isQC2User = user.name == "品管正式倉";
-
-    return InkWell(
-      // Only enable tap for QC2 users
-      onTap: isQC2User ? () => _showDeductionDialog(context, item, user) : null,
+  // Extremely simplified row
+  Widget _buildSimpleRow(BuildContext context, ProcessingItemEntity item, Color color) {
+    return GestureDetector(
+      onTap: _isQC2User ? () => _showDeductionDialog(context, item) : null,
       child: Container(
         height: 50,
-        color: index % 2 == 0 ? const Color(0xFFFAF1E6) : const Color(0xFFF5E6CC),
+        color: color,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 6.0,
-                ),
+              child: Center(
                 child: Text(
-                  item.mName!,
-                  style: const TextStyle(fontSize: 13),
-                  textAlign: TextAlign.left,
-                  maxLines: 3,
+                  item.mName ?? '',
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 6.0,
-                ),
-                child: Text(
-                  item.mPrjcode!,
                   style: const TextStyle(fontSize: 13),
-                  textAlign: TextAlign.left,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
             Expanded(
               flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Center(
                 child: Text(
-                  item.mQty.toString(),
+                  item.mPrjcode ?? '',
+                  maxLines: 1,
                   style: const TextStyle(fontSize: 13),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
             Expanded(
               flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Center(
                 child: Text(
-                  item.qcQtyOut.toString(),
+                  item.mQty?.toString() ?? '0',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Center(
+                child: Text(
+                  item.qcQtyOut?.toString() ?? '0',
                   style: TextStyle(
                     fontSize: 13,
                     color: item.qcQtyOut! > 0 ? Colors.red : Colors.black,
-                    fontWeight:
-                        item.qcQtyOut! > 0
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                    fontWeight: item.qcQtyOut! > 0 ? FontWeight.bold : FontWeight.normal,
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
             Expanded(
               flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 6.0,
-                ),
+              child: Center(
                 child: Text(
-                  _formatTimestamp(item.cDate!),
+                  _formatTimestamp(item.cDate ?? ''),
                   style: const TextStyle(fontSize: 12),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
                 ),
               ),
             ),
@@ -293,12 +246,38 @@ class ProcessingDataTable extends StatelessWidget {
     );
   }
 
-  void _showDeductionDialog(
-    BuildContext context,
-    ProcessingItemEntity item,
-    UserEntity user,
-  ) {
+  // Pagination controls
+  Widget _buildPagination(int totalPages) {
+    return Container(
+      height: 40,
+      color: Colors.grey[200],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: _currentPage > 0
+                ? () => setState(() => _currentPage--)
+                : null,
+          ),
+          Text('${_currentPage + 1} / $totalPages'),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: _currentPage < totalPages - 1
+                ? () => setState(() => _currentPage++)
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
 
+  String _formatTimestamp(String timestamp) {
+    if (timestamp.length < 16) return timestamp;
+    return timestamp.substring(0, 16);
+  }
+
+  void _showDeductionDialog(BuildContext context, ProcessingItemEntity item) {
     final double actualQty = item.mQty! - item.qcQtyIn!;
     
     showDialog(
@@ -313,7 +292,6 @@ class ProcessingDataTable extends StatelessWidget {
         onConfirm: (deduction) {
           Navigator.of(dialogContext).pop();
 
-          // Show loading dialog with a named route
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -330,11 +308,10 @@ class ProcessingDataTable extends StatelessWidget {
             routeSettings: const RouteSettings(name: 'loading_dialog'),
           );
 
-          // Dispatch event to BLoC
           BlocProvider.of<ProcessingBloc>(context).add(
             UpdateQC2QuantityEvent(
               code: item.code ?? '',
-              userName: user.name,
+              userName: widget.user.name,
               deduction: deduction.toDouble(),
               currentQuantity: item.mQty ?? 0,
             ),
@@ -343,12 +320,4 @@ class ProcessingDataTable extends StatelessWidget {
       ),
     );
   }
-
-    String _formatTimestamp(String timestamp) {
-      // Format timestamp for display
-      return timestamp.substring(
-        0,
-        16,
-      ); // Just show date and time without milliseconds
-    }
 }

@@ -114,7 +114,6 @@ Future<void> init() async {
   sl.registerLazySingleton<LogoutRepository>(
     () => LogoutRepositoryImpl(
       dataSource: sl(),
-      networkInfo: sl(),
     ),
   );
 

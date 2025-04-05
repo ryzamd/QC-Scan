@@ -22,7 +22,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LoginButtonPressed event,
     Emitter<LoginState> emit,
   ) async {
-    // Show loading state
+
     emit(LoginLoading());
 
     // Call the authRepository directly
