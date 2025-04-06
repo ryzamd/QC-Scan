@@ -185,3 +185,8 @@ class ScannerErrorState extends ScanState {
   @override
   List<Object> get props => [message];
 }
+
+class ScanInitializingState extends ScanState {
+  @override
+  List<Object> get props => [];
+}

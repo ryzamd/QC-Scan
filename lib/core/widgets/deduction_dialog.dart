@@ -6,7 +6,7 @@ class DeductionDialog extends StatefulWidget {
   final String productName;
   final String productCode;
   final String currentQuantity;
-  final Function(int) onConfirm;
+  final Function(double) onConfirm;
   final VoidCallback onCancel;
 
   const DeductionDialog({
@@ -223,7 +223,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                   // Confirm button
                   InkWell(
                       onTap: () {
-                        final deduction = int.tryParse(_deductionController.text) ?? 0;
+                        final deduction = double.tryParse(_deductionController.text) ?? 0;
                         widget.onConfirm(deduction);
                       },
                       child: Container(
