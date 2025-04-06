@@ -41,12 +41,10 @@ class QRScannerWidget extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            // Only build camera widget when active to save resources
             child: isActive && controller != null
               ? MobileScanner(
                   controller: controller!,
                   onDetect: (barcodes) {
-                    // Move processing to compute for heavy barcodes
                     if (barcodes.barcodes.isNotEmpty) {
                       onDetect?.call(barcodes);
                     }
@@ -70,7 +68,6 @@ class QRScannerWidget extends StatelessWidget {
           ),
         ),
         
-        // Only build overlay when needed
         if (isActive) _buildScanOverlay(),
       ],
     );
@@ -102,7 +99,7 @@ class QRScannerWidget extends StatelessWidget {
                 controller!.stop();
                 controller!.start();
               },
-              child: const Text("Try Again", 
+              child: const Text("Try Again",
                 style: TextStyle(color: Color(0xFFFEF9E1)),
               ),
             ),

@@ -75,9 +75,9 @@ class ScanRepositoryImpl implements ScanRepository {
         }
         
         final lastRecord = records.last;
-        final code = lastRecord.code;
-        final userName = lastRecord.userId;
-        final deduction = 0; // Default nếu không có khấu trừ
+        final String code = lastRecord.code;
+        final String userName = lastRecord.userId;
+        final double deduction = 0.0; // Default nếu không có khấu trừ
         
         // Gọi API để lưu thông tin
         final success = await remoteDataSource.saveQualityInspection(code, userName, deduction);

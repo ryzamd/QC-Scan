@@ -1,7 +1,6 @@
 // lib/features/scan/presentation/bloc/scan_bloc.dart
-import 'package:architecture_scan_app/core/errors/failures.dart';
+import 'dart:convert';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
-import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -23,6 +22,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   final ScanRemoteDataSource remoteDataSource;
 
   MobileScannerController? scannerController;
+  
+  // Track camera state internally
+  bool _isCameraActive = false;
+  bool _isTorchEnabled = false;
 
   ScanBloc({
     required this.remoteDataSource,
@@ -42,78 +45,219 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     on<StartNewScan>(_onStartNewScan);
     on<HardwareScanButtonPressed>(_onHardwareScanButtonPressed);
     on<ConfirmDeductionEvent>(_onConfirmDeduction);
-
-  }
-
-  void _onInitializeScanner(InitializeScanner event, Emitter<ScanState> emit) {
-    debugPrint("ScanBloc: Initializing scanner");
-    scannerController = event.controller;
-
-    // Initialize the scanner service with the callback for hardware scanners
-    ScanService.initializeScannerListener((scannedData) {
-      debugPrint("ScanBloc: Hardware scanner data received: $scannedData");
-      add(HardwareScanButtonPressed(scannedData));
-    });
-
-    emit(
-      ScanningState(
-        isCameraActive: true,
-        isTorchEnabled: false,
-        controller: scannerController,
-        scannedItems: [],
-      ),
-    );
-  }
-
-  Future<void> _onBarcodeDetected(BarcodeDetected event, Emitter<ScanState> emit) async {
-  // Skip if we're already processing a barcode
-    if (state is ScanProcessingState) return;
+    on<InitializeScanService>(_onInitializeScanService);
+    on<ClearScannedItems>(_onClearScannedItems);
     
-    // Lightweight state emission
-    emit(ScanProcessingState(barcode: event.barcode));
+    // Initialize ScanService for hardware scanner
+    ScanService.initializeScannerListener(_handleHardwareScan);
+  }
 
-    try {
-      // Use compute to move processing off main thread
-      final result = await compute(_fetchMaterialInfo, 
-        {'barcode': event.barcode, 'repository': getMaterialInfo});
-      
-      result.fold(
-        (failure) {
-          emit(ScanErrorState(message: failure.message, previousState: state));
-        },
-        (materialInfo) {
-          // Optimize list operations
-          List<List<String>> scannedItems = _efficientlyGetScannedItems(state);
-          
-          // Only add if not already in the list - use efficient lookup
-          final isAlreadyScanned = scannedItems.any((item) => 
-            item.isNotEmpty && item[0] == event.barcode);
-          
-          if (!isAlreadyScanned) {
-            // Avoid creating a new list unnecessarily
-            scannedItems.add([event.barcode, 'Scanned', materialInfo['Quantity'] ?? '0']);
-          }
-          
-          emit(MaterialInfoLoaded(
-            isCameraActive: state is ScanningState ? (state as ScanningState).isCameraActive : true,
-            isTorchEnabled: state is ScanningState ? (state as ScanningState).isTorchEnabled : false,
+  void _onClearScannedItems(ClearScannedItems event, Emitter<ScanState> emit) {
+    debugPrint("ScanBloc: Clearing scanned items");
+    
+    add(StartNewScan());
+  }
+
+  // Handler for hardware scanner events
+  void _handleHardwareScan(String scannedData) {
+    debugPrint("ScanBloc: Hardware scanner data received: $scannedData");
+    add(HardwareScanButtonPressed(scannedData));
+  }
+
+  // New method to initialize scan service
+  void _onInitializeScanService(InitializeScanService event, Emitter<ScanState> emit) {
+    debugPrint("ScanBloc: Initializing scan service");
+  }
+
+  Future<void> _onInitializeScanner(InitializeScanner event, Emitter<ScanState> emit) async {
+    debugPrint("ScanBloc: Initializing scanner");
+    
+    // Dispose previous controller if it exists
+    await _cleanupController();
+    
+    // First emit a state showing we're initializing camera
+    emit(ScanInitializingState());
+    
+    // Maximum retry attempts
+    int maxRetries = 3;
+    int currentRetry = 0;
+    bool cameraInitialized = false;
+    
+    while (!cameraInitialized && currentRetry < maxRetries) {
+      try {
+        // Create a new controller or use the provided one
+        scannerController = event.controller ?? MobileScannerController(
+          formats: const [BarcodeFormat.qrCode, BarcodeFormat.code128],
+          detectionSpeed: DetectionSpeed.noDuplicates,
+          facing: CameraFacing.back,
+          returnImage: false,
+          torchEnabled: _isTorchEnabled,
+          autoStart: false,
+        );
+        
+        // Longer delay for camera initialization (especially after permission grant)
+        await Future.delayed(Duration(milliseconds: 1000 * (currentRetry + 1)));
+        
+        // Start the camera
+        await scannerController!.start();
+        _isCameraActive = true;
+        cameraInitialized = true;
+        
+        emit(
+          ScanningState(
+            isCameraActive: _isCameraActive,
+            isTorchEnabled: _isTorchEnabled,
             controller: scannerController,
-            scannedItems: scannedItems,
-            materialInfo: materialInfo,
-            currentBarcode: event.barcode,
-          ));
-        },
-      );
-    } catch (e) {
-      emit(ScanErrorState(message: "Error processing scan: $e", previousState: state));
+            scannedItems: [],
+          ),
+        );
+      } catch (e) {
+        currentRetry++;
+        debugPrint("ScanBloc: Error initializing scanner (attempt $currentRetry): $e");
+        
+        // Clean up failed controller
+        await _cleanupController();
+        
+        // If we've reached max retries, emit error state
+        if (currentRetry >= maxRetries) {
+          emit(
+            ScanErrorState(
+              message: "Could not initialize camera after multiple attempts. Please check permissions and try again.",
+              previousState: state,
+            ),
+          );
+        } else {
+          // Wait longer between retries
+          await Future.delayed(const Duration(milliseconds: 1000));
+        }
+      }
     }
   }
 
-  // Helper function that runs on a separate isolate
-  Future<Either<Failure, Map<String, String>>> _fetchMaterialInfo(Map<String, dynamic> params) async {
-    final barcode = params['barcode'];
-    final repository = params['repository'];
-    return await repository(GetMaterialInfoParams(barcode: barcode));
+  Future<void> _cleanupController() async {
+    if (scannerController != null) {
+      try {
+        await scannerController!.stop();
+        await scannerController!.dispose();
+      } catch (e) {
+        debugPrint("ScanBloc: Error disposing controller: $e");
+      } finally {
+        scannerController = null;
+      }
+    }
+    _isCameraActive = false;
+  }
+
+  Future<void> _onBarcodeDetected(
+    BarcodeDetected event,
+    Emitter<ScanState> emit,
+  ) async {
+    if (state is ScanProcessingState) return;
+
+    emit(ScanProcessingState(barcode: event.barcode));
+
+    try {
+      // Quan trọng: phải await result.fold hoàn toàn
+      final result = await getMaterialInfo(
+        GetMaterialInfoParams(barcode: event.barcode),
+      );
+
+      await result.fold(
+        (failure) async {
+          emit(ScanErrorState(message: failure.message, previousState: state));
+        },
+        (materialInfo) async {
+          // Thêm async và await cho đúng
+          try {
+            // Đảm bảo materialInfo là Map<String, String> trước khi encode
+            final materialInfoMap = Map<String, String>.from(
+              materialInfo.map(
+                (key, value) => MapEntry(key, value.toString()),
+              ),
+            );
+
+            // Truyền dữ liệu đơn giản qua compute
+            final processedItems = await compute(_processScannedItems, {
+              'barcode': event.barcode,
+              'materialInfoJson': jsonEncode(materialInfoMap),
+              'existingItemsJson': jsonEncode(
+                _efficientlyGetScannedItems(state),
+              ),
+            });
+
+            // Kiểm tra xem emit có còn khả dụng không
+            if (!emit.isDone) {
+              emit(
+                MaterialInfoLoaded(
+                  isCameraActive:
+                      state is ScanningState
+                          ? (state as ScanningState).isCameraActive
+                          : true,
+                  isTorchEnabled:
+                      state is ScanningState
+                          ? (state as ScanningState).isTorchEnabled
+                          : false,
+                  controller: scannerController,
+                  scannedItems: processedItems,
+                  materialInfo: materialInfoMap,
+                  currentBarcode: event.barcode,
+                ),
+              );
+            }
+          } catch (e) {
+            if (!emit.isDone) {
+              emit(
+                ScanErrorState(
+                  message: "Processing error: $e",
+                  previousState: state,
+                ),
+              );
+            }
+          }
+        },
+      );
+    } catch (e) {
+      if (!emit.isDone) {
+        emit(
+          ScanErrorState(
+            message: "Error processing scan: $e",
+            previousState: state,
+          ),
+        );
+      }
+    }
+  }
+
+  // Hàm xử lý chạy trong isolate
+  static List<List<String>> _processScannedItems(Map<String, dynamic> params) {
+    final String barcode = params['barcode'];
+    final String materialInfoJson = params['materialInfoJson'];
+    final List<List<String>> existingItems =
+        (jsonDecode(params['existingItemsJson']) as List)
+            .map((item) => (item as List).map((e) => e.toString()).toList())
+            .toList();
+
+    // Chuyển JSON thành Map
+    final Map<String, dynamic> materialInfo = jsonDecode(materialInfoJson);
+
+    // Kiểm tra nếu đã có
+    final isAlreadyScanned = existingItems.any(
+      (item) => item.isNotEmpty && item[0] == barcode,
+    );
+
+    // Tạo bản sao
+    final List<List<String>> result = List.from(existingItems);
+
+    // Thêm item mới nếu chưa có
+    if (!isAlreadyScanned) {
+      result.add([
+        barcode,
+        'Scanned',
+        materialInfo['Quantity']?.toString() ?? '0',
+      ]);
+    }
+
+    return result;
   }
 
   // Efficiently get scanned items without unnecessary allocations
@@ -126,46 +270,90 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     return [];
   }
 
-  void _onToggleCamera(ToggleCamera event, Emitter<ScanState> emit) {
+  Future<void> _onToggleCamera(ToggleCamera event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Toggle camera: ${event.isActive}");
-
-    final currentState = state;
-    if (currentState is ScanningState) {
-      if (event.isActive) {
-        scannerController?.start();
-      } else {
-        scannerController?.stop();
+    
+    if (event.isActive == _isCameraActive) {
+      debugPrint("ScanBloc: Camera already in desired state");
+      return;
+    }
+    
+    if (event.isActive) {
+      // Turn camera on
+      if (scannerController == null) {
+        add(InitializeScanner());
+        return;
       }
-
-      emit(currentState.copyWith(isCameraActive: event.isActive));
-    } else if (currentState is MaterialInfoLoaded) {
-      if (event.isActive) {
-        scannerController?.start();
-      } else {
-        scannerController?.stop();
+      
+      try {
+        await scannerController!.start();
+        _isCameraActive = true;
+      } catch (e) {
+        debugPrint("ScanBloc: Error starting camera: $e");
+        emit(
+          ScanErrorState(
+            message: "Could not start camera: $e",
+            previousState: state,
+          ),
+        );
+        return;
       }
-
-      emit(currentState.copyWith(isCameraActive: event.isActive));
+    } else {
+      // Turn camera off
+      if (scannerController != null) {
+        try {
+          await scannerController!.stop();
+          _isCameraActive = false;
+        } catch (e) {
+          debugPrint("ScanBloc: Error stopping camera: $e");
+        }
+      }
+    }
+    
+    // Update state based on current state type
+    if (state is ScanningState) {
+      emit((state as ScanningState).copyWith(isCameraActive: _isCameraActive));
+    } else if (state is MaterialInfoLoaded) {
+      emit((state as MaterialInfoLoaded).copyWith(isCameraActive: _isCameraActive));
     }
   }
 
-  void _onToggleTorch(ToggleTorch event, Emitter<ScanState> emit) {
+  Future<void> _onToggleTorch(ToggleTorch event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Toggle torch: ${event.isEnabled}");
-
-    scannerController?.toggleTorch();
-
-    final currentState = state;
-    if (currentState is ScanningState) {
-      emit(currentState.copyWith(isTorchEnabled: event.isEnabled));
-    } else if (currentState is MaterialInfoLoaded) {
-      emit(currentState.copyWith(isTorchEnabled: event.isEnabled));
+    
+    if (scannerController == null || !_isCameraActive) {
+      debugPrint("ScanBloc: Cannot toggle torch, camera not active");
+      return;
+    }
+    
+    try {
+      await scannerController!.toggleTorch();
+      _isTorchEnabled = event.isEnabled;
+      
+      // Update state based on current state type
+      if (state is ScanningState) {
+        emit((state as ScanningState).copyWith(isTorchEnabled: _isTorchEnabled));
+      } else if (state is MaterialInfoLoaded) {
+        emit((state as MaterialInfoLoaded).copyWith(isTorchEnabled: _isTorchEnabled));
+      }
+    } catch (e) {
+      debugPrint("ScanBloc: Error toggling torch: $e");
     }
   }
 
-  void _onSwitchCamera(SwitchCamera event, Emitter<ScanState> emit) {
+  Future<void> _onSwitchCamera(SwitchCamera event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Switch camera");
-
-    scannerController?.switchCamera();
+    
+    if (scannerController == null || !_isCameraActive) {
+      debugPrint("ScanBloc: Cannot switch camera, camera not active");
+      return;
+    }
+    
+    try {
+      await scannerController!.switchCamera();
+    } catch (e) {
+      debugPrint("ScanBloc: Error switching camera: $e");
+    }
   }
 
   Future<void> _onGetMaterialInfo(
@@ -359,7 +547,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
     // Don't just add another event, process it directly
     // This prevents potential race conditions or state inconsistencies
-    
+
     // First check for valid data and debounce
     if (event.scannedData.isEmpty) {
       debugPrint("ScanBloc: Empty hardware scanner data, ignoring");
@@ -377,39 +565,50 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
       result.fold(
         (failure) {
-          debugPrint("ScanBloc: Error getting material info from hardware scan: ${failure.message}");
-          emit(
-            ScanErrorState(
-              message: failure.message,
-              previousState: state,
-            ),
+          debugPrint(
+            "ScanBloc: Error getting material info from hardware scan: ${failure.message}",
           );
+          emit(ScanErrorState(message: failure.message, previousState: state));
         },
         (materialInfo) {
-          debugPrint("ScanBloc: Successfully loaded material info from hardware scan");
-          
+          debugPrint(
+            "ScanBloc: Successfully loaded material info from hardware scan",
+          );
+
           // Create or update scanned items list
           List<List<String>> scannedItems = [];
           if (state is ScanningState) {
             scannedItems = List.from((state as ScanningState).scannedItems);
           } else if (state is MaterialInfoLoaded) {
-            scannedItems = List.from((state as MaterialInfoLoaded).scannedItems);
+            scannedItems = List.from(
+              (state as MaterialInfoLoaded).scannedItems,
+            );
           }
-          
+
           // Add to scanned items if not already there
           final isAlreadyScanned = scannedItems.any(
             (item) => item.isNotEmpty && item[0] == event.scannedData,
           );
-          
+
           if (!isAlreadyScanned) {
-            scannedItems.add([event.scannedData, 'Scanned', materialInfo['Quantity'] ?? '0']);
+            scannedItems.add([
+              event.scannedData,
+              'Scanned',
+              materialInfo['Quantity'] ?? '0',
+            ]);
           }
-          
+
           // Emit the new state with material info from hardware scan
           emit(
             MaterialInfoLoaded(
-              isCameraActive: state is ScanningState ? (state as ScanningState).isCameraActive : true,
-              isTorchEnabled: state is ScanningState ? (state as ScanningState).isTorchEnabled : false,
+              isCameraActive:
+                  state is ScanningState
+                      ? (state as ScanningState).isCameraActive
+                      : true,
+              isTorchEnabled:
+                  state is ScanningState
+                      ? (state as ScanningState).isTorchEnabled
+                      : false,
               controller: scannerController,
               scannedItems: scannedItems,
               materialInfo: materialInfo,
@@ -430,89 +629,114 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   }
 
   @override
-  Future<void> close() {
-    // Clean up resources
-    scannerController?.dispose();
+  Future<void> close() async {
+    // Ensure we clean up resources
+    await _cleanupController();
     ScanService.disposeScannerListener();
     return super.close();
   }
 
+
   Future<void> _onConfirmDeduction(
-  ConfirmDeductionEvent event,
-  Emitter<ScanState> emit,
-) async {
-  try {
-    // Hiển thị trạng thái đang xử lý
-    emit(SavingDataState(
-      isCameraActive: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isCameraActive : false,
-      isTorchEnabled: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isTorchEnabled : false,
-      controller: scannerController,
-      scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
-      materialInfo: event.materialInfo,
-      currentBarcode: event.barcode,
-    ));
-    
-    // Gọi API để lưu dữ liệu khấu trừ
-    final result = await remoteDataSource.saveQualityInspection(
-      event.barcode,
-      event.userId,
-      event.deduction
-    );
-    
-    if (result) {
-      // Cập nhật processing service nếu thành công
-      // di.sl<ProcessingDataService>().addItem(
-      //   event.materialInfo,
-      //   event.barcode,
-      //   event.quantity,
-      //   event.deduction,
-      // );
-      
-      // Tạo record với số lượng đã trừ
-      final remainingQuantity = (int.tryParse(event.quantity) ?? 0 - event.deduction).toString();
-      
-      final updatedMaterialInfo = Map<String, String>.from(event.materialInfo);
-      updatedMaterialInfo['Quantity'] = remainingQuantity;
-      
-      final scanRecord = ScanRecordModel.create(
-        code: event.barcode,
-        status: 'Processed',
-        quantity: remainingQuantity,
-        userId: event.userId,
-        materialInfo: updatedMaterialInfo,
+    ConfirmDeductionEvent event,
+    Emitter<ScanState> emit,
+  ) async {
+    try {
+      // Hiển thị trạng thái đang xử lý
+      emit(
+        SavingDataState(
+          isCameraActive:
+              state is MaterialInfoLoaded
+                  ? (state as MaterialInfoLoaded).isCameraActive
+                  : false,
+          isTorchEnabled:
+              state is MaterialInfoLoaded
+                  ? (state as MaterialInfoLoaded).isTorchEnabled
+                  : false,
+          controller: scannerController,
+          scannedItems:
+              state is MaterialInfoLoaded
+                  ? (state as MaterialInfoLoaded).scannedItems
+                  : [],
+          materialInfo: event.materialInfo,
+          currentBarcode: event.barcode,
+        ),
       );
-      
-      // Lưu record vào local storage
-      final saveResult = await saveScanRecord(SaveScanRecordParams(record: scanRecord));
-      
-      saveResult.fold(
-        (failure) => emit(ScanErrorState(
-          message: 'Failed to save record: ${failure.message}',
+
+      // Gọi API để lưu dữ liệu khấu trừ
+      final result = await remoteDataSource.saveQualityInspection(
+        event.barcode,
+        event.userId,
+        event.deduction,
+      );
+
+      if (result) {
+        // Cập nhật processing service nếu thành công
+        // di.sl<ProcessingDataService>().addItem(
+        //   event.materialInfo,
+        //   event.barcode,
+        //   event.quantity,
+        //   event.deduction,
+        // );
+
+        // Tạo record với số lượng đã trừ
+        final remainingQuantity =
+            (int.tryParse(event.quantity) ?? 0 - event.deduction).toString();
+
+        final updatedMaterialInfo = Map<String, String>.from(
+          event.materialInfo,
+        );
+        updatedMaterialInfo['Quantity'] = remainingQuantity;
+
+        final scanRecord = ScanRecordModel.create(
+          code: event.barcode,
+          status: 'Processed',
+          quantity: remainingQuantity,
+          userId: event.userId,
+          materialInfo: updatedMaterialInfo,
+        );
+
+        // Lưu record vào local storage
+        final saveResult = await saveScanRecord(
+          SaveScanRecordParams(record: scanRecord),
+        );
+
+        saveResult.fold(
+          (failure) => emit(
+            ScanErrorState(
+              message: 'Failed to save record: ${failure.message}',
+              previousState: state,
+            ),
+          ),
+          (savedRecord) {
+            List<List<String>> scannedItems = [];
+            if (state is MaterialInfoLoaded) {
+              scannedItems = (state as MaterialInfoLoaded).scannedItems;
+            }
+
+            emit(
+              DataSavedState(
+                savedRecord: savedRecord,
+                scannedItems: scannedItems,
+              ),
+            );
+          },
+        );
+      } else {
+        emit(
+          ScanErrorState(
+            message: 'Failed to process deduction',
+            previousState: state,
+          ),
+        );
+      }
+    } catch (e) {
+      emit(
+        ScanErrorState(
+          message: 'Error processing deduction: $e',
           previousState: state,
-        )),
-        (savedRecord) {
-          List<List<String>> scannedItems = [];
-          if (state is MaterialInfoLoaded) {
-            scannedItems = (state as MaterialInfoLoaded).scannedItems;
-          }
-          
-          emit(DataSavedState(
-            savedRecord: savedRecord,
-            scannedItems: scannedItems,
-          ));
-        },
+        ),
       );
-    } else {
-      emit(ScanErrorState(
-        message: 'Failed to process deduction',
-        previousState: state,
-      ));
     }
-  } catch (e) {
-    emit(ScanErrorState(
-      message: 'Error processing deduction: $e',
-      previousState: state,
-    ));
   }
-}
 }

@@ -82,12 +82,12 @@ class SendToProcessingEvent extends ScanEvent {
 
 /// Event fired to initialize scanner
 class InitializeScanner extends ScanEvent {
-  final MobileScannerController controller;
+  final MobileScannerController? controller;
 
-  const InitializeScanner(this.controller);
+  const InitializeScanner([this.controller]);
 
   @override
-  List<Object> get props => [controller];
+  List<Object?> get props => [controller];
 }
 
 /// Event fired when a new scan is started
@@ -106,7 +106,7 @@ class HardwareScanButtonPressed extends ScanEvent {
 class ConfirmDeductionEvent extends ScanEvent {
   final String barcode;
   final String quantity;
-  final int deduction;
+  final double deduction;
   final Map<String, String> materialInfo;
   final String userId;
 
@@ -121,3 +121,7 @@ class ConfirmDeductionEvent extends ScanEvent {
   @override
   List<Object> get props => [barcode, quantity, deduction, materialInfo, userId];
 }
+
+class InitializeScanService extends ScanEvent {}
+
+class ClearScannedItems extends ScanEvent {}

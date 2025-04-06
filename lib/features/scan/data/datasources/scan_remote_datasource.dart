@@ -17,7 +17,7 @@ abstract class ScanRemoteDataSource {
   Future<bool> saveQualityInspection(
     String code,
     String userName,
-    int deduction,
+    double deduction,
   );
 }
 
@@ -92,7 +92,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   Future<bool> saveQualityInspection(
     String code,
     String userName,
-    int deduction,
+    double deduction,
   ) async {
     try {
       final response = await dio.post(
