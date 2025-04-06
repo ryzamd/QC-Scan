@@ -36,4 +36,7 @@ class AppColors {
   // Other UI elements
   static const Color divider = Color(0xFFEEEEEE);
   static const Color shadow = Color(0x1A000000);
+  static const Color evenRowColor = Color(0xFFFAF1E6);
+  static const Color oddRowColor = Color(0xFFF5E6CC);
+  static const Color headerColor = Color(0xFF1d3557);
 }

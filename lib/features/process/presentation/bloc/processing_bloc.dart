@@ -1,7 +1,7 @@
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:architecture_scan_app/features/process/domain/usecases/update_qc2_quantity.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:architecture_scan_app/core/enums/enums.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:architecture_scan_app/features/process/domain/usecases/get_processing_items.dart';
 import 'processing_event.dart';
@@ -10,6 +10,11 @@ import 'processing_state.dart';
 class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   final GetProcessingItems getProcessingItems;
   final UpdateQC2Quantity updateQC2Quantity;
+  
+  // Cache for minimizing memory allocations during filtering
+  String _lastQuery = '';
+  List<ProcessingItemEntity>? _lastItems;
+  List<ProcessingItemEntity>? _cachedFilteredItems;
 
   ProcessingBloc({
     required this.getProcessingItems,
@@ -33,21 +38,27 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         GetProcessingParams(userName: event.userName),
       );
 
-      result.fold(
-        (failure) => emit(ProcessingError(message: failure.message)),
-        (items) {
-          // Default sort by status
-          final sortedItems = List<ProcessingItemEntity>.from(items);
-          _sortItemsByStatus(sortedItems, true);
+      await result.fold( // <-- Add await here
+        (failure) async => emit(ProcessingError(message: failure.message)),
+        (items) async {
+          // Existing code
+          _lastItems = items;
+          
+          List<ProcessingItemEntity> sortedItems;
+          if (items.length > 100) {
+            sortedItems = await compute(_sortItemsByTimestamp,
+                [List<ProcessingItemEntity>.from(items), true]);
+          } else {
+            sortedItems = List<ProcessingItemEntity>.from(items);
+            _sortByTimestamp(sortedItems, true);
+          }
 
-          emit(
-            ProcessingLoaded(
-              items: items,
-              filteredItems: sortedItems,
-              sortColumn: 'status',
-              ascending: true,
-            ),
-          );
+          emit(ProcessingLoaded(
+            items: items,
+            filteredItems: sortedItems,
+            sortColumn: 'timestamp',
+            ascending: true,
+          ));
         },
       );
     } catch (e) {
@@ -61,9 +72,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   ) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
-      // Keep current state to avoid UI flashing
       final existingItems = List<ProcessingItemEntity>.from(currentState.items);
-
       emit(ProcessingRefreshing(items: existingItems));
 
       try {
@@ -77,27 +86,42 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             emit(
               ProcessingLoaded(
                 items: existingItems,
-                filteredItems: _filterItems(
-                  existingItems,
-                  currentState.searchQuery,
-                ),
+                filteredItems: existingItems,
                 sortColumn: currentState.sortColumn,
                 ascending: currentState.ascending,
                 searchQuery: currentState.searchQuery,
               ),
             );
-
-            // Show error
             emit(ProcessingError(message: failure.message));
           },
-          (items) {
-            // Apply current filters and sorting
-            final filteredItems = _filterItems(items, currentState.searchQuery);
-            _sortItems(
-              filteredItems,
-              currentState.sortColumn,
-              currentState.ascending,
-            );
+          (items) async {
+            _lastItems = items;
+            
+            // Cache the filtered items
+            List<ProcessingItemEntity> filteredItems;
+            if (items.length > 100) {
+              // For large lists, use compute
+              filteredItems = await compute(
+                _filterAndSortItems,
+                [
+                  items,
+                  currentState.searchQuery,
+                  currentState.sortColumn,
+                  currentState.ascending
+                ],
+              );
+            } else {
+              // For small lists, process directly
+               filteredItems = _filterItemsSync(items, currentState.searchQuery);
+              _sortItems(
+                filteredItems,
+                currentState.sortColumn,
+                currentState.ascending,
+              );
+            }
+            
+            _cachedFilteredItems = filteredItems;
+            _lastQuery = currentState.searchQuery;
 
             emit(
               ProcessingLoaded(
@@ -115,19 +139,13 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         emit(
           ProcessingLoaded(
             items: existingItems,
-            filteredItems: _filterItems(
-              existingItems,
-              currentState.searchQuery,
-            ),
+            filteredItems: existingItems,
             sortColumn: currentState.sortColumn,
             ascending: currentState.ascending,
             searchQuery: currentState.searchQuery,
           ),
         );
-
-        emit(
-          ProcessingError(message: 'Error refreshing data: ${e.toString()}'),
-        );
+        emit(ProcessingError(message: 'Error refreshing data: ${e.toString()}'));
       }
     } else {
       // If not in loaded state, initiate a fresh load
@@ -135,27 +153,26 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  void _onSortProcessingItems(
+  Future<void> _onSortProcessingItems(
     SortProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
-  ) {
+  ) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
-      final sortedItems = List<ProcessingItemEntity>.from(
-        currentState.filteredItems,
-      );
-
       final sortColumn = event.column;
-      final ascending =
-          sortColumn == currentState.sortColumn
-              ? !currentState.ascending
-              : event.ascending;
+      final ascending = sortColumn == currentState.sortColumn
+          ? !currentState.ascending
+          : event.ascending;
 
-      _sortItems(sortedItems, sortColumn, ascending);
+      // Use cached items if possible
+      final itemsToSort = List<ProcessingItemEntity>.from(currentState.filteredItems);
+      
+      // Sort directly for small lists
+      _sortItems(itemsToSort, sortColumn, ascending);
 
       emit(
         currentState.copyWith(
-          filteredItems: sortedItems,
+          filteredItems: itemsToSort,
           sortColumn: sortColumn,
           ascending: ascending,
         ),
@@ -163,98 +180,58 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  void _onSearchProcessingItems(
+  Future<void> _onSearchProcessingItems(
     SearchProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
-  ) {
+  ) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
-      final filteredItems = _filterItems(currentState.items, event.query);
+      final query = event.query;
+      
+      if (query == _lastQuery && _lastItems == currentState.items && _cachedFilteredItems != null) {
+        emit(
+          currentState.copyWith(
+            filteredItems: _cachedFilteredItems,
+            searchQuery: query,
+          ),
+        );
+        return;
+      }
+      
+      List<ProcessingItemEntity> filteredItems;
+      if (currentState.items.length > 100) {
+        // Use compute with static method
+        filteredItems = await compute(
+          _filterItemsStatic,
+          [currentState.items, query],
+        );
+        
+        _sortItems(
+          filteredItems,
+          currentState.sortColumn,
+          currentState.ascending,
+        );
+      } else {
+        // For small lists, process directly
+        filteredItems = _filterItemsSync(currentState.items, query);
+        _sortItems(
+          filteredItems,
+          currentState.sortColumn,
+          currentState.ascending,
+        );
+      }
 
-      _sortItems(
-        filteredItems,
-        currentState.sortColumn,
-        currentState.ascending,
-      );
+      // Cache the results
+      _cachedFilteredItems = filteredItems;
+      _lastQuery = query;
 
       emit(
         currentState.copyWith(
           filteredItems: filteredItems,
-          searchQuery: event.query,
+          searchQuery: query,
         ),
       );
     }
-  }
-
-  // Helper methods for sorting and filtering
-  void _sortItems(
-    List<ProcessingItemEntity> items,
-    String column,
-    bool ascending,
-  ) {
-    if (column == 'status') {
-      _sortItemsByStatus(items, ascending);
-    } else if (column == 'timestamp') {
-      _sortItemsByTimestamp(items, ascending);
-    }
-  }
-
-  void _sortItemsByStatus(List<ProcessingItemEntity> items, bool ascending) {
-    items.sort((a, b) {
-      final aValue = a.status.index;
-      final bValue = b.status.index;
-      return ascending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
-    });
-  }
-
-  void _sortItemsByTimestamp(List<ProcessingItemEntity> items, bool ascending) {
-    items.sort((a, b) {
-      return ascending
-          ? a.cDate!.compareTo(b.cDate!)
-          : b.cDate!.compareTo(a.cDate!);
-    });
-  }
-
-  List<ProcessingItemEntity> _filterItems(
-    List<ProcessingItemEntity> items,
-    String query,
-  ) {
-    if (query.isEmpty) {
-      return List.from(items);
-    }
-
-    final lowercaseQuery = query.toLowerCase();
-
-    return items.where((item) {
-      // Search by name and project code
-      if (item.mName!.toLowerCase().contains(lowercaseQuery) ||
-          item.mPrjcode!.toLowerCase().contains(lowercaseQuery)) {
-        return true;
-      }
-
-      // Search by quantity
-      if (item.mQty.toString().contains(lowercaseQuery)) {
-        return true;
-      }
-
-      // Search by supplier
-      if (item.mVendor!.toLowerCase().contains(lowercaseQuery)) {
-        return true;
-      }
-
-      // Search by status
-      if (lowercaseQuery == 'success' && item.status == SignalStatus.success) {
-        return true;
-      }
-      if (lowercaseQuery == 'pending' && item.status == SignalStatus.pending) {
-        return true;
-      }
-      if (lowercaseQuery == 'failed' && item.status == SignalStatus.failed) {
-        return true;
-      }
-
-      return false;
-    }).toList();
   }
 
   Future<void> _onUpdateQC2Quantity(
@@ -265,7 +242,8 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
     if (currentState is ProcessingLoaded) {
       try {
-        ProcessingItemEntity? targetItem = currentState.items.firstWhere(
+        // Find target item
+        final targetItem = currentState.items.firstWhere(
           (item) => item.code == event.code,
           orElse: () => throw ServerFailure('Item not found'),
         );
@@ -287,19 +265,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             emit(ProcessingError(message: failure.message));
           },
           (updatedItem) {
-            final updatedItems = List<ProcessingItemEntity>.from(
-              currentState.items,
-            );
-            final index = updatedItems.indexWhere(
-              (item) => item.code == updatedItem.code,
-            );
-
-            if (index != -1) {
-              updatedItems[index] = updatedItem;
-            }
-
-            emit(currentState.copyWith(items: updatedItems));
-
             emit(
               ProcessingUpdatedState(
                 updatedItem: updatedItem,
@@ -313,5 +278,110 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         emit(ProcessingError(message: e.toString()));
       }
     }
+  }
+
+  // HELPER METHODS
+  
+  // Sort directly in this thread
+  void _sortByTimestamp(List<ProcessingItemEntity> items, bool ascending) {
+    items.sort((a, b) {
+      return ascending
+          ? a.cDate!.compareTo(b.cDate!)
+          : b.cDate!.compareTo(a.cDate!);
+    });
+  }
+  
+  void _sortItems(
+    List<ProcessingItemEntity> items,
+    String column,
+    bool ascending,
+  ) {
+    if (column == 'timestamp') {
+      _sortByTimestamp(items, ascending);
+    }
+  }
+  
+  List<ProcessingItemEntity> _filterItemsSync(
+    List<ProcessingItemEntity> items,
+    String query,
+  ) {
+    if (query.isEmpty) {
+      return List.from(items);
+    }
+
+    final lowercaseQuery = query.toLowerCase();
+
+    return items.where((item) {
+      return item.mName!.toLowerCase().contains(lowercaseQuery) ||
+             item.mPrjcode!.toLowerCase().contains(lowercaseQuery) ||
+             item.mQty.toString().contains(lowercaseQuery) ||
+             item.mVendor!.toLowerCase().contains(lowercaseQuery);
+    }).toList();
+  }
+
+  // Static method for compute
+  static List<ProcessingItemEntity> _filterItemsStatic(List<dynamic> params) {
+    final items = params[0] as List<ProcessingItemEntity>;
+    final query = params[1] as String;
+    
+    if (query.isEmpty) {
+      return List.from(items);
+    }
+
+    final lowercaseQuery = query.toLowerCase();
+
+    return items.where((item) {
+      return item.mName!.toLowerCase().contains(lowercaseQuery) ||
+             item.mPrjcode!.toLowerCase().contains(lowercaseQuery) ||
+             item.mQty.toString().contains(lowercaseQuery) ||
+             item.mVendor!.toLowerCase().contains(lowercaseQuery);
+    }).toList();
+  }
+  
+  // STATIC METHODS FOR COMPUTE
+  
+  // For background compute
+  static List<ProcessingItemEntity> _sortItemsByTimestamp(List<dynamic> params) {
+    final items = params[0] as List<ProcessingItemEntity>;
+    final ascending = params[1] as bool;
+    
+    items.sort((a, b) {
+      return ascending
+          ? a.cDate!.compareTo(b.cDate!)
+          : b.cDate!.compareTo(a.cDate!);
+    });
+    
+    return items;
+  }
+  
+  // Static methods for compute
+  static List<ProcessingItemEntity> _filterAndSortItems(List<dynamic> params) {
+    final items = params[0] as List<ProcessingItemEntity>;
+    final query = params[1] as String;
+    final sortColumn = params[2] as String;
+    final ascending = params[3] as bool;
+    
+    List<ProcessingItemEntity> result;
+    if (query.isEmpty) {
+      result = List.from(items);
+    } else {
+      final lowercaseQuery = query.toLowerCase();
+      result = items.where((item) {
+        return item.mName!.toLowerCase().contains(lowercaseQuery) ||
+               item.mPrjcode!.toLowerCase().contains(lowercaseQuery) ||
+               item.mQty.toString().contains(lowercaseQuery) ||
+               item.mVendor!.toLowerCase().contains(lowercaseQuery);
+      }).toList();
+    }
+    
+    if (sortColumn == 'timestamp') {
+      result.sort((a, b) {
+        return ascending
+            ? a.cDate!.compareTo(b.cDate!)
+            : b.cDate!.compareTo(a.cDate!);
+      });
+    }
+    
+    return result;
   }
 }
