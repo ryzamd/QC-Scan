@@ -176,7 +176,6 @@ class ProcessingCompleteState extends ScanState {
 
 class ScannerReadyState extends ScanState {}
 
-/// State representing scanner error
 class ScannerErrorState extends ScanState {
   final String message;
 
@@ -189,4 +188,13 @@ class ScannerErrorState extends ScanState {
 class ScanInitializingState extends ScanState {
   @override
   List<Object> get props => [];
+}
+
+class ShowClearConfirmationState extends ScanState {
+  final ScanState previousState;
+
+  const ShowClearConfirmationState({required this.previousState});
+
+  @override
+  List<Object> get props => [previousState];
 }

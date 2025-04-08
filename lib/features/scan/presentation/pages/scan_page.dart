@@ -1,8 +1,6 @@
 // Modified scan_page.dart
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
-import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
-import 'package:architecture_scan_app/features/process/presentation/bloc/processing_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -70,7 +68,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
   @override
   void didPop() {
     // Được gọi khi màn hình này bị pop khỏi stack
-
   }
 
   @override
@@ -140,27 +137,16 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
               ),
             );
 
-            if (!_isQC2User) {
-              context.read<ScanBloc>().add(
-                ConfirmDeductionEvent(
-                  barcode: _materialData['code'] ?? _currentScannedValue!,
-                  quantity: _materialData['m_qty'] ?? _materialData['Quantity'] ?? '0',
-                  deduction: deduction,
-                  materialInfo: _materialData,
-                  userId: widget.user.name,
-                ),
-              );
-            } else {
-              debugPrint('QC2 is active');
-              BlocProvider.of<ProcessingBloc>(context).add(
-                UpdateQC2QuantityEvent(
-                  code: _materialData['code'] ?? _currentScannedValue!,
-                  userName: widget.user.name,
-                  deduction: deduction.toDouble(),
-                  currentQuantity: double.tryParse(_materialData['Quantity']!) ?? 0,
-                ),
-              );
-            }
+            context.read<ScanBloc>().add(
+              ConfirmDeductionEvent(
+                barcode: _materialData['code'] ?? _currentScannedValue!,
+                quantity: _materialData['m_qty'] ?? _materialData['Quantity'] ?? '0',
+                deduction: deduction,
+                materialInfo: _materialData,
+                userId: widget.user.name,
+                isQC2User: _isQC2User,
+              ),
+            );
           },
         ),
       );
@@ -196,250 +182,288 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
           Navigator.of(context).pop();
         }
 
-        if (state is ScanErrorState) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
-        } else if (state is DataSavedState) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          if (state is ShowClearConfirmationState) {
+            _showClearConfirmationDialog(context);
+          } else if (state is ScanningState && state.scannedItems.isEmpty) {
+            // Khi quay về ScanningState với danh sách rỗng, reset UI
+            setState(() {
+              _materialData = {
+                'Material Name': '',
+                'Material ID': '',
+                'Quantity': '',
+                'Receipt Date': '',
+                'Supplier': '',
+                'Unit': '',
+              };
+              _currentScannedValue = null;
+            });
+          }
+
+          if (state is ScanErrorState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
               ),
+            );
+          } else if (state is DataSavedState) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder:
+                  (_) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    title: const Text(
+                      'SUCCESS',
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    content: const Text('Data processed successfully'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+
+                          setState(() {
+                            _isDeductionDialogOpen = false;
+                            _materialData = {
+                              'Material Name': '',
+                              'Material ID': '',
+                              'Quantity': '',
+                              'Receipt Date': '',
+                              'Supplier': '',
+                            };
+                            _currentScannedValue = null;
+                          });
+
+                          context.read<ScanBloc>().add(StartNewScan());
+                        },
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+            );
+          }
+  
+        },
+        builder: (context, state) {
+          bool isCameraActive = false;
+          bool isTorchEnabled = false;
+          bool isProcessing =
+              state is ScanProcessingState || state is SavingDataState;
+
+          if (state is ScanningState) {
+            isCameraActive = state.isCameraActive;
+            isTorchEnabled = state.isTorchEnabled;
+          } else if (state is MaterialInfoLoaded) {
+            isCameraActive = state.isCameraActive;
+            isTorchEnabled = state.isTorchEnabled;
+          }
+
+          return Scaffold(
+            appBar: AppBar(
               title: const Text(
-                'SUCCESS',
+                'SCAN PAGE',
                 style: TextStyle(
-                  color: Colors.redAccent,
+                  color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: const Text('Data processed successfully'),
+              backgroundColor: Colors.blue.shade700,
+              centerTitle: true,
               actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-
-                    setState(() {
-                      _isDeductionDialogOpen = false;
-                      _materialData = {
-                        'Material Name': '',
-                        'Material ID': '',
-                        'Quantity': '',
-                        'Receipt Date': '',
-                        'Supplier': '',
-                      };
-                      _currentScannedValue = null;
-                    });
-
-                    context.read<ScanBloc>().add(StartNewScan());
-                  },
-                  child: const Text('OK'),
+                // Camera control buttons
+                IconButton(
+                  icon: Icon(
+                    isTorchEnabled ? Icons.flash_on : Icons.flash_off,
+                    color: isTorchEnabled ? Colors.yellow : Colors.white,
+                  ),
+                  onPressed:
+                      isCameraActive
+                          ? () => context.read<ScanBloc>().add(
+                            ToggleTorch(!isTorchEnabled),
+                          )
+                          : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                  onPressed:
+                      isCameraActive
+                          ? () => context.read<ScanBloc>().add(SwitchCamera())
+                          : null,
+                ),
+                IconButton(
+                  icon: Icon(
+                    isCameraActive ? Icons.stop : Icons.play_arrow,
+                    color: isCameraActive ? Colors.red : Colors.white,
+                  ),
+                  onPressed:
+                      () => context.read<ScanBloc>().add(
+                        ToggleCamera(!isCameraActive),
+                      ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.white),
+                  onPressed:
+                      () => context.read<ScanBloc>().add(ClearScannedItems()),
                 ),
               ],
+            ),
+            body: KeyboardListener(
+              focusNode: _focusNode,
+              autofocus: true,
+              onKeyEvent: (KeyEvent event) {
+                // Handle key events from hardware scanner
+                if (event is KeyDownEvent) {
+                  debugPrint(
+                    "QR DEBUG: Key pressed: ${event.logicalKey.keyId}",
+                  );
+                  if (KeycodeConstants.scannerKeyCodes.contains(
+                    event.logicalKey.keyId,
+                  )) {
+                    debugPrint("QR DEBUG: Scanner key pressed");
+                  } else if (ScanService.isScannerButtonPressed(event)) {
+                    debugPrint("QR DEBUG: Scanner key pressed via ScanService");
+                  }
+                }
+              },
+              child: Column(
+                children: [
+                  // QR Camera Section
+                  Container(
+                    margin: const EdgeInsets.all(5),
+                    child: QRScannerWidget(
+                      controller:
+                          state is ScanningState
+                              ? state.controller
+                              : state is MaterialInfoLoaded
+                              ? state.controller
+                              : null,
+                      onDetect: (capture) {
+                        if (capture.barcodes.isNotEmpty) {
+                          final barcode = capture.barcodes.first;
+                          if (barcode.rawValue != null &&
+                              barcode.rawValue!.isNotEmpty) {
+                            // Dispatch to bloc
+                            context.read<ScanBloc>().add(
+                              BarcodeDetected(barcode.rawValue!),
+                            );
+                          }
+                        }
+                      },
+                      isActive: isCameraActive,
+                      onToggle: () {
+                        context.read<ScanBloc>().add(
+                          ToggleCamera(!isCameraActive),
+                        );
+                      },
+                    ),
+                  ),
+                  // Material Info Section (table layout)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: const Color(0xFFFAF1E6),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Column(
+                                children: [
+                                  // Each info row as table row
+                                  _buildTableRow(
+                                    'ID',
+                                    _materialData['Material ID'] ?? '',
+                                  ),
+                                  _buildDivider(),
+                                  _buildTableRow(
+                                    'Material Name',
+                                    _materialData['Material Name'] ?? '',
+                                  ),
+                                  _buildDivider(),
+                                  _buildTableRow(
+                                    'Quantity',
+                                    _materialData['Quantity'] ?? '',
+                                  ),
+                                  _buildDivider(),
+                                  _buildTableRow(
+                                    'Receipt Date',
+                                    _materialData['Receipt Date'] ?? '',
+                                  ),
+                                  _buildDivider(),
+                                  _buildTableRow(
+                                    'Supplier',
+                                    _materialData['Supplier'] ?? '',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          Container(
+                            width: 120,
+                            height: 40,
+                            margin: const EdgeInsets.only(top: 5, bottom: 5),
+                            child: ElevatedButton(
+                              onPressed: _showDeductionDialog,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                              ),
+                              child:
+                                  isProcessing
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : const Text(
+                                        'Save',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            bottomNavigationBar: CustomNavBar(
+              currentIndex: 1,
+              user: widget.user,
+              disableNavigation: _isDeductionDialogOpen,
             ),
           );
-        }
-      },
-            builder: (context, state) {
-        // Extract state values for UI
-        bool isCameraActive = false;
-        bool isTorchEnabled = false;
-        bool isProcessing = state is ScanProcessingState || state is SavingDataState;
-        // bool isCameraInitializing = false;
-        
-        if (state is ScanningState) {
-          isCameraActive = state.isCameraActive;
-          isTorchEnabled = state.isTorchEnabled;
-        } else if (state is MaterialInfoLoaded) {
-          isCameraActive = state.isCameraActive;
-          isTorchEnabled = state.isTorchEnabled;
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text(
-              'SCAN PAGE',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            backgroundColor: Colors.blue.shade700,
-            centerTitle: true,
-            actions: [
-              // Camera control buttons
-              IconButton(
-                icon: Icon(
-                  isTorchEnabled ? Icons.flash_on : Icons.flash_off,
-                  color: isTorchEnabled ? Colors.yellow : Colors.white,
-                ),
-                onPressed: isCameraActive
-                  ? () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled))
-                  : null,
-              ),
-              IconButton(
-                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                onPressed: isCameraActive
-                  ? () => context.read<ScanBloc>().add(SwitchCamera())
-                  : null,
-              ),
-              IconButton(
-                icon: Icon(
-                  isCameraActive ? Icons.stop : Icons.play_arrow,
-                  color: isCameraActive ? Colors.red : Colors.white,
-                ),
-                onPressed: () => context.read<ScanBloc>().add(ToggleCamera(!isCameraActive)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.white),
-                onPressed: () => context.read<ScanBloc>().add(ClearScannedItems()),
-              ),
-            ],
-          ),
-          body: KeyboardListener(
-            focusNode: _focusNode,
-            autofocus: true,
-            onKeyEvent: (KeyEvent event) {
-              // Handle key events from hardware scanner
-              if (event is KeyDownEvent) {
-                debugPrint("QR DEBUG: Key pressed: ${event.logicalKey.keyId}");
-                if (KeycodeConstants.scannerKeyCodes.contains(
-                  event.logicalKey.keyId,
-                )) {
-                  debugPrint("QR DEBUG: Scanner key pressed");
-                } else if (ScanService.isScannerButtonPressed(event)) {
-                  debugPrint("QR DEBUG: Scanner key pressed via ScanService");
-                }
-              }
-            },
-            child: Column(
-              children: [
-                // QR Camera Section
-                 Container(
-                  margin: const EdgeInsets.all(5),
-                  child: QRScannerWidget(
-                    controller: state is ScanningState ? state.controller :
-                               state is MaterialInfoLoaded ? state.controller : null,
-                    onDetect: (capture) {
-                      if (capture.barcodes.isNotEmpty) {
-                        final barcode = capture.barcodes.first;
-                        if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                          // Dispatch to bloc
-                          context.read<ScanBloc>().add(BarcodeDetected(barcode.rawValue!));
-                        }
-                      }
-                    },
-                    isActive: isCameraActive,
-                    onToggle: () {
-                      context.read<ScanBloc>().add(ToggleCamera(!isCameraActive));
-                    },
-                  ),
-                ),
-                // Material Info Section (table layout)
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    child: Column(
-                      children: [
-                        // Table-like layout for info
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFFAF1E6),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
-                              children: [
-                                // Each info row as table row
-                                _buildTableRow(
-                                  'ID',
-                                  _materialData['Material ID'] ?? '',
-                                ),
-                                _buildDivider(),
-                                _buildTableRow(
-                                  'Material Name',
-                                  _materialData['Material Name'] ?? '',
-                                ),
-                                _buildDivider(),
-                                _buildTableRow(
-                                  'Quantity',
-                                  _materialData['Quantity'] ?? '',
-                                ),
-                                _buildDivider(),
-                                _buildTableRow(
-                                  'Receipt Date',
-                                  _materialData['Receipt Date'] ?? '',
-                                ),
-                                _buildDivider(),
-                                _buildTableRow(
-                                  'Supplier',
-                                  _materialData['Supplier'] ?? '',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Save button
-                        Container(
-                          width: 120,
-                          height: 40,
-                          margin: const EdgeInsets.only(top: 5, bottom: 5),
-                          child: ElevatedButton(
-                            onPressed: _showDeductionDialog,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                            ),
-                            child: isProcessing
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  'Save',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          bottomNavigationBar: CustomNavBar(
-            currentIndex: 1,
-            user: widget.user,
-            disableNavigation: _isDeductionDialogOpen,
-          ),
-        );
-      },
+        },
     );
   }
 
-  // Helper methods for table layout
   Widget _buildTableRow(String label, String value) {
     return Expanded(
       child: Row(
@@ -482,6 +506,52 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
           ),
         ],
       ),
+    );
+  }
+
+  void _showClearConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            title: const Text(
+              'CLEAR DATA',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'Are you sure you want to clear all scanned data?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  context.read<ScanBloc>().add(CancelClearScannedItems());
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  setState(() {
+                    _materialData = {
+                      'Material Name': '',
+                      'Material ID': '',
+                      'Quantity': '',
+                      'Receipt Date': '',
+                      'Supplier': '',
+                      'Unit': '',
+                    };
+                    _currentScannedValue = null;
+                  });
+                  context.read<ScanBloc>().add(ConfirmClearScannedItems());
+                },
+                child: const Text('OK', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
     );
   }
 

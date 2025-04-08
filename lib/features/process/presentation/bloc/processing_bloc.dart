@@ -41,7 +41,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
       await result.fold( // <-- Add await here
         (failure) async => emit(ProcessingError(message: failure.message)),
         (items) async {
-          // Existing code
+
           _lastItems = items;
           
           List<ProcessingItemEntity> sortedItems;
@@ -66,7 +66,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onRefreshProcessingItems(
+    Future<void> _onRefreshProcessingItems(
     RefreshProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -80,27 +80,28 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           GetProcessingParams(userName: event.userName),
         );
 
-        result.fold(
-          (failure) {
-            // If API fails, keep current data
-            emit(
-              ProcessingLoaded(
-                items: existingItems,
-                filteredItems: existingItems,
-                sortColumn: currentState.sortColumn,
-                ascending: currentState.ascending,
-                searchQuery: currentState.searchQuery,
-              ),
-            );
-            emit(ProcessingError(message: failure.message));
+        await result.fold(
+          (failure) async {
+            if (!emit.isDone) {
+              emit(
+                ProcessingLoaded(
+                  items: existingItems,
+                  filteredItems: existingItems,
+                  sortColumn: currentState.sortColumn,
+                  ascending: currentState.ascending,
+                  searchQuery: currentState.searchQuery,
+                ),
+              );
+            }
+            if (!emit.isDone) {
+              emit(ProcessingError(message: failure.message));
+            }
           },
           (items) async {
             _lastItems = items;
             
-            // Cache the filtered items
             List<ProcessingItemEntity> filteredItems;
             if (items.length > 100) {
-              // For large lists, use compute
               filteredItems = await compute(
                 _filterAndSortItems,
                 [
@@ -111,8 +112,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
                 ],
               );
             } else {
-              // For small lists, process directly
-               filteredItems = _filterItemsSync(items, currentState.searchQuery);
+              filteredItems = _filterItemsSync(items, currentState.searchQuery);
               _sortItems(
                 filteredItems,
                 currentState.sortColumn,
@@ -123,32 +123,34 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             _cachedFilteredItems = filteredItems;
             _lastQuery = currentState.searchQuery;
 
-            emit(
-              ProcessingLoaded(
-                items: items,
-                filteredItems: filteredItems,
-                sortColumn: currentState.sortColumn,
-                ascending: currentState.ascending,
-                searchQuery: currentState.searchQuery,
-              ),
-            );
+            if (!emit.isDone) {
+              emit(
+                ProcessingLoaded(
+                  items: items,
+                  filteredItems: filteredItems,
+                  sortColumn: currentState.sortColumn,
+                  ascending: currentState.ascending,
+                  searchQuery: currentState.searchQuery,
+                ),
+              );
+            }
           },
         );
       } catch (e) {
-        // Handle errors and keep current data
-        emit(
-          ProcessingLoaded(
-            items: existingItems,
-            filteredItems: existingItems,
-            sortColumn: currentState.sortColumn,
-            ascending: currentState.ascending,
-            searchQuery: currentState.searchQuery,
-          ),
-        );
-        emit(ProcessingError(message: 'Error refreshing data: ${e.toString()}'));
+        if (!emit.isDone) {
+          emit(
+            ProcessingLoaded(
+              items: existingItems,
+              filteredItems: existingItems,
+              sortColumn: currentState.sortColumn,
+              ascending: currentState.ascending,
+              searchQuery: currentState.searchQuery,
+            ),
+          );
+          emit(ProcessingError(message: 'Error refreshing data: ${e.toString()}'));
+        }
       }
     } else {
-      // If not in loaded state, initiate a fresh load
       add(GetProcessingItemsEvent(userName: event.userName));
     }
   }
@@ -248,6 +250,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           orElse: () => throw ServerFailure('Item not found'),
         );
 
+        // Emit processing state immediately
         emit(ProcessingUpdatingState(item: targetItem));
 
         final result = await updateQC2Quantity(
@@ -260,8 +263,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         );
 
         result.fold(
-          (failure) {
-            emit(currentState);
+          (failure) async {
             emit(ProcessingError(message: failure.message));
           },
           (updatedItem) {
@@ -274,7 +276,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           },
         );
       } catch (e) {
-        emit(currentState);
         emit(ProcessingError(message: e.toString()));
       }
     }
