@@ -1,4 +1,5 @@
 // lib/features/scan/presentation/bloc/scan_bloc.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
 import 'package:flutter/foundation.dart';
@@ -47,15 +48,51 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     on<ConfirmDeductionEvent>(_onConfirmDeduction);
     on<InitializeScanService>(_onInitializeScanService);
     on<ClearScannedItems>(_onClearScannedItems);
+    on<ShowClearConfirmationEvent>(_onShowClearConfirmation);
+    on<ConfirmClearScannedItems>(_onConfirmClearScannedItems);
+    on<CancelClearScannedItems>(_onCancelClearScannedItems);
     
     // Initialize ScanService for hardware scanner
     ScanService.initializeScannerListener(_handleHardwareScan);
   }
 
-  void _onClearScannedItems(ClearScannedItems event, Emitter<ScanState> emit) {
-    debugPrint("ScanBloc: Clearing scanned items");
+  
+  
+  void _onCancelClearScannedItems(
+    CancelClearScannedItems event,
+    Emitter<ScanState> emit
+  ) {
+    if (state is ShowClearConfirmationState) {
+      emit((state as ShowClearConfirmationState).previousState);
+    }
+  }
+
+  void _onConfirmClearScannedItems(
+    ConfirmClearScannedItems event,
+    Emitter<ScanState> emit
+  ) {
+    debugPrint("ScanBloc: Confirming clear scanned items");
     
-    add(StartNewScan());
+
+    emit(ScanningState(
+      isCameraActive: _isCameraActive,
+      isTorchEnabled: false,
+      controller: scannerController,
+      scannedItems: [],
+    ));
+    
+    ScanService.clearScannedBarcodes();
+  }
+
+  void _onShowClearConfirmation(
+    ShowClearConfirmationEvent event,
+    Emitter<ScanState> emit
+  ) {
+    emit(ShowClearConfirmationState(previousState: state));
+  }
+
+  void _onClearScannedItems(ClearScannedItems event, Emitter<ScanState> emit) {
+    add(ShowClearConfirmationEvent());
   }
 
   // Handler for hardware scanner events
@@ -642,44 +679,35 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     Emitter<ScanState> emit,
   ) async {
     try {
-      // Hiển thị trạng thái đang xử lý
-      emit(
-        SavingDataState(
-          isCameraActive:
-              state is MaterialInfoLoaded
-                  ? (state as MaterialInfoLoaded).isCameraActive
-                  : false,
-          isTorchEnabled:
-              state is MaterialInfoLoaded
-                  ? (state as MaterialInfoLoaded).isTorchEnabled
-                  : false,
-          controller: scannerController,
-          scannedItems:
-              state is MaterialInfoLoaded
-                  ? (state as MaterialInfoLoaded).scannedItems
-                  : [],
-          materialInfo: event.materialInfo,
-          currentBarcode: event.barcode,
-        ),
-      );
+    emit(
+      SavingDataState(
+        isCameraActive: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isCameraActive : false,
+        isTorchEnabled: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isTorchEnabled : false,
+        controller: scannerController,
+        scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
+        materialInfo: event.materialInfo,
+        currentBarcode: event.barcode,
+      ),
+    );
 
-      // Gọi API để lưu dữ liệu khấu trừ
-      final result = await remoteDataSource.saveQualityInspection(
+    bool result;
+    if (event.isQC2User) {
+      // Call the QC2-specific API
+      result = await remoteDataSource.saveQC2Deduction(
         event.barcode,
         event.userId,
         event.deduction,
       );
+    } else {
+      // Call the existing QC1 API
+      result = await remoteDataSource.saveQualityInspection(
+        event.barcode,
+        event.userId,
+        event.deduction,
+      );
+    }
 
       if (result) {
-        // Cập nhật processing service nếu thành công
-        // di.sl<ProcessingDataService>().addItem(
-        //   event.materialInfo,
-        //   event.barcode,
-        //   event.quantity,
-        //   event.deduction,
-        // );
-
-        // Tạo record với số lượng đã trừ
         final remainingQuantity =
             (int.tryParse(event.quantity) ?? 0 - event.deduction).toString();
 

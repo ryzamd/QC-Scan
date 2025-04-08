@@ -19,6 +19,8 @@ abstract class ScanRemoteDataSource {
     String userName,
     double deduction,
   );
+
+  Future<bool> saveQC2Deduction(String code, String userName, double deduction);
 }
 
 class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
@@ -133,6 +135,36 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       throw ProcessingException(
         'Failed to save quality inspection: ${e.toString()}',
       );
+    }
+  }
+  
+  @override
+  Future<bool> saveQC2Deduction(String code, String userName, double deduction) async {
+    try {
+      final response = await dio.post(
+        ApiConstants.saveQC2DeductionUrl,
+        data: {
+          'post_qc_code': code,
+          'post_qc_UserName': userName,
+          'post_qc_qty': deduction,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (response.data['message'] == 'Success') {
+          return true;
+        } else {
+          throw ProcessingException(
+            'Failed to save QC2 deduction: ${response.data['message']}',
+          );
+        }
+      } else {
+        throw ServerException(
+          'Server returned error code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw ProcessingException('Failed to save QC2 deduction: ${e.toString()}');
     }
   }
 }

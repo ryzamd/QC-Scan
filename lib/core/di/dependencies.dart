@@ -160,8 +160,6 @@ Future<void> init() async {
     () => ScanRemoteDataSourceImpl(dio: sl()),
   );
 
-  sl.registerLazySingleton(() => UpdateQC2Quantity(sl()));
-
   // Update BLoC registration
   sl.registerFactory(
     () => ProcessingBloc(
@@ -172,6 +170,7 @@ Future<void> init() async {
 
   // Use cases
   sl.registerLazySingleton(() => GetProcessingItems(sl()));
+  sl.registerLazySingleton(() => UpdateQC2Quantity(sl()));
   //sl.registerLazySingleton(() => RefreshProcessingItems(sl()));
 
   // Repository

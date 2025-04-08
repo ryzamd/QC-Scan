@@ -16,6 +16,7 @@ abstract class ProcessingRemoteDataSource {
 class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
   final Dio dio;
   final bool useMockData;
+  final token = sl<SecureStorageService>().getAccessToken();
 
   ProcessingRemoteDataSourceImpl({required this.dio, required this.useMockData});
 
@@ -88,7 +89,6 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction) async {
-    final token = await sl<SecureStorageService>().getAccessToken();
     try {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,

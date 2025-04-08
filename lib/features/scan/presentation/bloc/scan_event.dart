@@ -109,6 +109,7 @@ class ConfirmDeductionEvent extends ScanEvent {
   final double deduction;
   final Map<String, String> materialInfo;
   final String userId;
+  final bool isQC2User;
 
   const ConfirmDeductionEvent({
     required this.barcode,
@@ -116,12 +117,36 @@ class ConfirmDeductionEvent extends ScanEvent {
     required this.deduction,
     required this.materialInfo,
     required this.userId,
+    required this.isQC2User,
   });
 
   @override
-  List<Object> get props => [barcode, quantity, deduction, materialInfo, userId];
+  List<Object> get props => [barcode, quantity, deduction, materialInfo, userId, isQC2User];
 }
 
 class InitializeScanService extends ScanEvent {}
 
 class ClearScannedItems extends ScanEvent {}
+
+class ShowClearConfirmationEvent extends ScanEvent {}
+
+class ConfirmClearScannedItems  extends ScanEvent {}
+
+class CancelClearScannedItems  extends ScanEvent {}
+
+class ProcessQC2DeductionEvent extends ScanEvent {
+  final String code;
+  final String userName;
+  final double deduction;
+  final double currentQuantity;
+
+  const ProcessQC2DeductionEvent({
+    required this.code,
+    required this.userName,
+    required this.deduction,
+    required this.currentQuantity,
+  });
+
+  @override
+  List<Object> get props => [code, userName, deduction, currentQuantity];
+}
