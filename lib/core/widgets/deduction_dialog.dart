@@ -24,12 +24,10 @@ class DeductionDialog extends StatefulWidget {
 
 class _DeductionDialogState extends State<DeductionDialog> {
   final TextEditingController _deductionController = TextEditingController(text: '0');
-  double _remainingQuantity = 0;
 
   @override
   void initState() {
     super.initState();
-    _updateRemainingQuantity();
   }
 
   @override
@@ -38,14 +36,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
     super.dispose();
   }
 
-  void _updateRemainingQuantity() {
-    final double currentQuantity = double.tryParse(widget.currentQuantity) ?? 0;
-    final double deduction = double.tryParse(_deductionController.text) ?? 0;
-    setState(() {
-      _remainingQuantity = currentQuantity - deduction;
-      if (_remainingQuantity < 0) _remainingQuantity = 0;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,40 +147,42 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.only(left: 10)
                         ),
-                        onChanged: (value) {
-                          _updateRemainingQuantity();
-                        },
+                        // onChanged: (value) {
+                        //   _updateRemainingQuantity();
+                        // },
                       ),
                       )
                     ],
                   ),
                  
                   // Remaining
-                  Container(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Row(
-                      children: [
-                        const Text(
-                          'Remaining: ',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '$_remainingQuantity',
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Container(
+                  //   padding: const EdgeInsets.only(top: 10),
+                  //   child: Row(
+                  //     children: [
+                  //       const Text(
+                  //         'Remaining: ',
+                  //         style: TextStyle(
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //       Text(
+                  //         '$_remainingQuantity',
+                  //         style: const TextStyle(
+                  //           color: Colors.redAccent,
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 10),
 
             Container(
               padding: EdgeInsets.only(left: 20, right: 20),

@@ -18,10 +18,10 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
   });
 
    @override
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String userName) async {
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String date) async {
     if (await networkInfo.isConnected) {
       try {
-        final processingItems = await remoteDataSource.getProcessingItems(userName);
+        final processingItems = await remoteDataSource.getProcessingItems(date);
         return Right(processingItems);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));

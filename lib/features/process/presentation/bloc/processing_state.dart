@@ -28,6 +28,7 @@ class ProcessingLoaded extends ProcessingState {
   final String sortColumn;
   final bool ascending;
   final String searchQuery;
+  final DateTime selectedDate;
 
   const ProcessingLoaded({
     required this.items,
@@ -35,6 +36,7 @@ class ProcessingLoaded extends ProcessingState {
     required this.sortColumn,
     required this.ascending,
     this.searchQuery = '',
+    required this.selectedDate,
   });
 
   @override
@@ -44,6 +46,7 @@ class ProcessingLoaded extends ProcessingState {
     sortColumn,
     ascending,
     searchQuery,
+    selectedDate,
   ];
 
   ProcessingLoaded copyWith({
@@ -52,6 +55,7 @@ class ProcessingLoaded extends ProcessingState {
     String? sortColumn,
     bool? ascending,
     String? searchQuery,
+    DateTime? selectedDate,
   }) {
     return ProcessingLoaded(
       items: items ?? this.items,
@@ -59,6 +63,7 @@ class ProcessingLoaded extends ProcessingState {
       sortColumn: sortColumn ?? this.sortColumn,
       ascending: ascending ?? this.ascending,
       searchQuery: searchQuery ?? this.searchQuery,
+      selectedDate: selectedDate ?? this.selectedDate,
     );
   }
 }

@@ -8,21 +8,21 @@ abstract class ProcessingEvent extends Equatable {
 }
 
 class GetProcessingItemsEvent extends ProcessingEvent {
-  final String userName;
+  final String date;
   
-  const GetProcessingItemsEvent({required this.userName});
+  const GetProcessingItemsEvent({required this.date});
   
   @override
-  List<Object> get props => [userName];
+  List<Object> get props => [date];
 }
 
 class RefreshProcessingItemsEvent extends ProcessingEvent {
-  final String userName;
+  final String date;
   
-  const RefreshProcessingItemsEvent({required this.userName});
+  const RefreshProcessingItemsEvent({required this.date});
   
   @override
-  List<Object> get props => [userName];
+  List<Object> get props => [date];
 }
 
 class SortProcessingItemsEvent extends ProcessingEvent {
@@ -62,4 +62,13 @@ class UpdateQC2QuantityEvent extends ProcessingEvent {
 
   @override
   List<Object> get props => [code, userName, deduction, currentQuantity];
+}
+
+class SelectDateEvent extends ProcessingEvent {
+  final DateTime selectedDate;
+  
+  const SelectDateEvent({required this.selectedDate});
+  
+  @override
+  List<Object> get props => [selectedDate];
 }

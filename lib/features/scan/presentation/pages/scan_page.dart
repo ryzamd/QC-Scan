@@ -29,7 +29,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
   // Material data - this is UI state only
   Map<String, String> _materialData = {
     'Material Name': '',
-    'Material ID': '',
+    'Deduction': '',
     'Quantity': '',
     'Receipt Date': '',
     'Supplier': '',
@@ -83,9 +83,11 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quản lý trạng thái camera khi ứng dụng chuyển sang nền
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Turn off camera when app is paused/inactive
+      // Lưu trạng thái camera
       if (mounted) {
+        // Tắt camera
         context.read<ScanBloc>().add(const ToggleCamera(false));
       }
     }
@@ -144,6 +146,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                 deduction: deduction,
                 materialInfo: _materialData,
                 userId: widget.user.name,
+                qcQtyOut: double.tryParse((_materialData['qc_qty_out']).toString()) ?? 0.0,
                 isQC2User: _isQC2User,
               ),
             );
@@ -240,7 +243,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                             _currentScannedValue = null;
                           });
 
-                          context.read<ScanBloc>().add(StartNewScan());
+                         // context.read<ScanBloc>().add(InitializeScanner());
                         },
                         child: const Text('OK'),
                       ),
@@ -282,19 +285,11 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                     isTorchEnabled ? Icons.flash_on : Icons.flash_off,
                     color: isTorchEnabled ? Colors.yellow : Colors.white,
                   ),
-                  onPressed:
-                      isCameraActive
-                          ? () => context.read<ScanBloc>().add(
-                            ToggleTorch(!isTorchEnabled),
-                          )
-                          : null,
+                   onPressed: () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled)),
                 ),
                 IconButton(
                   icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                  onPressed:
-                      isCameraActive
-                          ? () => context.read<ScanBloc>().add(SwitchCamera())
-                          : null,
+                  onPressed: () => context.read<ScanBloc>().add(SwitchCamera()),
                 ),
                 IconButton(
                   icon: Icon(
@@ -383,27 +378,27 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                                 children: [
                                   // Each info row as table row
                                   _buildTableRow(
-                                    'ID',
-                                    _materialData['Material ID'] ?? '',
-                                  ),
-                                  _buildDivider(),
-                                  _buildTableRow(
-                                    'Material Name',
+                                    '名稱',
                                     _materialData['Material Name'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
-                                    'Quantity',
+                                    '總數',
                                     _materialData['Quantity'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
-                                    'Receipt Date',
+                                    '扣碼',
+                                    _materialData['qc_qty_out'] ?? '',
+                                  ),
+                                  _buildDivider(),
+                                  _buildTableRow(
+                                    '日期',
                                     _materialData['Receipt Date'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
-                                    'Supplier',
+                                    '供應商',
                                     _materialData['Supplier'] ?? '',
                                   ),
                                 ],
@@ -470,7 +465,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
         children: [
           // Label side (left)
           Container(
-            width: 72,
+            width: 80,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.blue.shade600,
@@ -485,7 +480,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 10,
+                fontSize: 14,
               ),
             ),
           ),

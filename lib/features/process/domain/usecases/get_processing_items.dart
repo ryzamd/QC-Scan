@@ -11,15 +11,15 @@ class GetProcessingItems {
 
   /// Execute the get processing items use case
   Future<Either<Failure, List<ProcessingItemEntity>>> call(GetProcessingParams params) async {
-    return await repository.getProcessingItems(params.userName);
+    return await repository.getProcessingItems(params.date);
   }
 }
 
 class GetProcessingParams extends Equatable {
-  final String userName;
+  final String date;
 
-  const GetProcessingParams({required this.userName});
+  const GetProcessingParams({required this.date});
   
   @override
-  List<Object> get props => [userName];
+  List<Object> get props => [date];
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:architecture_scan_app/features/process/domain/usecases/update_qc2_quantity.dart';
 import 'package:flutter/foundation.dart';
@@ -25,6 +27,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     on<SortProcessingItemsEvent>(_onSortProcessingItems);
     on<SearchProcessingItemsEvent>(_onSearchProcessingItems);
     on<UpdateQC2QuantityEvent>(_onUpdateQC2Quantity);
+    on<SelectDateEvent>(_onSelectDate);
   }
 
   Future<void> _onGetProcessingItems(
@@ -35,7 +38,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
     try {
       final result = await getProcessingItems(
-        GetProcessingParams(userName: event.userName),
+        GetProcessingParams(date: event.date),
       );
 
       await result.fold( // <-- Add await here
@@ -58,6 +61,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             filteredItems: sortedItems,
             sortColumn: 'timestamp',
             ascending: true,
+            selectedDate: DateTime.now(),
           ));
         },
       );
@@ -77,7 +81,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
       try {
         final result = await getProcessingItems(
-          GetProcessingParams(userName: event.userName),
+          GetProcessingParams(date: event.date),
         );
 
         await result.fold(
@@ -90,6 +94,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
                   sortColumn: currentState.sortColumn,
                   ascending: currentState.ascending,
                   searchQuery: currentState.searchQuery,
+                  selectedDate: DateTime.now(),
                 ),
               );
             }
@@ -131,6 +136,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
                   sortColumn: currentState.sortColumn,
                   ascending: currentState.ascending,
                   searchQuery: currentState.searchQuery,
+                  selectedDate: DateTime.now(),
                 ),
               );
             }
@@ -145,13 +151,14 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
               sortColumn: currentState.sortColumn,
               ascending: currentState.ascending,
               searchQuery: currentState.searchQuery,
+              selectedDate: DateTime.now(),
             ),
           );
           emit(ProcessingError(message: 'Error refreshing data: ${e.toString()}'));
         }
       }
     } else {
-      add(GetProcessingItemsEvent(userName: event.userName));
+      add(GetProcessingItemsEvent(date: event.date));
     }
   }
 
@@ -384,5 +391,40 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
     
     return result;
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} 00:00:00';
+  }
+
+  Future<void> _onSelectDate(
+    SelectDateEvent event,
+    Emitter<ProcessingState> emit,
+  ) async {
+    final currentState = state;
+    
+    if (currentState is ProcessingLoaded) {
+      emit(currentState.copyWith(selectedDate: event.selectedDate));
+      add(RefreshProcessingItemsEvent(date: _formatDateForApi(event.selectedDate)));
+    } else {
+      add(GetProcessingItemsEvent(date: _formatDateForApi(event.selectedDate)));
+    }
+  }
+
+  String get formattedSelectedDate {
+    if (state is ProcessingLoaded) {
+      final date = (state as ProcessingLoaded).selectedDate;
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} 00:00:00';
+    }
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} 00:00:00';
+  }
+
+  void loadData() {
+    add(GetProcessingItemsEvent(date: formattedSelectedDate));
+  }
+
+  void refreshData() {
+    add(RefreshProcessingItemsEvent(date: formattedSelectedDate));
   }
 }

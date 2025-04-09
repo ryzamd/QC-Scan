@@ -110,10 +110,10 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
       color: AppColors.headerColor,
       child: Row(
         children: [
-          _buildHeaderCell('Name', flex: 2),
-          _buildHeaderCell('Order\nNumber', flex: 2),
-          _buildHeaderCell('Quantity', flex: 2),
-          _buildHeaderCell('Minus', flex: 2),
+          _buildHeaderCell('名稱', flex: 2),
+          _buildHeaderCell('指令號', flex: 2),
+          _buildHeaderCell('總數', flex: 2),
+          _buildHeaderCell('扣碼', flex: 2),
           Expanded(
             flex: 2,
             child: GestureDetector(
@@ -123,20 +123,23 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Times',
+                      '時間',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                        fontSize: 14,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      sortColumn == "timestamp"
-                          ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                          : Icons.unfold_more,
-                      color: Colors.white,
-                      size: 20,
+                    SizedBox(
+                      width: 25,
+                      height: 25,
+                      child: Icon(
+                        sortColumn == "timestamp"
+                            ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
+                            : Icons.unfold_more,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -157,7 +160,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 11,
+            fontSize: 14,
           ),
         ),
       ),

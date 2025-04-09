@@ -5,7 +5,7 @@ import 'package:dartz/dartz.dart';
 
 abstract class ProcessingRepository {
   
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String userName);
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String date);
 
   Future<Either<Failure, ProcessingItemEntity>> updateQC2Quantity(String code, String userName, double deduction);
   
