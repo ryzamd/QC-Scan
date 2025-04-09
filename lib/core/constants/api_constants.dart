@@ -13,6 +13,9 @@ class ApiConstants {
   // QC scan endpoints
   static const String saveQualityInspectionEndpoint = 'qc_scan/qc_int/NoFormal_save';
   static const String saveQC2DeductionEndpoint = 'qc_check/qc_check/Formal_save';
+
+  static const String getListEndpoint = 'login/GetList';
+  static String getListUrl(String date) => '$baseUrl$getListEndpoint?date=$date';
   
   // Full URLs
   static String get loginUrl => baseUrl + loginEndpoint;

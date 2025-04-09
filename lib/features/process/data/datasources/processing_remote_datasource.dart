@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
-  Future<List<ProcessingItemModel>> getProcessingItems(String userName);
+  Future<List<ProcessingItemModel>> getProcessingItems(String date);
   Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction);
 }
 
@@ -21,7 +21,7 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
   ProcessingRemoteDataSourceImpl({required this.dio, required this.useMockData});
 
   @override
-  Future<List<ProcessingItemModel>> getProcessingItems(String userName) async {
+  Future<List<ProcessingItemModel>> getProcessingItems(String date) async {
     final token = await sl<SecureStorageService>().getAccessToken();
      
     if (useMockData) {
@@ -54,9 +54,8 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
 
     try {
       // API calls must happen on main thread, but we'll process results in background
-      final response = await dio.post(
-        ApiConstants.homeListUrl,
-        data: {"name": userName},
+      final response = await dio.get(
+        ApiConstants.getListUrl(date),
         options: Options(
           headers: {"Authorization": "Bearer $token"},
           contentType: 'application/json',

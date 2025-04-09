@@ -14,6 +14,7 @@ class ScanRecordModel extends ScanRecordEntity {
     required super.timestamp,
     required super.userId,
     required super.materialInfo,
+    required super.qcQtyOut
   });
 
   factory ScanRecordModel.fromJson(Map<String, dynamic> json) => _$ScanRecordModelFromJson(json);
@@ -30,6 +31,7 @@ class ScanRecordModel extends ScanRecordEntity {
     required String quantity,
     required String userId,
     required Map<String, String> materialInfo,
+    required double qcQtyOut,
   }) {
     return ScanRecordModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -39,6 +41,7 @@ class ScanRecordModel extends ScanRecordEntity {
       timestamp: DateTime.now(),
       userId: userId,
       materialInfo: materialInfo,
+      qcQtyOut: qcQtyOut,
     );
   }
 }

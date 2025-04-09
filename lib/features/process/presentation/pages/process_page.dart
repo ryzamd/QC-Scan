@@ -32,11 +32,13 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
   void initState() {
     super.initState();
     
-    // Make sure to run only after frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await di.sl<AuthRepository>().debugTokenState();
       if (mounted) {
-        _loadData();
+
+        final now = DateTime.now();
+        final formattedDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} 00:00:00';
+        context.read<ProcessingBloc>().add(GetProcessingItemsEvent(date: formattedDate));
       }
     });
   }
@@ -48,18 +50,13 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
     super.dispose();
   }
 
-  // Extracted method for loading data
   void _loadData() {
-    context.read<ProcessingBloc>().add(
-      GetProcessingItemsEvent(userName: widget.user.name),
-    );
+    context.read<ProcessingBloc>().loadData();
   }
 
-  // Extracted method for refreshing data
+  // Thay thế _refreshData
   void _refreshData() {
-    context.read<ProcessingBloc>().add(
-      RefreshProcessingItemsEvent(userName: widget.user.name),
-    );
+    context.read<ProcessingBloc>().refreshData();
     _showSnackBar('Refreshing data...', Colors.blue, _shortSnackBarDuration);
   }
 
@@ -123,7 +120,9 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
+
             _buildSearchBar(),
+
             const SizedBox(height: 8),
             Expanded(
               child: Card(
@@ -141,6 +140,10 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
         ),
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.calendar_month, color: Colors.white),
+          onPressed: () => _selectDate(context),
+        ),
         IconButton(
           icon: const Icon(Icons.refresh, color: Colors.white),
           onPressed: _refreshData,
@@ -200,5 +203,24 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
         );
       }
     });
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+
+    final currentState = context.read<ProcessingBloc>().state;
+    final DateTime initialDate = currentState is ProcessingLoaded ? currentState.selectedDate : DateTime.now();
+        
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    
+    if(!context.mounted) return;
+
+    if (picked != null && picked != initialDate) {
+      context.read<ProcessingBloc>().add(SelectDateEvent(selectedDate: picked));
+    }
   }
 }

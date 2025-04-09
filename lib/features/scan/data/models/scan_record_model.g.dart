@@ -15,6 +15,7 @@ ScanRecordModel _$ScanRecordModelFromJson(Map<String, dynamic> json) =>
       timestamp: DateTime.parse(json['timestamp'] as String),
       userId: json['userId'] as String,
       materialInfo: Map<String, String>.from(json['materialInfo'] as Map),
+      qcQtyOut: json['qc_qty_out'] != null ? (json['qc_qty_out'] as double ).toDouble() : 0.0,
     );
 
 Map<String, dynamic> _$ScanRecordModelToJson(ScanRecordModel instance) =>
@@ -26,4 +27,5 @@ Map<String, dynamic> _$ScanRecordModelToJson(ScanRecordModel instance) =>
       'timestamp': instance.timestamp.toIso8601String(),
       'userId': instance.userId,
       'materialInfo': instance.materialInfo,
+      'deduction' : instance.qcQtyOut,
     };
