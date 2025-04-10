@@ -17,16 +17,16 @@ class UserRepositoryImpl implements UserRepository {
   });
 
   @override
-  Future<Either<Failure, UserEntity>> loginUser({
+  Future<Either<Failure, UserEntity>> loginUserRepositoryAsync({
     required String userId,
     required String password,
     required String name,
   }) async {
-    // First check network connectivity
+
     if (await networkInfo.isConnected) {
       try {
-        // Attempt to login with provided credentials
-        final user = await remoteDataSource.loginUser(
+
+        final user = await remoteDataSource.loginUserRemoteDataAsync(
           userId: userId,
           password: password,
           name: name,
@@ -41,18 +41,18 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(e.toString()));
       }
     } else {
-      // No internet connection
+
       return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
     }
   }
   
   @override
-  Future<Either<Failure, UserEntity>> validateToken(String token) async {
-    // First check network connectivity
+  Future<Either<Failure, UserEntity>> validateTokenRepositoryAsync(String token) async {
+
     if (await networkInfo.isConnected) {
       try {
-        // Attempt to validate the token
-        final user = await remoteDataSource.validateToken(token);
+
+        final user = await remoteDataSource.validateTokenRemoteDataAsync(token);
         
         return Right(user);
       } on ServerException catch (e) {
@@ -63,7 +63,7 @@ class UserRepositoryImpl implements UserRepository {
         return Left(ServerFailure(e.toString()));
       }
     } else {
-      // No internet connection
+
       return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
     }
   }

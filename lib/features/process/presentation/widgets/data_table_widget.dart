@@ -1,5 +1,6 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
+import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,11 +19,9 @@ class ProcessingDataTable extends StatefulWidget {
 }
 
 class _ProcessingDataTableState extends State<ProcessingDataTable> {
-  // Precalculated values
   
-  // Cache flags to avoid calculations
   late final bool _isQC2User;
-  final int _pageSize = 15; // Show smaller chunks of data
+  final int _pageSize = 15;
   int _currentPage = 0;
   
   @override
@@ -33,7 +32,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
 
   void _onSortColumn(BuildContext context, String column) {
     context.read<ProcessingBloc>().add(
-      SortProcessingItemsEvent(column: column, ascending: true),
+      SortProcessingItemsEvent(column: column, ascending: false),
     );
   }
 
@@ -54,8 +53,8 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
         } else if (state is ProcessingError) {
           return Center(child: Text('Error: ${state.message}'));
         } else if (state is ProcessingLoaded || state is ProcessingRefreshing) {
-          final items = state is ProcessingLoaded 
-              ? state.filteredItems 
+          final items = state is ProcessingLoaded
+              ? state.filteredItems
               : (state as ProcessingRefreshing).items;
           
           // Reset current page if data changes
@@ -64,7 +63,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           }
 
           final sortColumn = state is ProcessingLoaded ? state.sortColumn : 'status';
-          final ascending = state is ProcessingLoaded ? state.ascending : true;
+          final ascending = state is ProcessingLoaded ? state.ascending : false;
           final isRefreshing = state is ProcessingRefreshing;
 
           // Split into pages
@@ -134,9 +133,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
                       width: 25,
                       height: 25,
                       child: Icon(
-                        sortColumn == "timestamp"
-                            ? (ascending ? Icons.arrow_upward : Icons.arrow_downward)
-                            : Icons.unfold_more,
+                        ascending ? Icons.arrow_downward : Icons.arrow_upward,
                         color: Colors.white,
                         size: 20,
                       ),
@@ -177,12 +174,14 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
         final item = items[index];
         final backgroundColor = index % 2 == 0 ? AppColors.evenRowColor : AppColors.oddRowColor;
         
-        return _buildSimpleRow(context, item, backgroundColor);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: _buildSimpleRow(context, item, backgroundColor),
+          );
       },
     );
   }
 
-  // Extremely simplified row
   Widget _buildSimpleRow(BuildContext context, ProcessingItemEntity item, Color color) {
     return GestureDetector(
       onTap: _isQC2User ? () => _showDeductionDialog(context, item) : null,
@@ -249,7 +248,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
     );
   }
 
-  // Pagination controls
   Widget _buildPagination(int totalPages) {
     return Container(
       height: 40,
@@ -281,7 +279,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
   }
 
   void _showDeductionDialog(BuildContext context, ProcessingItemEntity item) {
-    final double actualQty = item.mQty! - item.qcQtyIn!;
+    final double actualQty = item.qcQtyIn! - item.qcQtyOut!;
     
     showDialog(
       context: context,
@@ -295,20 +293,9 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
         onConfirm: (deduction) {
           Navigator.of(dialogContext).pop();
 
-          showDialog(
+          LoadingDialog.showAsync(
             context: context,
-            barrierDismissible: false,
-            builder: (_) => const AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Processing deduction...'),
-                ],
-              ),
-            ),
-            routeSettings: const RouteSettings(name: 'loading_dialog'),
+            message: 'Processing deduction...',
           );
 
           BlocProvider.of<ProcessingBloc>(context).add(

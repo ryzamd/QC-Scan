@@ -22,15 +22,15 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     required this.getProcessingItems,
     required this.updateQC2Quantity,
   }) : super(ProcessingInitial()) {
-    on<GetProcessingItemsEvent>(_onGetProcessingItems);
-    on<RefreshProcessingItemsEvent>(_onRefreshProcessingItems);
-    on<SortProcessingItemsEvent>(_onSortProcessingItems);
-    on<SearchProcessingItemsEvent>(_onSearchProcessingItems);
-    on<UpdateQC2QuantityEvent>(_onUpdateQC2Quantity);
-    on<SelectDateEvent>(_onSelectDate);
+    on<GetProcessingItemsEvent>(_onGetProcessingItemsAsync);
+    on<RefreshProcessingItemsEvent>(_onRefreshProcessingItemsAsync);
+    on<SortProcessingItemsEvent>(_onSortProcessingItemsAsync);
+    on<SearchProcessingItemsEvent>(_onSearchProcessingItemsAsync);
+    on<UpdateQC2QuantityEvent>(_onUpdateQC2QuantityAsync);
+    on<SelectDateEvent>(_onSelectDateAsync);
   }
 
-  Future<void> _onGetProcessingItems(
+  Future<void> _onGetProcessingItemsAsync(
     GetProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -60,7 +60,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             items: items,
             filteredItems: sortedItems,
             sortColumn: 'timestamp',
-            ascending: true,
+            ascending: false,
             selectedDate: DateTime.now(),
           ));
         },
@@ -70,7 +70,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-    Future<void> _onRefreshProcessingItems(
+    Future<void> _onRefreshProcessingItemsAsync(
     RefreshProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -162,7 +162,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onSortProcessingItems(
+  Future<void> _onSortProcessingItemsAsync(
     SortProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -189,7 +189,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onSearchProcessingItems(
+  Future<void> _onSearchProcessingItemsAsync(
     SearchProcessingItemsEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -243,7 +243,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onUpdateQC2Quantity(
+  Future<void> _onUpdateQC2QuantityAsync(
     UpdateQC2QuantityEvent event,
     Emitter<ProcessingState> emit,
   ) async {
@@ -397,7 +397,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} 00:00:00';
   }
 
-  Future<void> _onSelectDate(
+  Future<void> _onSelectDateAsync(
     SelectDateEvent event,
     Emitter<ProcessingState> emit,
   ) async {

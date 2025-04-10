@@ -12,10 +12,10 @@ class LogoutRepositoryImpl implements LogoutRepository {
   });
 
   @override
-  Future<bool> logout() async {
+  Future<bool> logoutRepositoryAsync() async {
     try {
-      // Use the centralized auth repository for logout
-      return await di.sl<AuthRepository>().logout();
+      return await di.sl<AuthRepository>().logoutAsync();
+
     } catch (e) {
       debugPrint('Error during logout: $e');
       return false;

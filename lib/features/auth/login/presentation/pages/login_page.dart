@@ -1,9 +1,9 @@
 // lib/features/auth/login/presentation/pages/login_page.dart
+import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/logo_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/constants/app_routes.dart';
-import '../../../../../core/widgets/dialog_custom.dart';
 import '../../../../../core/di/dependencies.dart' as di;
 import '../bloc/login_bloc.dart';
 import '../bloc/login_event.dart';
@@ -18,24 +18,19 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controllers for the text fields
   final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
-  // Form key for validation
   final _formKey = GlobalKey<FormState>();
   
-  // Selected department state
   String _selectedDepartment = '品管質檢';
   final List<String> _departments = ['品管質檢', '品管正式倉'];
   
-  // Focus nodes to control keyboard focus
   final FocusNode _userIdFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
 
   @override
   void dispose() {
-    // Clean up controllers and focus nodes when the widget is disposed
     _userIdController.dispose();
     _passwordController.dispose();
     _userIdFocusNode.dispose();
@@ -43,22 +38,18 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Function to dismiss keyboard
   void _dismissKeyboard() {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  // Function to handle department selection
   void _handleDepartmentChange(String? department) {
     if (department != null && department != _selectedDepartment) {
       setState(() {
         _selectedDepartment = department;
       });
       
-      // Small delay to allow UI to update before attempting to focus
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
-          // This ensures we can focus on fields after department selection
           FocusScope.of(context).canRequestFocus = true;
         }
       });
@@ -76,7 +67,6 @@ class _LoginPageState extends State<LoginPage> {
       child: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
-            // Use a post-frame callback to ensure navigation happens correctly
             WidgetsBinding.instance.addPostFrameCallback((_) {
               try {
                 Navigator.of(context).pushReplacementNamed(
@@ -88,59 +78,51 @@ class _LoginPageState extends State<LoginPage> {
               }
             });
           } else if (state is LoginFailure) {
-            // If login fails, show an error dialog
-            showDialog(
+
+            ConfirmationDialog.showAsync(
               context: context,
-              builder: (context) => CustomAlertDialog(
-                title: 'Login Failed',
-                message: state.message,
-                onConfirm: () => Navigator.pop(context),
-              ),
+              title: 'LOGIN FAILED',
+              message: state.message,
+              confirmText: 'OK',
+              showCancelButton: false,
+              onConfirm: () {},
             );
           }
         },
         child: Scaffold(
-          // Prevent resizing when keyboard appears
           resizeToAvoidBottomInset: false,
           body: Container(
-            // Gradient background as per original design
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  Color(0xFF3a7bd5), // Matching the blue in screenshots
+                  Color(0xFF3a7bd5),
                   Color(0xFF3a6073),
                 ],
               ),
             ),
             height: screenHeight,
             child: SafeArea(
-              bottom: false, // Don't respect bottom safe area to avoid extra padding
+              bottom: false,
               child: Stack(
                 children: [
-                  // Main content with limited scroll
                   Positioned.fill(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Column(
                         children: [
-                          // Non-scrollable top part with logo
                           const SizedBox(height: 30),
                           buildLogoWidget(),
                           const SizedBox(height: 24),
                           
-                          // Scrollable form part (limited height)
                           Expanded(
                             child: Form(
                               key: _formKey,
                               child: ListView(
-                                // Disable scroll bounce/glow
                                 physics: const ClampingScrollPhysics(),
-                                // Prevent scrolling beyond content
                                 shrinkWrap: true,
                                 children: [
-                                  // Card for input fields
                                   Card(
                                     elevation: 8,
                                     shape: RoundedRectangleBorder(
@@ -152,10 +134,9 @@ class _LoginPageState extends State<LoginPage> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          // Username field
                                           LoginTextField(
                                             controller: _userIdController,
-                                            hintText: '请选择用户名', // Please select username
+                                            hintText: '请选择用户名',
                                             focusNode: _userIdFocusNode,
                                             validator: (value) {
                                               if (value == null || value.isEmpty) {
@@ -167,15 +148,15 @@ class _LoginPageState extends State<LoginPage> {
                                               FocusScope.of(context).requestFocus(_passwordFocusNode);
                                             },
                                             onTap: () {
-                                              // Ensure focus can be requested
                                               FocusScope.of(context).canRequestFocus = true;
                                             },
                                           ),
+
                                           const SizedBox(height: 16),
-                                          // Password field
+
                                           LoginTextField(
                                             controller: _passwordController,
-                                            hintText: '输入密码', // Enter password
+                                            hintText: '输入密码',
                                             obscureText: true,
                                             focusNode: _passwordFocusNode,
                                             validator: (value) {
@@ -188,36 +169,34 @@ class _LoginPageState extends State<LoginPage> {
                                               _dismissKeyboard();
                                             },
                                             onTap: () {
-                                              // Ensure focus can be requested
                                               FocusScope.of(context).canRequestFocus = true;
                                             },
                                           ),
+
                                           const SizedBox(height: 16),
-                                          // Department dropdown
+
                                           DepartmentDropdown(
                                             selectedDepartment: _selectedDepartment,
                                             departments: _departments,
                                             onChanged: _handleDepartmentChange,
                                           ),
+
                                           const SizedBox(height: 24),
-                                          // Login button with loading state
+
                                           BlocBuilder<LoginBloc, LoginState>(
                                             builder: (context, state) {
                                               return LoginButton(
                                                 isLoading: state is LoginLoading,
                                                 onPressed: () {
-                                                  // Dismiss keyboard
                                                   _dismissKeyboard();
                                                   
-                                                  // Validate the form before submitting
                                                   if (_formKey.currentState!.validate()) {
-                                                    // Dispatch login event to the bloc
                                                     context.read<LoginBloc>().add(
                                                             LoginButtonPressed(
                                                               userId: _userIdController.text,
                                                               password: _passwordController.text,
-                                                              department: "", // Không cần truyền department nữa
-                                                              name: _selectedDepartment, // Truyền tên thay vì department
+                                                              department: "",
+                                                              name: _selectedDepartment,
                                                             ),
                                                           );
                                                   }
@@ -229,7 +208,6 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                                   ),
-                                  // Additional padding at the bottom to ensure all elements are visible
                                   const SizedBox(height: 20),
                                 ],
                               ),
@@ -240,7 +218,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   
-                  // Conditionally show a bottom padding shadow when keyboard is visible
                   if (isKeyboardVisible)
                     Positioned(
                       bottom: 0,

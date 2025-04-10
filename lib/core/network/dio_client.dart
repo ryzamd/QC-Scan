@@ -63,20 +63,17 @@ class DioClient {
     );
   }
 
-  // Set up token interceptor (called after repository is created)
   void setupTokenInterceptor(TokenInterceptor interceptor) {
-    // Remove existing token interceptor if any
+
     if (_tokenInterceptor != null) {
       dio.interceptors.remove(_tokenInterceptor);
     }
     
-    // Add the new token interceptor
     _tokenInterceptor = interceptor;
     dio.interceptors.add(_tokenInterceptor!);
     debugPrint('Token interceptor set up');
   }
 
-  // Methods below kept for backward compatibility
   void setAuthToken(String token) {
     dio.options.headers['Authorization'] = 'Bearer $token';
     debugPrint('Set Auth Token: Bearer $token');

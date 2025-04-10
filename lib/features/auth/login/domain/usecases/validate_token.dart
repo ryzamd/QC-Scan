@@ -12,7 +12,7 @@ class ValidateToken {
 
   /// Execute the token validation use case with given parameters
   Future<Either<Failure, UserEntity>> call(TokenParams params) async {
-    return await repository.validateToken(params.token);
+    return await repository.validateTokenRepositoryAsync(params.token);
   }
 }
 

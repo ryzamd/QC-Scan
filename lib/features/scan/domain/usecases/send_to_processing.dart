@@ -9,9 +9,8 @@ class SendToProcessing {
 
   SendToProcessing(this.repository);
 
-  /// Execute the send to processing use case
   Future<Either<Failure, bool>> call(SendToProcessingParams params) async {
-    return await repository.sendToProcessing(params.records);
+    return await repository.sendToProcessingRepositoryAsync(params.records);
   }
 }
 

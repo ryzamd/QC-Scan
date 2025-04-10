@@ -5,20 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/scan_record_model.dart';
 
 abstract class ScanLocalDataSource {
-  /// Save a scan record locally
-  ///
-  /// Throws [ScanException] if saving fails
-  Future<ScanRecordModel> saveScanRecord(ScanRecordModel record);
+  Future<ScanRecordModel> saveScanRecordLocalDataSourceAsync(ScanRecordModel record);
   
-  /// Get all scan records for a specific user
-  ///
-  /// Throws [ScanException] if retrieval fails
-  Future<List<ScanRecordModel>> getScanRecordsForUser(String userId);
+  Future<List<ScanRecordModel>> getScanRecordsForUserLocalDataSourceAsync(String userId);
   
-  /// Clear all saved scan records for a user
-  ///
-  /// Throws [ScanException] if operation fails
-  Future<bool> clearScanRecordsForUser(String userId);
+  Future<bool> clearScanRecordsForUserLocalDataSourceAsync(String userId);
 }
 
 class ScanLocalDataSourceImpl implements ScanLocalDataSource {
@@ -27,15 +18,13 @@ class ScanLocalDataSourceImpl implements ScanLocalDataSource {
   ScanLocalDataSourceImpl({required this.sharedPreferences});
   
   @override
-  Future<ScanRecordModel> saveScanRecord(ScanRecordModel record) async {
+  Future<ScanRecordModel> saveScanRecordLocalDataSourceAsync(ScanRecordModel record) async {
     try {
-      // Get existing records
-      final records = await getScanRecordsForUser(record.userId);
+
+      final records = await getScanRecordsForUserLocalDataSourceAsync(record.userId);
       
-      // Add new record
       records.add(record);
       
-      // Save updated records
       final jsonList = records.map((record) => jsonEncode(record.toJson())).toList();
       await sharedPreferences.setStringList('scan_records_${record.userId}', jsonList);
       
@@ -46,7 +35,7 @@ class ScanLocalDataSourceImpl implements ScanLocalDataSource {
   }
   
   @override
-  Future<List<ScanRecordModel>> getScanRecordsForUser(String userId) async {
+  Future<List<ScanRecordModel>> getScanRecordsForUserLocalDataSourceAsync(String userId) async {
     try {
       final jsonList = sharedPreferences.getStringList('scan_records_$userId') ?? [];
       
@@ -59,7 +48,7 @@ class ScanLocalDataSourceImpl implements ScanLocalDataSource {
   }
   
   @override
-  Future<bool> clearScanRecordsForUser(String userId) async {
+  Future<bool> clearScanRecordsForUserLocalDataSourceAsync(String userId) async {
     try {
       return await sharedPreferences.remove('scan_records_$userId');
     } catch (e) {

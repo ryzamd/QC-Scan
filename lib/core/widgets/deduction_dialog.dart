@@ -1,4 +1,3 @@
-// lib/core/widgets/deduction_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -89,7 +88,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
                     ),
                   ),
                   
-                  // Product code
                   RichText(
                     text: TextSpan(
                       style: const TextStyle(fontSize: 16, color: Colors.black),
@@ -105,7 +103,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
 
                   const SizedBox(height: 5),
 
-                  // Current quantity
                   RichText(
                     text: TextSpan(
                       style: const TextStyle(fontSize: 16, color: Colors.black),
@@ -121,7 +118,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
                   
                   const SizedBox(height: 5),
                   
-                  // Deduction input
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -147,37 +143,10 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.only(left: 10)
                         ),
-                        // onChanged: (value) {
-                        //   _updateRemainingQuantity();
-                        // },
                       ),
                       )
                     ],
                   ),
-                 
-                  // Remaining
-                  // Container(
-                  //   padding: const EdgeInsets.only(top: 10),
-                  //   child: Row(
-                  //     children: [
-                  //       const Text(
-                  //         'Remaining: ',
-                  //         style: TextStyle(
-                  //           fontSize: 16,
-                  //           fontWeight: FontWeight.bold,
-                  //         ),
-                  //       ),
-                  //       Text(
-                  //         '$_remainingQuantity',
-                  //         style: const TextStyle(
-                  //           color: Colors.redAccent,
-                  //           fontSize: 16,
-                  //           fontWeight: FontWeight.bold,
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
                 ],
               ),
             ),

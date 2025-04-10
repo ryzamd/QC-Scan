@@ -1,4 +1,3 @@
-// lib/core/repositories/auth_repository.dart
 import 'dart:convert';
 import 'dart:math';
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
@@ -17,8 +16,7 @@ class AuthRepository {
 
   AuthRepository(this._secureStorage, this._dioClient);
 
-  // Login user and save token
-  Future<Either<Failure, UserEntity>> loginUser({
+  Future<Either<Failure, UserEntity>> loginUserAsync({
     required String userId,
     required String password,
     required String name,
@@ -44,19 +42,15 @@ class AuthRepository {
           final user = UserModel.fromJson(response.data);
           final token = response.data['token'];
           
-          // Ensure token isn't null or empty
           if (token == null || token.isEmpty) {
             return Left(AuthFailure('No token received from server'));
           }
           
-          // Save token to secure storage
-          await _secureStorage.saveAccessToken(token);
-          await _secureStorage.saveUserId(user.userId);
+          await _secureStorage.saveAccessTokenAsync(token);
+          await _secureStorage.saveUserIdAsync(user.userId);
           
-          // Save user data
-          await _secureStorage.saveUserData(jsonEncode(response.data['user']['users']));
+          await _secureStorage.saveUserDataAsync(jsonEncode(response.data['user']['users']));
           
-          // Explicitly set token in DioClient for immediate use
           _dioClient.setAuthToken(token);
           
           debugPrint('Login successful, token saved and set in DioClient');
@@ -76,27 +70,23 @@ class AuthRepository {
     }
   }
 
-  // Check if token is valid (not expired)
-  Future<bool> isTokenValid() async {
-    final token = await _secureStorage.getAccessToken();
+  Future<bool> isTokenValidAsync() async {
+    final token = await _secureStorage.getAccessTokenAsync();
     if (token == null || token.isEmpty) {
       return false;
     }
 
-    // Check expiry if available
-    final expiry = await _secureStorage.getTokenExpiry();
+    final expiry = await _secureStorage.getTokenExpiryAsync();
     if (expiry != null) {
       return expiry.isAfter(DateTime.now());
     }
     
-    // If no expiry info, assume token is valid
     return true;
   }
 
-  // Logout user and clear all data
-  Future<bool> logout() async {
+  Future<bool> logoutAsync() async {
     try {
-      await _secureStorage.clearAllData();
+      await _secureStorage.clearAllDataAsync();
       _dioClient.clearAuthToken();
       return true;
     } catch (e) {
@@ -105,19 +95,16 @@ class AuthRepository {
     }
   }
 
-  // Get current access token
-  Future<String?> getAccessToken() async {
-    return await _secureStorage.getAccessToken();
+  Future<String?> getAccessTokenAsync() async {
+    return await _secureStorage.getAccessTokenAsync();
   }
 
-  // Check if user is logged in with valid token
-  Future<bool> isLoggedIn() async {
-    return await _secureStorage.hasToken() && await isTokenValid();
+  Future<bool> isLoggedInAsync() async {
+    return await _secureStorage.hasTokenAsync() && await isTokenValidAsync();
   }
 
-  // Get current user data
-  Future<UserEntity?> getCurrentUser() async {
-    final userData = await _secureStorage.getUserData();
+  Future<UserEntity?> getCurrentUserAsync() async {
+    final userData = await _secureStorage.getUserDataAsync();
     if (userData != null) {
       try {
         return UserModel.fromJson(jsonDecode(userData));
@@ -129,9 +116,8 @@ class AuthRepository {
     return null;
   }
 
-  // Debug method to check token state
-  Future<void> debugTokenState() async {
-    final token = await _secureStorage.getAccessToken();
+  Future<void> debugTokenStateAsync() async {
+    final token = await _secureStorage.getAccessTokenAsync();
     final userId = await _secureStorage.getUserId();
     
     debugPrint('=============== TOKEN DEBUG ===============');

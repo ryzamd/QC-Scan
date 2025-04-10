@@ -7,10 +7,10 @@ class LogoutBloc extends Bloc<LogoutEvent, LogoutState> {
   final LogoutUseCase logoutUseCase;
 
   LogoutBloc({required this.logoutUseCase}) : super(LogoutInitial()) {
-    on<LogoutButtonPressed>(_onLogoutButtonPressed);
+    on<LogoutButtonPressed>(_onLogoutButtonPressedAsync);
   }
 
-  Future<void> _onLogoutButtonPressed(
+  Future<void> _onLogoutButtonPressedAsync(
     LogoutButtonPressed event,
     Emitter<LogoutState> emit,
   ) async {

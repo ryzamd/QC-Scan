@@ -1,7 +1,6 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Custom text field widget for the login page
 class LoginTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
@@ -54,16 +53,13 @@ class LoginTextField extends StatelessWidget {
                 focusNode: focusNode,
                 onFieldSubmitted: onFieldSubmitted,
                 onTap: onTap,
-                // Enable direct focus access
                 enableInteractiveSelection: true,
-                // Set autovalidateMode to help with validation feedback
                 autovalidateMode: AutovalidateMode.onUserInteraction,
                 decoration: InputDecoration(
                   hintText: hintText,
                   border: InputBorder.none,
                   fillColor: const Color(0xFFf1faee),
                   hintStyle: const TextStyle(color: Colors.grey),
-                  // Ensure error text is visible
                   errorStyle: const TextStyle(height: 0.7),
                 ),
                 style: const TextStyle(
@@ -84,7 +80,6 @@ class LoginTextField extends StatelessWidget {
   }
 }
 
-/// Department selection dropdown widget with improved keyboard handling
 class DepartmentDropdown extends StatefulWidget {
   final String selectedDepartment;
   final List<String> departments;
@@ -119,7 +114,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
       ),
       child: InkWell(
         onTap: () {
-          // Temporarily unfocus without preventing future focus
           FocusManager.instance.primaryFocus?.unfocus();
           _showDepartmentModal();
         },
@@ -145,11 +139,10 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
     );
   }
   
-  // Custom modal bottom sheet for department selection
   void _showDepartmentModal() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Makes the modal more flexible
+      isScrollControlled: true,
       backgroundColor: AppColors.scaffoldBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -196,7 +189,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
         );
       },
     ).then((_) {
-      // Explicitly re-enable the ability to request focus
       if (mounted) {
         FocusScope.of(context).canRequestFocus = true;
       }
@@ -204,7 +196,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
   }
 }
 
-/// Custom gradient login button
 class LoginButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
@@ -221,7 +212,7 @@ class LoginButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        color: const Color(0xFF00A3FF), // Bright blue color matching the screenshot
+        color: const Color(0xFF00A3FF),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -240,7 +231,7 @@ class LoginButton extends StatelessWidget {
             child: isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
                 : const Text(
-                    '登录', // "Login" (as per original)
+                    '登录',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

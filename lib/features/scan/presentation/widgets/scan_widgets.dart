@@ -1,4 +1,3 @@
-// lib/features/scan/presentation/widgets/scan_widgets.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,7 +7,6 @@ import '../bloc/scan_event.dart';
 import '../bloc/scan_state.dart';
 import '../../../../core/constants/app_colors.dart';
 
-/// Improved QR Scanner Widget
 class QRScannerWidget extends StatelessWidget {
   final MobileScannerController? controller;
   final Function(BarcodeCapture)? onDetect;
@@ -25,7 +23,6 @@ class QRScannerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Reduce debug logging in production
     if (kDebugMode) {
       debugPrint("Building QRScannerWidget, camera active: $isActive");
     }
@@ -73,7 +70,6 @@ class QRScannerWidget extends StatelessWidget {
     );
   }
   
-  // Extract widget building to methods to improve readability and performance
   Widget _buildErrorWidget(BuildContext context, MobileScannerException error, Widget? child) {
     return Container(
       color: Colors.black,
@@ -142,7 +138,6 @@ class QRScannerWidget extends StatelessWidget {
   }
 }
   
-  // Function to build a corner for the scanning frame
   Widget _buildCorner(bool isTop, bool isLeft) {
     return Container(
       width: 20,
@@ -159,7 +154,6 @@ class QRScannerWidget extends StatelessWidget {
   }
 
 
-/// Information row widget for material details
 class InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -192,7 +186,6 @@ class InfoRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label with gradient background
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -216,7 +209,6 @@ class InfoRow extends StatelessWidget {
               ),
             ),
           ),
-          // Value with better styling
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -235,7 +227,6 @@ class InfoRow extends StatelessWidget {
   }
 }
 
-/// Save Button Widget
 class SaveButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
@@ -284,7 +275,6 @@ class SaveButton extends StatelessWidget {
   }
 }
 
-/// Scanner Controls with BLoC integration
 class ScannerControls extends StatelessWidget {
   const ScannerControls({super.key});
 
@@ -314,13 +304,13 @@ class ScannerControls extends StatelessWidget {
                 isTorchEnabled ? Icons.flash_on : Icons.flash_off,
                 color: isTorchEnabled ? Colors.yellow : Colors.grey,
               ),
-              onPressed: isCameraActive 
+              onPressed: isCameraActive
                 ? () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled))
                 : null,
             ),
             IconButton(
               icon: const Icon(Icons.flip_camera_ios),
-              onPressed: isCameraActive 
+              onPressed: isCameraActive
                 ? () => context.read<ScanBloc>().add(SwitchCamera())
                 : null,
             ),
@@ -338,7 +328,6 @@ class ScannerControls extends StatelessWidget {
   }
 }
 
-/// Scanned Items Table with BLoC integration
 class ScannedItemsTable extends StatelessWidget {
   const ScannedItemsTable({super.key});
 
@@ -361,7 +350,7 @@ class ScannedItemsTable extends StatelessWidget {
         }
         
         return Container(
-          height: 150, // Fixed height for the scanned items table
+          height: 150,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -411,7 +400,7 @@ class ScannedItemsTable extends StatelessWidget {
             child: Text(
               "Code",
               style: TextStyle(
-                fontWeight: FontWeight.bold, 
+                fontWeight: FontWeight.bold,
                 color: Colors.white
               ),
               textAlign: TextAlign.center,
@@ -496,7 +485,6 @@ class ScannedItemsTable extends StatelessWidget {
   }
 }
 
-/// Material Info Section Widget with BLoC integration
 class MaterialInfoSection extends StatelessWidget {
   const MaterialInfoSection({super.key});
 
@@ -524,7 +512,6 @@ class MaterialInfoSection extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Material info title with card-like appearance
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -551,7 +538,6 @@ class MaterialInfoSection extends StatelessWidget {
                 ),
               ),
               
-              // Material info cards
               Expanded(
                 child: ListView(
                   shrinkWrap: true,
@@ -566,7 +552,6 @@ class MaterialInfoSection extends StatelessWidget {
                 ),
               ),
               
-              // Save button
               Center(
                 child: SaveButton(
                   onPressed: () {
@@ -592,7 +577,6 @@ class MaterialInfoSection extends StatelessWidget {
   }
 }
 
-/// Scanned Items Section Widget with BLoC integration
 class ScannedItemsSection extends StatelessWidget {
   const ScannedItemsSection({super.key});
 
@@ -600,7 +584,7 @@ class ScannedItemsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ScanBloc, ScanState>(
       buildWhen: (previous, current) {
-        return current is ScanningState || current is MaterialInfoLoaded || 
+        return current is ScanningState || current is MaterialInfoLoaded ||
                current is DataSavedState;
       },
       builder: (context, state) {
@@ -654,7 +638,6 @@ class ScannedItemsSection extends StatelessWidget {
   }
 }
 
-/// Widget for QR scanning area
 class QRScanSection extends StatelessWidget {
   const QRScanSection({super.key});
 

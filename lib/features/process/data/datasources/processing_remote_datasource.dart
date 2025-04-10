@@ -9,26 +9,24 @@ import 'package:flutter/foundation.dart';
 import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
-  Future<List<ProcessingItemModel>> getProcessingItems(String date);
-  Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction);
+  Future<List<ProcessingItemModel>> getProcessingItemsRemoteDataAsync(String date);
+  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction);
 }
 
 class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
   final Dio dio;
   final bool useMockData;
-  final token = sl<SecureStorageService>().getAccessToken();
+  final token = sl<SecureStorageService>().getAccessTokenAsync();
 
   ProcessingRemoteDataSourceImpl({required this.dio, required this.useMockData});
 
   @override
-  Future<List<ProcessingItemModel>> getProcessingItems(String date) async {
-    final token = await sl<SecureStorageService>().getAccessToken();
+  Future<List<ProcessingItemModel>> getProcessingItemsRemoteDataAsync(String date) async {
+    final token = await sl<SecureStorageService>().getAccessTokenAsync();
      
     if (useMockData) {
-      // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 800));
       
-      // Create mock data with new API structure
       return [
         ProcessingItemModel(
           mwhId: 1693,
@@ -53,7 +51,6 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
     }
 
     try {
-      // API calls must happen on main thread, but we'll process results in background
       final response = await dio.get(
         ApiConstants.getListUrl(date),
         options: Options(
@@ -66,8 +63,8 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> itemsJson = response.data;
         
-        // Process JSON parsing in a background isolate
         return compute(_parseProcessingItems, itemsJson);
+
       } else {
         throw ServerException('Failed to load processing items: ${response.statusCode}');
       }
@@ -81,13 +78,12 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
     }
   }
 
-  // Static method to run in background isolate
   static List<ProcessingItemModel> _parseProcessingItems(List<dynamic> itemsJson) {
     return itemsJson.map((itemJson) => ProcessingItemModel.fromJson(itemJson)).toList();
   }
 
   @override
-  Future<Map<String, dynamic>> saveQC2Deduction(String code, String userName, double deduction) async {
+  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction) async {
     try {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,
@@ -104,26 +100,30 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
       );
       
       if (response.statusCode == 200) {
-        // Process response in background
         return compute(_processDeductionResponse, response.data);
+
       } else {
         throw ServerException('Failed to save QC2 deduction: ${response.statusCode}');
+        
       }
     } on DioException catch (e) {
       debugPrint('DioException in saveQC2Deduction: ${e.message}');
-      throw ServerException(e.message ?? 'Error processing QC2 deduction');
+      throw ServerException('Error processing deduction');
+
     } catch (e) {
       debugPrint('Unexpected error in saveQC2Deduction: $e');
       throw ServerException(e.toString());
+
     }
   }
   
-  // Process deduction response in background
   static Map<String, dynamic> _processDeductionResponse(dynamic data) {
     if (data['message'] == 'Success') {
       return data;
+
     } else if (data['message'] == 'Too large a quantity') {
       throw ServerException('Error: ${data['error'] ?? 'La cantidad ingresada excede el límite permitido'}');
+
     } else {
       throw ServerException(data['error'] ?? data['message'] ?? 'Unknown error');
     }

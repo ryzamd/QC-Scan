@@ -16,10 +16,10 @@ class ProcessingItemEntity extends Equatable {
   final String? staff;
   final String? qcCheckTime;
   final String? qcScanTime;
-  final int? qcQtyIn;
-  final int? qcQtyOut;
-  final int? zcWarehouseQtyInt;
-  final int? zcWarehouseQtyOut;
+  final double? qcQtyIn;
+  final double? qcQtyOut;
+  final double? zcWarehouseQtyInt;
+  final double? zcWarehouseQtyOut;
   final String? zcWarehouseTimeInt;
   final String? zcWarehouseTimeOut;
   final String? zcOutWarehouseUnit;

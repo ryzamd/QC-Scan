@@ -8,9 +8,8 @@ class GetMaterialInfo {
 
   GetMaterialInfo(this.repository);
 
-  /// Execute the get material info use case
   Future<Either<Failure, Map<String, String>>> call(GetMaterialInfoParams params) async {
-    return await repository.getMaterialInfo(params.barcode);
+    return await repository.getMaterialInfoRepositoryAsync(params.barcode);
   }
 }
 

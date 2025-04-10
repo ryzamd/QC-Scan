@@ -1,6 +1,9 @@
 // Modified scan_page.dart
+import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
+import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
+import 'package:architecture_scan_app/core/widgets/notification_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,16 +24,15 @@ class ScanPage extends StatefulWidget {
   State<ScanPage> createState() => _ScanPageState();
 }
 
-class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteAware {
+class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   final FocusNode _focusNode = FocusNode();
   bool _isDeductionDialogOpen = false;
   late final bool _isQC2User;
   
-  // Material data - this is UI state only
   Map<String, String> _materialData = {
     'Material Name': '',
-    'Deduction': '',
     'Quantity': '',
+    'Deduction': '',
     'Receipt Date': '',
     'Supplier': '',
   };
@@ -43,7 +45,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
     WidgetsBinding.instance.addObserver(this);
     _focusNode.requestFocus();
     
-    // Initialize scan service through bloc
     context.read<ScanBloc>().add(InitializeScanService());
   }
 
@@ -60,43 +61,23 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
   }
 
   @override
-  void didPush() {
-    // Được gọi khi màn hình này được push vào stack
-    // Không làm gì với camera ở đây vì mặc định camera tắt
-  }
-
-  @override
-  void didPop() {
-    // Được gọi khi màn hình này bị pop khỏi stack
-  }
-
-  @override
-  void didPushNext() {
-    // Được gọi khi một màn hình khác được push lên trên màn hình này
-  }
-
-  @override
-  void didPopNext() {
-    // Được gọi khi màn hình phía trên được pop ra
-    // Không tự động khởi tạo lại camera
-  }
-
-  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Quản lý trạng thái camera khi ứng dụng chuyển sang nền
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Lưu trạng thái camera
       if (mounted) {
-        // Tắt camera
         context.read<ScanBloc>().add(const ToggleCamera(false));
       }
     }
   }
 
-  Future<void> _showDeductionDialog() async {
+  Future<void> _showDeductionDialogAsync() async {
     if (_materialData['Material ID']?.isEmpty ?? true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No data to save'))
+      NotificationDialog.showAsync(
+        context: context,
+        title: 'No data to save',
+        message: 'Please scan a barcode first.',
+        titleColor: Colors.red,
+        buttonColor: Colors.red,
+        onButtonPressed: () {},
       );
       
       return;
@@ -105,7 +86,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
     setState(() {
       _isDeductionDialogOpen = true;
     });
-
+  
     try {
       await showDialog(
         context: context,
@@ -123,20 +104,9 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
           onConfirm: (deduction) {
             Navigator.of(dialogContext).pop();
 
-            // Show loading dialog
-            showDialog(
+            LoadingDialog.showAsync(
               context: context,
-              barrierDismissible: false,
-              builder: (_) => const AlertDialog(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Processing data...'),
-                  ],
-                ),
-              ),
+              message: 'Processing data...',
             );
 
             context.read<ScanBloc>().add(
@@ -146,7 +116,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                 deduction: deduction,
                 materialInfo: _materialData,
                 userId: widget.user.name,
-                qcQtyOut: double.tryParse((_materialData['qc_qty_out']).toString()) ?? 0.0,
+                qcQtyOut: double.tryParse((_materialData['Deduction']).toString()) ?? 0.0,
                 isQC2User: _isQC2User,
               ),
             );
@@ -160,8 +130,13 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
       });
 
       if(!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      NotificationDialog.showAsync(
+        context: context,
+        title: 'Error',
+        message: 'An error occurred while processing the data.',
+        titleColor: Colors.red,
+        buttonColor: Colors.red,
+        onButtonPressed: () {},
       );
     }
   }
@@ -179,21 +154,27 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
           });
         }
 
-        if (Navigator.of(context).canPop() &&
-            state is! ScanProcessingState &&
-            state is! SavingDataState) {
-          Navigator.of(context).pop();
+        if (state is! ScanProcessingState && state is! SavingDataState) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+
+          if (_isDeductionDialogOpen) {
+              setState(() {
+              _isDeductionDialogOpen = false;
+            });
+          }
         }
 
           if (state is ShowClearConfirmationState) {
             _showClearConfirmationDialog(context);
+
           } else if (state is ScanningState && state.scannedItems.isEmpty) {
-            // Khi quay về ScanningState với danh sách rỗng, reset UI
             setState(() {
               _materialData = {
                 'Material Name': '',
-                'Material ID': '',
                 'Quantity': '',
+                'Deduction': '',
                 'Receipt Date': '',
                 'Supplier': '',
                 'Unit': '',
@@ -203,52 +184,34 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
           }
 
           if (state is ScanErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+              NotificationDialog.showAsync(
+                context: context,
+                title: 'ERROR',
+                message: state.message,
+                titleColor: Colors.red,
+                buttonColor: Colors.red,
+                onButtonPressed: () {},
+              );
           } else if (state is DataSavedState) {
-            showDialog(
+            NotificationDialog.showAsync(
               context: context,
-              barrierDismissible: false,
-              builder:
-                  (_) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    title: const Text(
-                      'SUCCESS',
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    content: const Text('Data processed successfully'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-
-                          setState(() {
-                            _isDeductionDialogOpen = false;
-                            _materialData = {
-                              'Material Name': '',
-                              'Material ID': '',
-                              'Quantity': '',
-                              'Receipt Date': '',
-                              'Supplier': '',
-                            };
-                            _currentScannedValue = null;
-                          });
-
-                         // context.read<ScanBloc>().add(InitializeScanner());
-                        },
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ),
+              title: 'SUCCESS',
+              message: 'Data processed successfully',
+              titleColor: Colors.green,
+              buttonColor: Colors.green,
+              onButtonPressed: () {
+                setState(() {
+                  _isDeductionDialogOpen = false;
+                  _materialData = {
+                    'Material Name': '',
+                    'Quantity': '',
+                    'Deduction': '',
+                    'Receipt Date': '',
+                    'Supplier': '',
+                  };
+                  _currentScannedValue = null;
+                });
+              },
             );
           }
   
@@ -256,8 +219,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
         builder: (context, state) {
           bool isCameraActive = false;
           bool isTorchEnabled = false;
-          bool isProcessing =
-              state is ScanProcessingState || state is SavingDataState;
 
           if (state is ScanningState) {
             isCameraActive = state.isCameraActive;
@@ -279,7 +240,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
               backgroundColor: Colors.blue.shade700,
               centerTitle: true,
               actions: [
-                // Camera control buttons
                 IconButton(
                   icon: Icon(
                     isTorchEnabled ? Icons.flash_on : Icons.flash_off,
@@ -332,20 +292,15 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                   Container(
                     margin: const EdgeInsets.all(5),
                     child: QRScannerWidget(
-                      controller:
-                          state is ScanningState
-                              ? state.controller
-                              : state is MaterialInfoLoaded
-                              ? state.controller
-                              : null,
+                      controller: state is ScanningState ? state.controller : state is MaterialInfoLoaded
+                                    ? state.controller : null,
                       onDetect: (capture) {
                         if (capture.barcodes.isNotEmpty) {
                           final barcode = capture.barcodes.first;
-                          if (barcode.rawValue != null &&
-                              barcode.rawValue!.isNotEmpty) {
-                            // Dispatch to bloc
-                            context.read<ScanBloc>().add(
+                          if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                              context.read<ScanBloc>().add(
                               BarcodeDetected(barcode.rawValue!),
+
                             );
                           }
                         }
@@ -358,7 +313,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                       },
                     ),
                   ),
-                  // Material Info Section (table layout)
+
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -389,7 +344,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                                   _buildDivider(),
                                   _buildTableRow(
                                     '扣碼',
-                                    _materialData['qc_qty_out'] ?? '',
+                                    _materialData['Deduction'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
@@ -411,7 +366,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                             height: 40,
                             margin: const EdgeInsets.only(top: 5, bottom: 5),
                             child: ElevatedButton(
-                              onPressed: _showDeductionDialog,
+                              onPressed: _showDeductionDialogAsync,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
@@ -423,23 +378,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
                                   horizontal: 16,
                                 ),
                               ),
-                              child:
-                                  isProcessing
-                                      ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                      : const Text(
-                                        'Save',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                              child: const Text('Save', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,),),
                             ),
                           ),
                         ],
@@ -505,49 +444,31 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver, RouteA
   }
 
   void _showClearConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            title: const Text(
-              'CLEAR DATA',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-            content: const Text(
-              'Are you sure you want to clear all scanned data?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  context.read<ScanBloc>().add(CancelClearScannedItems());
-                },
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  setState(() {
-                    _materialData = {
-                      'Material Name': '',
-                      'Material ID': '',
-                      'Quantity': '',
-                      'Receipt Date': '',
-                      'Supplier': '',
-                      'Unit': '',
-                    };
-                    _currentScannedValue = null;
-                  });
-                  context.read<ScanBloc>().add(ConfirmClearScannedItems());
-                },
-                child: const Text('OK', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-    );
+      ConfirmationDialog.showAsync(
+        context: context,
+        title: 'CLEAR DATA',
+        message: 'Are you sure you want to clear all scanned data?',
+        showCancelButton: true,
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        titleColor: Colors.red,
+        confirmColor: Colors.red,
+        cancelColor: Colors.grey,
+        onConfirm: () {
+          setState(() {
+            _materialData = {
+              'Material Name': '',
+              'Quantity': '',
+              'Deduction': '',
+              'Receipt Date': '',
+              'Supplier': '',
+              'Unit': '',
+            };
+            _currentScannedValue = null;
+          });
+          context.read<ScanBloc>().add(ConfirmClearScannedItems());
+        },
+      );
   }
 
   Widget _buildDivider() {
