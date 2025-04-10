@@ -19,7 +19,7 @@ class UpdateQC2Quantity {
       return Left(ServerFailure('Deduction must be greater than zero'));
     }
     
-    return await repository.updateQC2Quantity(
+    return await repository.updateQC2QuantityRepositoryAsync(
       params.code,
       params.userName,
       params.deduction

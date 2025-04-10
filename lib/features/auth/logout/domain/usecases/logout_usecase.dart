@@ -8,10 +8,9 @@ class LogoutUseCase {
 
   LogoutUseCase(this.repository);
 
-  /// Execute the logout use case
   Future<Either<Failure, bool>> call(NoParams params) async {
     try {
-      final result = await repository.logout();
+      final result = await repository.logoutRepositoryAsync();
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

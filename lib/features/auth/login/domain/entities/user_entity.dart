@@ -2,11 +2,11 @@
 import 'package:equatable/equatable.dart';
 
 class UserEntity extends Equatable {
-  final String userId; // This is the username
+  final String userId;
   final String password;
-  final String department; // Department for Taiwan
-  final String name; // Department for Chinese
-  final String token; // Bearer token
+  final String department;
+  final String name;
+  final String token;
   final String role;
 
   const UserEntity({

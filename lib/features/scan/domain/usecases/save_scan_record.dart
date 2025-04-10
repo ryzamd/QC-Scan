@@ -9,9 +9,8 @@ class SaveScanRecord {
 
   SaveScanRecord(this.repository);
 
-  /// Execute the save scan record use case
   Future<Either<Failure, ScanRecordEntity>> call(SaveScanRecordParams params) async {
-    return await repository.saveScanRecord(params.record);
+    return await repository.saveScanRecordRepositoryAsync(params.record);
   }
 }
 

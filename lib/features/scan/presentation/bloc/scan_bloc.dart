@@ -1,4 +1,3 @@
-// lib/features/scan/presentation/bloc/scan_bloc.dart
 import 'dart:async';
 import 'dart:convert';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
@@ -26,7 +25,6 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
   MobileScannerController? scannerController;
   
-  // Track camera state internally
   bool _isCameraActive = false;
   bool _isTorchEnabled = false;
 
@@ -37,29 +35,28 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     required this.sendToProcessing,
     required this.currentUser,
   }) : super(ScanInitial()) {
-    on<InitializeScanner>(_onInitializeScanner);
-    on<BarcodeDetected>(_onBarcodeDetected);
-    on<ToggleCamera>(_onToggleCamera);
-    on<ToggleTorch>(_onToggleTorch);
-    on<SwitchCamera>(_onSwitchCamera);
-    on<GetMaterialInfoEvent>(_onGetMaterialInfo);
-    on<SaveScannedData>(_onSaveScannedData);
-    on<SendToProcessingEvent>(_onSendToProcessing);
-    on<HardwareScanButtonPressed>(_onHardwareScanButtonPressed);
-    on<ConfirmDeductionEvent>(_onConfirmDeduction);
-    on<InitializeScanService>(_onInitializeScanService);
-    on<ClearScannedItems>(_onClearScannedItems);
-    on<ShowClearConfirmationEvent>(_onShowClearConfirmation);
-    on<ConfirmClearScannedItems>(_onConfirmClearScannedItems);
-    on<CancelClearScannedItems>(_onCancelClearScannedItems);
+    on<InitializeScanner>(_onInitializeScannerAsync);
+    on<BarcodeDetected>(_onBarcodeDetectedAsync);
+    on<ToggleCamera>(_onToggleCameraAsync);
+    on<ToggleTorch>(_onToggleTorchAsync);
+    on<SwitchCamera>(_onSwitchCameraAsync);
+    on<GetMaterialInfoEvent>(_onGetMaterialInfoAsync);
+    on<SaveScannedData>(_onSaveScannedDataAsync);
+    on<SendToProcessingEvent>(_onSendToProcessingAsync);
+    on<HardwareScanButtonPressed>(_onHardwareScanButtonPressedAsync);
+    on<ConfirmDeductionEvent>(_onConfirmDeductionAsync);
+    on<InitializeScanService>(_onInitializeScanServiceAsync);
+    on<ClearScannedItems>(_onClearScannedItemsAsync);
+    on<ShowClearConfirmationEvent>(_onShowClearConfirmationAsync);
+    on<ConfirmClearScannedItems>(_onConfirmClearScannedItemsAsync);
+    on<CancelClearScannedItems>(_onCancelClearScannedItemsAsync);
     
-    // Initialize ScanService for hardware scanner
     ScanService.initializeScannerListener(_handleHardwareScan);
   }
 
   
   
-  void _onCancelClearScannedItems(
+  void _onCancelClearScannedItemsAsync(
     CancelClearScannedItems event,
     Emitter<ScanState> emit
   ) {
@@ -68,7 +65,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  void _onConfirmClearScannedItems(
+  void _onConfirmClearScannedItemsAsync(
     ConfirmClearScannedItems event,
     Emitter<ScanState> emit
   ) {
@@ -85,14 +82,14 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     ScanService.clearScannedBarcodes();
   }
 
-  void _onShowClearConfirmation(
+  void _onShowClearConfirmationAsync(
     ShowClearConfirmationEvent event,
     Emitter<ScanState> emit
   ) {
     emit(ShowClearConfirmationState(previousState: state));
   }
 
-  void _onClearScannedItems(ClearScannedItems event, Emitter<ScanState> emit) {
+  void _onClearScannedItemsAsync(ClearScannedItems event, Emitter<ScanState> emit) {
     add(ShowClearConfirmationEvent());
   }
 
@@ -102,27 +99,22 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  // New method to initialize scan service
-  void _onInitializeScanService(InitializeScanService event, Emitter<ScanState> emit) {
+  void _onInitializeScanServiceAsync(InitializeScanService event, Emitter<ScanState> emit) {
     debugPrint("ScanBloc: Initializing scan service");
   }
 
-  Future<void> _onInitializeScanner(InitializeScanner event, Emitter<ScanState> emit) async {
-  // Nếu đã đang khởi tạo camera, tránh khởi tạo lại
+  Future<void> _onInitializeScannerAsync(InitializeScanner event, Emitter<ScanState> emit) async {
   if (_isCameraInitializing) {
     debugPrint("ScanBloc: Camera đang được khởi tạo, bỏ qua yêu cầu mới");
     return;
   }
 
-  // Đánh dấu đang khởi tạo
   _isCameraInitializing = true;
   emit(ScanInitializingState());
 
-  // Đảm bảo controller cũ đã được giải phóng
   await _cleanupController();
 
   try {
-    // Tạo controller mới
     scannerController = MobileScannerController(
       formats: const [BarcodeFormat.qrCode, BarcodeFormat.code128],
       detectionSpeed: DetectionSpeed.noDuplicates,
@@ -130,13 +122,11 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       torchEnabled: _isTorchEnabled
     );
 
-    // Khởi động camera với timeout
     bool started = await _startCameraWithTimeout();
     if (!started) {
       throw Exception("Khởi tạo camera quá thời gian chờ");
     }
 
-    // Cập nhật trạng thái
     _isCameraActive = true;
     
     emit(ScanningState(
@@ -145,59 +135,60 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       controller: scannerController,
       scannedItems: [],
     ));
+
   } catch (e) {
     debugPrint("ScanBloc: Lỗi khởi tạo camera: $e");
+
     await _cleanupController();
+
     emit(ScanErrorState(
       message: "Không thể khởi tạo camera: $e",
       previousState: state,
     ));
+
   } finally {
     _isCameraInitializing = false;
+
   }
 }
 
-// Thêm hàm khởi động camera với timeout
-Future<bool> _startCameraWithTimeout() async {
-  Completer<bool> completer = Completer();
-  
-  // Đặt timeout 5 giây
-  Timer(const Duration(seconds: 5), () {
-    if (!completer.isCompleted) {
-      completer.complete(false);
-    }
-  });
-  
-  // Bắt đầu camera
-  scannerController!.start().then((_) {
-    if (!completer.isCompleted) {
-      completer.complete(true);
-    }
-  }).catchError((error) {
-    if (!completer.isCompleted) {
-      completer.complete(false);
-    }
-  });
-  
-  return completer.future;
-}
+  Future<bool> _startCameraWithTimeout() async {
+    Completer<bool> completer = Completer();
+    
+    Timer(const Duration(seconds: 5), () {
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+    });
+    
+    scannerController!.start().then((_) {
+      if (!completer.isCompleted) {
+        completer.complete(true);
+      }
+    }).catchError((error) {
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+    });
+    
+    return completer.future;
+  }
 
   Future<void> _cleanupController() async {
-    // Nếu không có controller hoặc đang dọn dẹp, bỏ qua
     if (scannerController == null || _isCameraDisposing) return;
     
     _isCameraDisposing = true;
     
     try {
-      // Dừng camera trước
       if (_isCameraActive) {
         await scannerController!.stop();
       }
       
-      // Giải phóng controller
       await scannerController!.dispose();
+
     } catch (e) {
       debugPrint("ScanBloc: Lỗi khi dọn dẹp camera: $e");
+      
     } finally {
       scannerController = null;
       _isCameraActive = false;
@@ -205,7 +196,7 @@ Future<bool> _startCameraWithTimeout() async {
     }
   }
 
-  Future<void> _onBarcodeDetected(
+  Future<void> _onBarcodeDetectedAsync(
     BarcodeDetected event,
     Emitter<ScanState> emit,
   ) async {
@@ -214,7 +205,6 @@ Future<bool> _startCameraWithTimeout() async {
     emit(ScanProcessingState(barcode: event.barcode));
 
     try {
-      // Quan trọng: phải await result.fold hoàn toàn
       final result = await getMaterialInfo(
         GetMaterialInfoParams(barcode: event.barcode),
       );
@@ -224,16 +214,13 @@ Future<bool> _startCameraWithTimeout() async {
           emit(ScanErrorState(message: failure.message, previousState: state));
         },
         (materialInfo) async {
-          // Thêm async và await cho đúng
           try {
-            // Đảm bảo materialInfo là Map<String, String> trước khi encode
             final materialInfoMap = Map<String, String>.from(
               materialInfo.map(
                 (key, value) => MapEntry(key, value.toString()),
               ),
             );
 
-            // Truyền dữ liệu đơn giản qua compute
             final processedItems = await compute(_processScannedItems, {
               'barcode': event.barcode,
               'materialInfoJson': jsonEncode(materialInfoMap),
@@ -242,7 +229,6 @@ Future<bool> _startCameraWithTimeout() async {
               ),
             });
 
-            // Kiểm tra xem emit có còn khả dụng không
             if (!emit.isDone) {
               emit(
                 MaterialInfoLoaded(
@@ -285,7 +271,6 @@ Future<bool> _startCameraWithTimeout() async {
     }
   }
 
-  // Hàm xử lý chạy trong isolate
   static List<List<String>> _processScannedItems(Map<String, dynamic> params) {
     final String barcode = params['barcode'];
     final String materialInfoJson = params['materialInfoJson'];
@@ -294,18 +279,14 @@ Future<bool> _startCameraWithTimeout() async {
             .map((item) => (item as List).map((e) => e.toString()).toList())
             .toList();
 
-    // Chuyển JSON thành Map
     final Map<String, dynamic> materialInfo = jsonDecode(materialInfoJson);
 
-    // Kiểm tra nếu đã có
     final isAlreadyScanned = existingItems.any(
       (item) => item.isNotEmpty && item[0] == barcode,
     );
 
-    // Tạo bản sao
     final List<List<String>> result = List.from(existingItems);
 
-    // Thêm item mới nếu chưa có
     if (!isAlreadyScanned) {
       result.add([
         barcode,
@@ -317,7 +298,6 @@ Future<bool> _startCameraWithTimeout() async {
     return result;
   }
 
-  // Efficiently get scanned items without unnecessary allocations
   List<List<String>> _efficientlyGetScannedItems(ScanState state) {
     if (state is ScanningState) {
       return state.scannedItems;
@@ -327,8 +307,7 @@ Future<bool> _startCameraWithTimeout() async {
     return [];
   }
 
-  Future<void> _onToggleCamera(ToggleCamera event, Emitter<ScanState> emit) async {
-  // Nếu trạng thái không thay đổi, bỏ qua
+  Future<void> _onToggleCameraAsync(ToggleCamera event, Emitter<ScanState> emit) async {
   if (event.isActive == _isCameraActive) return;
   
   if (_isCameraInitializing || _isCameraDisposing) {
@@ -337,42 +316,41 @@ Future<bool> _startCameraWithTimeout() async {
     }
     
     if (event.isActive) {
-      // Khởi tạo camera - chỉ gọi event, không emit
       add(InitializeScanner());
+
     } else {
-      // Tắt camera và cập nhật state ngay
       await _cleanupController();
       
-      // Cập nhật state dựa trên state hiện tại
       if (state is ScanningState) {
         emit((state as ScanningState).copyWith(isCameraActive: false));
+
       } else if (state is MaterialInfoLoaded) {
         emit((state as MaterialInfoLoaded).copyWith(isCameraActive: false));
+
       }
     }
   }
 
-  Future<void> _onToggleTorch(ToggleTorch event, Emitter<ScanState> emit) async {
-    // Nếu không có controller hoặc camera không hoạt động, bỏ qua
+  Future<void> _onToggleTorchAsync(ToggleTorch event, Emitter<ScanState> emit) async {
     if (scannerController == null || !_isCameraActive) return;
     
     try {
-      // Bật/tắt đèn flash ngay lập tức
       await scannerController!.toggleTorch();
       _isTorchEnabled = !_isTorchEnabled;
       
-      // Cập nhật state ngay
       if (state is ScanningState) {
         emit((state as ScanningState).copyWith(isTorchEnabled: _isTorchEnabled));
+
       } else if (state is MaterialInfoLoaded) {
         emit((state as MaterialInfoLoaded).copyWith(isTorchEnabled: _isTorchEnabled));
+
       }
     } catch (e) {
       debugPrint("ScanBloc: Lỗi khi bật/tắt đèn flash: $e");
     }
   }
 
-  Future<void> _onSwitchCamera(SwitchCamera event, Emitter<ScanState> emit) async {
+  Future<void> _onSwitchCameraAsync(SwitchCamera event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Switch camera");
     
     if (scannerController == null || !_isCameraActive) {
@@ -382,12 +360,13 @@ Future<bool> _startCameraWithTimeout() async {
     
     try {
       await scannerController!.switchCamera();
+
     } catch (e) {
       debugPrint("ScanBloc: Error switching camera: $e");
     }
   }
 
-  Future<void> _onGetMaterialInfo(
+  Future<void> _onGetMaterialInfoAsync(
     GetMaterialInfoEvent event,
     Emitter<ScanState> emit,
   ) async {
@@ -402,13 +381,13 @@ Future<bool> _startCameraWithTimeout() async {
       scannedItems = List.from(currentState.scannedItems);
       isCameraActive = currentState.isCameraActive;
       isTorchEnabled = currentState.isTorchEnabled;
+
     } else if (currentState is MaterialInfoLoaded) {
       scannedItems = List.from(currentState.scannedItems);
       isCameraActive = currentState.isCameraActive;
       isTorchEnabled = currentState.isTorchEnabled;
     }
 
-    // Assuming real repository call would look like this:
     final result = await getMaterialInfo(
       GetMaterialInfoParams(barcode: event.barcode),
     );
@@ -436,7 +415,7 @@ Future<bool> _startCameraWithTimeout() async {
     );
   }
 
-  Future<void> _onSaveScannedData(
+  Future<void> _onSaveScannedDataAsync(
     SaveScannedData event,
     Emitter<ScanState> emit,
   ) async {
@@ -444,7 +423,6 @@ Future<bool> _startCameraWithTimeout() async {
 
     final currentState = state;
     if (currentState is MaterialInfoLoaded) {
-      // Create a new model
       emit(
         SavingDataState(
           isCameraActive: currentState.isCameraActive,
@@ -490,14 +468,13 @@ Future<bool> _startCameraWithTimeout() async {
             ),
           );
 
-          // Automatically send to processing after saving
           add(SendToProcessingEvent(currentUser.userId));
         },
       );
     }
   }
 
-  Future<void> _onSendToProcessing(
+  Future<void> _onSendToProcessingAsync(
     SendToProcessingEvent event,
     Emitter<ScanState> emit,
   ) async {
@@ -530,59 +507,59 @@ Future<bool> _startCameraWithTimeout() async {
           debugPrint("ScanBloc: Processing complete");
           emit(const ProcessingCompleteState());
 
-          // Reset to scanning state after processing
           add(InitializeScanner());
         },
       );
     }
   }
 
-  Future<void> _onHardwareScanButtonPressed(
-  HardwareScanButtonPressed event,
-  Emitter<ScanState> emit
-) async {
-  if (event.scannedData.isEmpty) return;
-  
-  emit(ScanProcessingState(barcode: event.scannedData));
-  
-  try {
-    final result = await getMaterialInfo(
-      GetMaterialInfoParams(barcode: event.scannedData),
-    );
+  Future<void> _onHardwareScanButtonPressedAsync(
+    HardwareScanButtonPressed event,
+    Emitter<ScanState> emit
+  ) async {
+    if (event.scannedData.isEmpty) return;
     
-    await result.fold(
-      (failure) async {
-        emit(ScanErrorState(
-          message: failure.message,
-          previousState: state,
-        ));
-      },
-      (materialInfo) async {
-        // Bảo toàn trạng thái camera hiện tại
-        bool currentCameraState = false;
-        if (state is ScanningState) {
-          currentCameraState = (state as ScanningState).isCameraActive;
-        } else if (state is MaterialInfoLoaded) {
-          currentCameraState = (state as MaterialInfoLoaded).isCameraActive;
+    emit(ScanProcessingState(barcode: event.scannedData));
+    
+    try {
+      final result = await getMaterialInfo(
+        GetMaterialInfoParams(barcode: event.scannedData),
+      );
+      
+      await result.fold(
+        (failure) async {
+          emit(ScanErrorState(
+            message: failure.message,
+            previousState: state,
+          ));
+        },
+        (materialInfo) async {
+          bool currentCameraState = false;
+
+          if (state is ScanningState) {
+            currentCameraState = (state as ScanningState).isCameraActive;
+
+          } else if (state is MaterialInfoLoaded) {
+            currentCameraState = (state as MaterialInfoLoaded).isCameraActive;
+          }
+          
+          emit(MaterialInfoLoaded(
+            isCameraActive: currentCameraState,
+            isTorchEnabled: false,
+            controller: scannerController,
+            scannedItems: _efficientlyGetScannedItems(state),
+            materialInfo: materialInfo,
+            currentBarcode: event.scannedData,
+          ));
         }
-        
-        emit(MaterialInfoLoaded(
-          isCameraActive: currentCameraState,
-          isTorchEnabled: false,
-          controller: scannerController,
-          scannedItems: _efficientlyGetScannedItems(state),
-          materialInfo: materialInfo,
-          currentBarcode: event.scannedData,
-        ));
-      }
-    );
-  } catch (e) {
-    emit(ScanErrorState(
-      message: "Error processing scan: $e",
-      previousState: state,
-    ));
+      );
+    } catch (e) {
+      emit(ScanErrorState(
+        message: "Error processing scan: $e",
+        previousState: state,
+      ));
+    }
   }
-}
 
   @override
   Future<void> close() async {
@@ -594,7 +571,7 @@ Future<bool> _startCameraWithTimeout() async {
   }
 
 
-  Future<void> _onConfirmDeduction(
+  Future<void> _onConfirmDeductionAsync(
     ConfirmDeductionEvent event,
     Emitter<ScanState> emit,
   ) async {
@@ -612,19 +589,19 @@ Future<bool> _startCameraWithTimeout() async {
 
     bool result;
     if (event.isQC2User) {
-      // Call the QC2-specific API
-      result = await remoteDataSource.saveQC2Deduction(
+      result = await remoteDataSource.saveQC2DeductionRemoteDataAsync(
         event.barcode,
         event.userId,
         event.deduction,
       );
+
     } else {
-      // Call the existing QC1 API
-      result = await remoteDataSource.saveQualityInspection(
+      result = await remoteDataSource.saveQualityInspectionRemoteDataAsync(
         event.barcode,
         event.userId,
         event.deduction,
       );
+
     }
 
       if (result) {
@@ -645,7 +622,6 @@ Future<bool> _startCameraWithTimeout() async {
           qcQtyOut: event.qcQtyOut,
         );
 
-        // Lưu record vào local storage
         final saveResult = await saveScanRecord(
           SaveScanRecordParams(record: scanRecord),
         );
@@ -671,6 +647,7 @@ Future<bool> _startCameraWithTimeout() async {
             );
           },
         );
+
       } else {
         emit(
           ScanErrorState(
@@ -682,7 +659,7 @@ Future<bool> _startCameraWithTimeout() async {
     } catch (e) {
       emit(
         ScanErrorState(
-          message: 'Error processing deduction: $e',
+          message: 'Error processing deduction: Quantity not enough',
           previousState: state,
         ),
       );

@@ -1,7 +1,5 @@
-// lib/features/scan/domain/entities/scan_record_entity.dart
 import 'package:equatable/equatable.dart';
 
-/// Entity class for scan records
 class ScanRecordEntity extends Equatable {
   final String id;
   final String code;

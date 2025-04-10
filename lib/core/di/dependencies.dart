@@ -45,7 +45,7 @@ import '../../features/process/presentation/bloc/processing_bloc.dart';
 
 final sl = GetIt.instance;
 
-Future<void> init() async {
+Future<void> initAsync() async {
 
   //Sytem
   // Register SecureStorageService first
@@ -195,5 +195,4 @@ Future<void> init() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
   sl.registerLazySingleton(() => InternetConnectionChecker());
- // sl.registerLazySingleton(() => DioClient().dio);
 }

@@ -7,7 +7,7 @@ abstract class UserRepository {
   /// Authenticates a user with the given credentials
   ///
   /// Returns [UserEntity] if successful, [Failure] otherwise
-  Future<Either<Failure, UserEntity>> loginUser({
+  Future<Either<Failure, UserEntity>> loginUserRepositoryAsync({
     required String userId,
     required String password,
     required String name,
@@ -17,5 +17,5 @@ abstract class UserRepository {
   /// Validates a JWT token
   ///
   /// Returns [UserEntity] if token is valid, [Failure] otherwise
-  Future<Either<Failure, UserEntity>> validateToken(String token);
+  Future<Either<Failure, UserEntity>> validateTokenRepositoryAsync(String token);
 }

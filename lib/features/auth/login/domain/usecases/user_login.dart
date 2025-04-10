@@ -10,9 +10,9 @@ class UserLogin {
 
   UserLogin(this.repository);
 
-  /// Execute the login use case with given parameters
+
 Future<Either<Failure, UserEntity>> call(LoginParams params) async {
-  return await repository.loginUser(
+  return await repository.loginUserRepositoryAsync(
     userId: params.userId,
     password: params.password,
     name: params.name,

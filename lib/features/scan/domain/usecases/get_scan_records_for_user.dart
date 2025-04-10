@@ -9,9 +9,8 @@ class GetScanRecordsForUser {
 
   GetScanRecordsForUser(this.repository);
 
-  /// Execute the get scan records for user use case
   Future<Either<Failure, List<ScanRecordEntity>>> call(GetScanRecordsForUserParams params) async {
-    return await repository.getScanRecordsForUser(params.userId);
+    return await repository.getScanRecordsForUserRepositoryAsync(params.userId);
   }
 }
 

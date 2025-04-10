@@ -13,12 +13,12 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   LoginBloc({required this.userLogin, required this.validateToken})
     : super(LoginInitial()) {
-    on<LoginButtonPressed>(_onLoginButtonPressed);
-    on<CheckToken>(_onCheckToken);
+    on<LoginButtonPressed>(_onLoginButtonPressedAsync);
+    on<CheckToken>(_onCheckTokenAsync);
   }
 
   /// Handle login button press event
-  Future<void> _onLoginButtonPressed(
+  Future<void> _onLoginButtonPressedAsync(
     LoginButtonPressed event,
     Emitter<LoginState> emit,
   ) async {
@@ -26,33 +26,28 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     emit(LoginLoading());
 
     // Call the authRepository directly
-    final result = await di.sl<AuthRepository>().loginUser(
+    final result = await di.sl<AuthRepository>().loginUserAsync(
       userId: event.userId,
       password: event.password,
       name: event.name,
     );
 
-    // Emit success or failure based on the result
     result.fold(
       (failure) => emit(LoginFailure(message: failure.message)),
       (user) async {
         emit(LoginSuccess(user: user));
         
-        // Debug token state after login success
-        await di.sl<AuthRepository>().debugTokenState();
+        await di.sl<AuthRepository>().debugTokenStateAsync();
       }
     );
   }
 
-  /// Handle token check event
-  Future<void> _onCheckToken(CheckToken event, Emitter<LoginState> emit) async {
-    // Show loading state
+  Future<void> _onCheckTokenAsync(CheckToken event, Emitter<LoginState> emit) async {
+
     emit(TokenChecking());
 
-    // Call the validate token use case
     final result = await validateToken(TokenParams(token: event.token));
 
-    // Emit success or failure based on the result
     result.fold(
       (failure) => emit(LoginInitial()),
       (user) => emit(LoginSuccess(user: user)),

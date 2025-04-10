@@ -9,9 +9,8 @@ class GetProcessingItems {
 
   GetProcessingItems(this.repository);
 
-  /// Execute the get processing items use case
   Future<Either<Failure, List<ProcessingItemEntity>>> call(GetProcessingParams params) async {
-    return await repository.getProcessingItems(params.date);
+    return await repository.getProcessingItemsRepositoryAsync(params.date);
   }
 }
 

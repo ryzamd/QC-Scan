@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,7 +24,7 @@ class BackButtonService {
           }
 
           context.widget;
-          _showExitConfirmationDialog(context);
+          _showExitConfirmationDialogAsync(context);
         } catch (e) {
           debugPrint("BackButtonService: Context is no longer valid. Skipping dialog.");
         }
@@ -46,7 +47,7 @@ class BackButtonService {
     _isDialogShowing = false;
   }
 
-  Future<void> _showExitConfirmationDialog(BuildContext context) async {
+  Future<void> _showExitConfirmationDialogAsync(BuildContext context) async {
     if(!context.mounted){
       return;
     }
@@ -59,39 +60,23 @@ class BackButtonService {
 
     try {
       if (!context.mounted) {
-         _isDialogShowing = false; // Reset cờ vì không hiển thị dialog
+         _isDialogShowing = false;
          return;
        }
 
-      await showDialog(
+      ConfirmationDialog.showAsync(
         context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          title: const Text(
-            'EXIT',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-          ),
-          content: const Text('Are you sure to exit the application?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                  if(Navigator.of(dialogContext).canPop()){
-                     Navigator.of(dialogContext).pop();
-                 }
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                SystemNavigator.pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
+        title: 'EXIT',
+        message: 'Are you sure to exit the application?',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        showCancelButton: true,
+        titleColor: Colors.red,
+        confirmColor: Colors.red,
+        cancelColor: Colors.black87,
+        onConfirm: () {
+          SystemNavigator.pop();
+        },
       );
     } catch (e) {
       debugPrint("BackButtonService: Error showing: $e");

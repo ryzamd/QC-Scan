@@ -21,10 +21,10 @@ class ScanRepositoryImpl implements ScanRepository {
   });
 
   @override
-  Future<Either<Failure, ScanRecordEntity>> saveScanRecord(ScanRecordEntity record) async {
+  Future<Either<Failure, ScanRecordEntity>> saveScanRecordRepositoryAsync(ScanRecordEntity record) async {
     try {
       final recordModel = record as ScanRecordModel;
-      final savedRecord = await localDataSource.saveScanRecord(recordModel);
+      final savedRecord = await localDataSource.saveScanRecordLocalDataSourceAsync(recordModel);
       return Right(savedRecord);
     } on ScanException catch (e) {
       return Left(ServerFailure(e.message));
@@ -34,9 +34,9 @@ class ScanRepositoryImpl implements ScanRepository {
   }
 
   @override
-  Future<Either<Failure, List<ScanRecordEntity>>> getScanRecordsForUser(String userId) async {
+  Future<Either<Failure, List<ScanRecordEntity>>> getScanRecordsForUserRepositoryAsync(String userId) async {
     try {
-      final records = await localDataSource.getScanRecordsForUser(userId);
+      final records = await localDataSource.getScanRecordsForUserLocalDataSourceAsync(userId);
       return Right(records);
     } on ScanException catch (e) {
       return Left(CacheFailure(e.message));
@@ -46,16 +46,18 @@ class ScanRepositoryImpl implements ScanRepository {
   }
 
   @override
-  Future<Either<Failure, Map<String, String>>> getMaterialInfo(String barcode) async {
+  Future<Either<Failure, Map<String, String>>> getMaterialInfoRepositoryAsync(String barcode) async {
     if (await networkInfo.isConnected) {
       try {
-        // Lấy thông tin vật liệu từ API với userName của người dùng hiện tại
-        final materialInfo = await remoteDataSource.getMaterialInfo(barcode, "品管質檢");
+        final materialInfo = await remoteDataSource.getMaterialInfoRemoteDataAsync(barcode, "品管質檢");
         return Right(materialInfo);
+
       } on MaterialNotFoundException catch (_) {
-        return Left(ServerFailure('Material with code $barcode not found in the system.'));
+        return Left(ServerFailure('Material not found in the system.'));
+
       } on ScanException catch (e) {
         return Left(ServerFailure(e.message));
+
       } catch (e) {
         return Left(ServerFailure(e.toString()));
       }
@@ -66,10 +68,9 @@ class ScanRepositoryImpl implements ScanRepository {
 
 
   @override
-  Future<Either<Failure, bool>> sendToProcessing(List<ScanRecordEntity> records) async {
+  Future<Either<Failure, bool>> sendToProcessingRepositoryAsync(List<ScanRecordEntity> records) async {
     if (await networkInfo.isConnected) {
       try {
-        // Xử lý mỗi record - trong trường hợp này chỉ cần record cuối cùng
         if (records.isEmpty) {
           return const Left(ServerFailure('No records to process'));
         }
@@ -77,19 +78,22 @@ class ScanRepositoryImpl implements ScanRepository {
         final lastRecord = records.last;
         final String code = lastRecord.code;
         final String userName = lastRecord.userId;
-        final double deduction = 0.0; // Default nếu không có khấu trừ
+        final double deduction = 0.0;
         
-        // Gọi API để lưu thông tin
-        final success = await remoteDataSource.saveQualityInspection(code, userName, deduction);
+        final success = await remoteDataSource.saveQualityInspectionRemoteDataAsync(code, userName, deduction);
         
         return Right(success);
+
       } on ProcessingException catch (e) {
         return Left(ServerFailure(e.message));
+
       } catch (e) {
         return Left(ServerFailure(e.toString()));
+
       }
     } else {
       return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
+      
     }
   }
 }

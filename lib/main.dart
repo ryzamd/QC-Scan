@@ -23,7 +23,7 @@ void main() async {
   ]);
 
   // Initialize dependencies
-  await di.init();
+  await di.initAsync();
 
   runApp(const MyApp());
 }

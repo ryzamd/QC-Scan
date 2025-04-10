@@ -1,4 +1,6 @@
 import 'package:architecture_scan_app/core/constants/app_routes.dart';
+import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
+import 'package:architecture_scan_app/core/widgets/error_dialog.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/logout_bloc.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/logout_event.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/logout_state.dart';
@@ -19,19 +21,19 @@ class LogoutButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<LogoutBloc, LogoutState>(
       listener: (context, state) {
+
         if (state is LogoutSuccess) {
-          // Navigate to login screen and clear the navigation stack
           Navigator.of(context).pushNamedAndRemoveUntil(
             AppRoutes.login,
             (route) => false,
           );
+
         } else if (state is LogoutFailure) {
-          // Show error message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Logout failed: ${state.message}'),
-              backgroundColor: Colors.red,
-            ),
+          ErrorDialog.show(
+            context,
+            title: 'Logout Failed',
+            message: state.message,
+            onDismiss: () => Navigator.of(context).pop(),
           );
         }
       },
@@ -40,39 +42,22 @@ class LogoutButton extends StatelessWidget {
         height: height,
         child: ElevatedButton(
           onPressed: () {
-            // Show confirmation dialog
-            showDialog(
+            ConfirmationDialog.showAsync(
               context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('Confirm Logout'),
-                content: const Text('Are you sure you want to log out?'),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      context.read<LogoutBloc>().add(LogoutButtonPressed());
-                    },
-                    child: const Text(
-                      'Logout',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-                ],
-              ),
+              title: 'LOGOUT',
+              message: 'Are you sure you want to log out?',
+              showCancelButton: true,
+              onConfirm: () {
+                context.read<LogoutBloc>().add(LogoutButtonPressed());
+              },
+              onCancel: () {},
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
+            backgroundColor: Color(0xFFDA7297),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
           child: BlocBuilder<LogoutBloc, LogoutState>(
@@ -88,7 +73,7 @@ class LogoutButton extends StatelessWidget {
                 );
               }
               return const Text(
-                'logout',
+                'LOGOUT',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

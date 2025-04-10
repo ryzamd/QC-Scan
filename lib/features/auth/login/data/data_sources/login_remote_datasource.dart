@@ -5,13 +5,13 @@ import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 
 abstract class LoginRemoteDataSource {
-  Future<UserModel> loginUser({
+  Future<UserModel> loginUserRemoteDataAsync({
     required String userId,
     required String password,
     required String name,
   });
   
-  Future<UserModel> validateToken(String token);
+  Future<UserModel> validateTokenRemoteDataAsync(String token);
 }
 
 class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
@@ -20,7 +20,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   LoginRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<UserModel> loginUser({
+  Future<UserModel> loginUserRemoteDataAsync({
     required String userId,
     required String password,
     required String name,
@@ -54,7 +54,7 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   }
   
   @override
-  Future<UserModel> validateToken(String token) async {
+  Future<UserModel> validateTokenRemoteDataAsync(String token) async {
     // Token validation is not specified in the API documentation
     // This could be implemented later when the endpoint is available
     throw UnimplementedError('Token validation not implemented');

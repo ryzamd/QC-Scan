@@ -46,7 +46,7 @@ class CustomScaffold extends StatelessWidget {
     return AppBar(
       flexibleSpace: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0D92F4)
+          color: Color(0xFF4158A6)
         ),
       ),
       elevation: 0,

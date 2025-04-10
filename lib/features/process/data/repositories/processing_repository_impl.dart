@@ -18,10 +18,10 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
   });
 
    @override
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String date) async {
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItemsRepositoryAsync(String date) async {
     if (await networkInfo.isConnected) {
       try {
-        final processingItems = await remoteDataSource.getProcessingItems(date);
+        final processingItems = await remoteDataSource.getProcessingItemsRemoteDataAsync(date);
         return Right(processingItems);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
@@ -34,12 +34,12 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
   }
 
   @override
-  Future<Either<Failure, ProcessingItemEntity>> updateQC2Quantity(
+  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(
     String code, String userName, double deduction) async {
     if (await networkInfo.isConnected) {
       try {
         
-        final response = await remoteDataSource.saveQC2Deduction(code, userName, deduction);
+        final response = await remoteDataSource.saveQC2DeductionRemoteDataAsync(code, userName, deduction);
 
         return Right(ProcessingItemModel.fromJson(response));
         
@@ -52,20 +52,4 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
       return Left(ConnectionFailure('No internet connection'));
     }
   }
-  
-  // @override
-  // Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems() async {
-  //   if (await networkInfo.isConnected) {
-  //     try {
-  //       final processingItems = await remoteDataSource.refreshProcessingItems();
-  //       return Right(processingItems);
-  //     } on ServerException catch (e) {
-  //       return Left(ServerFailure(e.message));
-  //     } catch (e) {
-  //       return Left(ServerFailure(e.toString()));
-  //     }
-  //   } else {
-  //     return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
-  //   }
-  // }
 }

@@ -5,22 +5,11 @@ import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
 import 'package:dio/dio.dart';
 
 abstract class ScanRemoteDataSource {
-  /// Get material information from server based on scanned code
-  ///
-  /// Throws [MaterialNotFoundException] if material not found
-  /// Throws [ScanException] if operation fails
-  Future<Map<String, String>> getMaterialInfo(String code, String userName);
+  Future<Map<String, String>> getMaterialInfoRemoteDataAsync(String code, String userName);
 
-  /// Save quality inspection data with deduction
-  ///
-  /// Throws [ProcessingException] if processing fails
-  Future<bool> saveQualityInspection(
-    String code,
-    String userName,
-    double deduction,
-  );
+  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction);
 
-  Future<bool> saveQC2Deduction(String code, String userName, double deduction);
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction);
 }
 
 class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
@@ -29,12 +18,11 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   ScanRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<Map<String, String>> getMaterialInfo(
+  Future<Map<String, String>> getMaterialInfoRemoteDataAsync(
     String code,
     String userName,
   ) async {
     try {
-      // Check if token exists in headers
       if (!dio.options.headers.containsKey('Authorization')) {
         throw AuthException('Missing authorization token');
       }
@@ -47,7 +35,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       if (response.statusCode == 200) {
         if (response.data['message'] == 'Success') {
           final materialData = response.data['data'];
-          // Convert dynamic data to Map<String, String>
+
           return {
             'Material Name': materialData['m_name'] ?? '',
             'Material ID': materialData['code'] ?? code,
@@ -61,11 +49,14 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
             'm_name': materialData['m_name'] ?? '',
             'm_qty': materialData['m_qty']?.toString() ?? '0',
           };
+
         } else {
           throw MaterialNotFoundException(code);
+
         }
       } else if (response.statusCode == 401) {
            AuthException('Invalid or expired token');
+
       } else {
         throw ServerException(
           'Server returned error code: ${response.statusCode}',
@@ -75,6 +66,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         throw ScanException('Connection timeout. Please check your network.');
+
       } else if (e.type == DioExceptionType.connectionError) {
         throw ScanException(
           'Cannot connect to server. Please check your network.',
@@ -91,7 +83,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
 
   @override
-  Future<bool> saveQualityInspection(
+  Future<bool> saveQualityInspectionRemoteDataAsync(
     String code,
     String userName,
     double deduction,
@@ -139,7 +131,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
   
   @override
-  Future<bool> saveQC2Deduction(String code, String userName, double deduction) async {
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction) async {
     try {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,

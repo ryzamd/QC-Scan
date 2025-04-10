@@ -5,12 +5,8 @@ import 'package:dartz/dartz.dart';
 
 abstract class ProcessingRepository {
   
-  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItems(String date);
+  Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItemsRepositoryAsync(String date);
 
-  Future<Either<Failure, ProcessingItemEntity>> updateQC2Quantity(String code, String userName, double deduction);
-  
-  /// Refresh processing items from remote source
-  ///
-  /// Returns list of [ProcessingItemEntity] if successful, [Failure] otherwise
-  // Future<Either<Failure, List<ProcessingItemEntity>>> refreshProcessingItems();
+  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(String code, String userName, double deduction);
+
 }
