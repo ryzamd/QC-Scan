@@ -1,4 +1,3 @@
-// lib/features/scan/data/models/scan_record_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/scan_record_entity.dart';
 

@@ -51,27 +51,20 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     on<ConfirmClearScannedItems>(_onConfirmClearScannedItemsAsync);
     on<CancelClearScannedItems>(_onCancelClearScannedItemsAsync);
     
-    ScanService.initializeScannerListener(_handleHardwareScan);
+    ScanService.initializeScannerListenerAsync(_handleHardwareScan);
   }
 
   
   
-  void _onCancelClearScannedItemsAsync(
-    CancelClearScannedItems event,
-    Emitter<ScanState> emit
-  ) {
+  Future<void> _onCancelClearScannedItemsAsync(CancelClearScannedItems event, Emitter<ScanState> emit) async {
     if (state is ShowClearConfirmationState) {
       emit((state as ShowClearConfirmationState).previousState);
     }
   }
 
-  void _onConfirmClearScannedItemsAsync(
-    ConfirmClearScannedItems event,
-    Emitter<ScanState> emit
-  ) {
+  Future<void> _onConfirmClearScannedItemsAsync(ConfirmClearScannedItems event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Confirming clear scanned items");
     
-
     emit(ScanningState(
       isCameraActive: _isCameraActive,
       isTorchEnabled: false,
@@ -79,27 +72,27 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       scannedItems: [],
     ));
     
-    ScanService.clearScannedBarcodes();
+    ScanService.clearScannedBarcodesAsync();
   }
 
-  void _onShowClearConfirmationAsync(
+  Future<void> _onShowClearConfirmationAsync(
     ShowClearConfirmationEvent event,
     Emitter<ScanState> emit
-  ) {
+  ) async {
     emit(ShowClearConfirmationState(previousState: state));
   }
 
-  void _onClearScannedItemsAsync(ClearScannedItems event, Emitter<ScanState> emit) {
+  Future<void> _onClearScannedItemsAsync(ClearScannedItems event, Emitter<ScanState> emit) async {
     add(ShowClearConfirmationEvent());
   }
 
-  void _handleHardwareScan(String scannedData) {
+  Future<void> _handleHardwareScan(String scannedData) async {
     if (scannedData.isNotEmpty) {
       add(HardwareScanButtonPressed(scannedData));
     }
   }
 
-  void _onInitializeScanServiceAsync(InitializeScanService event, Emitter<ScanState> emit) {
+  Future<void> _onInitializeScanServiceAsync(InitializeScanService event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Initializing scan service");
   }
 
@@ -112,7 +105,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   _isCameraInitializing = true;
   emit(ScanInitializingState());
 
-  await _cleanupController();
+  await _cleanupControllerAsync();
 
   try {
     scannerController = MobileScannerController(
@@ -124,7 +117,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
     bool started = await _startCameraWithTimeout();
     if (!started) {
-      throw Exception("Khởi tạo camera quá thời gian chờ");
+      throw Exception("Camera initialization timed out");
     }
 
     _isCameraActive = true;
@@ -139,10 +132,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   } catch (e) {
     debugPrint("ScanBloc: Lỗi khởi tạo camera: $e");
 
-    await _cleanupController();
+    await _cleanupControllerAsync();
 
     emit(ScanErrorState(
-      message: "Không thể khởi tạo camera: $e",
+      message: "$e",
       previousState: state,
     ));
 
@@ -174,7 +167,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     return completer.future;
   }
 
-  Future<void> _cleanupController() async {
+  Future<void> _cleanupControllerAsync() async {
     if (scannerController == null || _isCameraDisposing) return;
     
     _isCameraDisposing = true;
@@ -196,10 +189,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  Future<void> _onBarcodeDetectedAsync(
-    BarcodeDetected event,
-    Emitter<ScanState> emit,
-  ) async {
+  Future<void> _onBarcodeDetectedAsync(BarcodeDetected event, Emitter<ScanState> emit) async {
     if (state is ScanProcessingState) return;
 
     emit(ScanProcessingState(barcode: event.barcode));
@@ -221,7 +211,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
               ),
             );
 
-            final processedItems = await compute(_processScannedItems, {
+            final processedItems = await compute(_processScannedItemsAsync, {
               'barcode': event.barcode,
               'materialInfoJson': jsonEncode(materialInfoMap),
               'existingItemsJson': jsonEncode(
@@ -271,7 +261,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  static List<List<String>> _processScannedItems(Map<String, dynamic> params) {
+  static Future<List<List<String>>> _processScannedItemsAsync(Map<String, dynamic> params) async {
     final String barcode = params['barcode'];
     final String materialInfoJson = params['materialInfoJson'];
     final List<List<String>> existingItems =
@@ -319,7 +309,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       add(InitializeScanner());
 
     } else {
-      await _cleanupController();
+      await _cleanupControllerAsync();
       
       if (state is ScanningState) {
         emit((state as ScanningState).copyWith(isCameraActive: false));
@@ -565,9 +555,9 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
   @override
   Future<void> close() async {
-    await _cleanupController();
+    await _cleanupControllerAsync();
     
-    ScanService.disposeScannerListener();
+    ScanService.disposeScannerListenerAsync();
     
     return super.close();
   }
@@ -660,12 +650,21 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         );
       }
     } catch (e) {
-      emit(
-        ScanErrorState(
-          message: 'Error processing deduction: Quantity not enough',
-          previousState: state,
-        ),
-      );
+      if(event.isQC2User) {
+        emit(
+          ScanErrorState(
+            message: '$e',
+            previousState: state,
+          ),
+        );
+      }else {
+        emit(
+          ScanErrorState(
+            message: '$e',
+            previousState: state,
+          ),
+        );
+      }
     }
   }
 }

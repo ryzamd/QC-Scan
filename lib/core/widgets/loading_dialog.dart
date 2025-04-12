@@ -29,8 +29,7 @@ class LoadingDialog {
     );
   }
 
-  /// Hides the currently showing loading dialog
-  static void hide(BuildContext context) {
+  static Future<void> hideAsync(BuildContext context) async {
     if (isShowing && Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
       isShowing = false;

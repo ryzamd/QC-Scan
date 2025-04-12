@@ -29,7 +29,7 @@ class ProcessingItemEntity extends Equatable {
   final String? qtyState;
   final String? adminAllDataTime;
   final String? codeBonded;
-  final SignalStatus status; // Added for UI compatibility
+  final SignalStatus status;
 
   const ProcessingItemEntity({
     required this.mwhId,

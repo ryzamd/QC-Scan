@@ -1,4 +1,3 @@
-// lib/features/scan/presentation/bloc/scan_state.dart
 import 'package:equatable/equatable.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../domain/entities/scan_record_entity.dart';
@@ -10,10 +9,8 @@ abstract class ScanState extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Initial state of the scan feature
 class ScanInitial extends ScanState {}
 
-/// State representing scanning in progress
 class ScanningState extends ScanState {
   final bool isCameraActive;
   final bool isTorchEnabled;
@@ -35,7 +32,6 @@ class ScanningState extends ScanState {
     scannedItems,
   ];
 
-  /// Create a copy of this state with updated values
   ScanningState copyWith({
     bool? isCameraActive,
     bool? isTorchEnabled,
@@ -51,7 +47,6 @@ class ScanningState extends ScanState {
   }
 }
 
-/// State representing material information retrieved from a scan
 class MaterialInfoLoaded extends ScanState {
   final bool isCameraActive;
   final bool isTorchEnabled;
@@ -79,7 +74,6 @@ class MaterialInfoLoaded extends ScanState {
     currentBarcode,
   ];
 
-  /// Create a copy of this state with updated values
   MaterialInfoLoaded copyWith({
     bool? isCameraActive,
     bool? isTorchEnabled,
@@ -99,7 +93,6 @@ class MaterialInfoLoaded extends ScanState {
   }
 }
 
-/// State representing data being saved
 class SavingDataState extends ScanState {
   final bool isCameraActive;
   final bool isTorchEnabled;
@@ -128,7 +121,6 @@ class SavingDataState extends ScanState {
   ];
 }
 
-/// State representing data saved successfully
 class DataSavedState extends ScanState {
   final ScanRecordEntity savedRecord;
   final List<List<String>> scannedItems;
@@ -148,7 +140,6 @@ class DataSavedState extends ScanState {
     List<Object> get props => [barcode];
   }
 
-/// State representing data being sent to processing
 class SendingToProcessingState extends ScanState {
   final List<ScanRecordEntity> records;
 
@@ -158,7 +149,6 @@ class SendingToProcessingState extends ScanState {
   List<Object> get props => [records];
 }
 
-/// State representing an error
 class ScanErrorState extends ScanState {
   final String message;
   final ScanState previousState;
@@ -169,7 +159,6 @@ class ScanErrorState extends ScanState {
   List<Object> get props => [message, previousState];
 }
 
-/// State representing processing complete
 class ProcessingCompleteState extends ScanState {
   const ProcessingCompleteState();
 }

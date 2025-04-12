@@ -1,4 +1,3 @@
-// lib/core/widgets/logo_widget.dart
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 

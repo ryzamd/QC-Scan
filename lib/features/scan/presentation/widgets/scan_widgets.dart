@@ -46,7 +46,6 @@ class QRScannerWidget extends StatelessWidget {
                       onDetect?.call(barcodes);
                     }
                   },
-                  // Optimize error recovery
                   errorBuilder: _buildErrorWidget,
                 )
               : const ColoredBox(

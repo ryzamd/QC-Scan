@@ -138,7 +138,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         controller: _deductionController,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
+                          FilteringTextInputFormatter.singleLineFormatter,
                         ],
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.only(left: 10)
@@ -158,7 +158,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Cancel button
                   InkWell(
                       onTap: widget.onCancel,
                       child: Container(
@@ -181,7 +180,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
                       ),
                     ),
                   
-                  // Confirm button
                   InkWell(
                       onTap: () {
                         final deduction = double.tryParse(_deductionController.text) ?? 0;

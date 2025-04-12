@@ -115,7 +115,7 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
       child: InkWell(
         onTap: () {
           FocusManager.instance.primaryFocus?.unfocus();
-          _showDepartmentModal();
+          _showDepartmentModalAsync();
         },
         borderRadius: BorderRadius.circular(10),
         child: Padding(
@@ -139,7 +139,7 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
     );
   }
   
-  void _showDepartmentModal() {
+  Future<void> _showDepartmentModalAsync() async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

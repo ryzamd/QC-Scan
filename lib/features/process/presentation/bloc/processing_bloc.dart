@@ -13,7 +13,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   final GetProcessingItems getProcessingItems;
   final UpdateQC2Quantity updateQC2Quantity;
   
-  // Cache for minimizing memory allocations during filtering
   String _lastQuery = '';
   List<ProcessingItemEntity>? _lastItems;
   List<ProcessingItemEntity>? _cachedFilteredItems;
@@ -41,7 +40,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         GetProcessingParams(date: event.date),
       );
 
-      await result.fold( // <-- Add await here
+      await result.fold(
         (failure) async => emit(ProcessingError(message: failure.message)),
         (items) async {
 
@@ -53,7 +52,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
                 [List<ProcessingItemEntity>.from(items), true]);
           } else {
             sortedItems = List<ProcessingItemEntity>.from(items);
-            _sortByTimestamp(sortedItems, true);
+            _sortByTimestampAsync(sortedItems, true);
           }
 
           emit(ProcessingLoaded(
@@ -118,7 +117,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
               );
             } else {
               filteredItems = _filterItemsSync(items, currentState.searchQuery);
-              _sortItems(
+              _sortItemsAsync(
                 filteredItems,
                 currentState.sortColumn,
                 currentState.ascending,
@@ -173,11 +172,9 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
           ? !currentState.ascending
           : event.ascending;
 
-      // Use cached items if possible
       final itemsToSort = List<ProcessingItemEntity>.from(currentState.filteredItems);
       
-      // Sort directly for small lists
-      _sortItems(itemsToSort, sortColumn, ascending);
+      _sortItemsAsync(itemsToSort, sortColumn, ascending);
 
       emit(
         currentState.copyWith(
@@ -209,28 +206,25 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
       
       List<ProcessingItemEntity> filteredItems;
       if (currentState.items.length > 100) {
-        // Use compute with static method
         filteredItems = await compute(
           _filterItemsStatic,
           [currentState.items, query],
         );
         
-        _sortItems(
+        _sortItemsAsync(
           filteredItems,
           currentState.sortColumn,
           currentState.ascending,
         );
       } else {
-        // For small lists, process directly
         filteredItems = _filterItemsSync(currentState.items, query);
-        _sortItems(
+        _sortItemsAsync(
           filteredItems,
           currentState.sortColumn,
           currentState.ascending,
         );
       }
 
-      // Cache the results
       _cachedFilteredItems = filteredItems;
       _lastQuery = query;
 
@@ -251,13 +245,11 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
 
     if (currentState is ProcessingLoaded) {
       try {
-        // Find target item
         final targetItem = currentState.items.firstWhere(
           (item) => item.code == event.code,
           orElse: () => throw ServerFailure('Item not found'),
         );
 
-        // Emit processing state immediately
         emit(ProcessingUpdatingState(item: targetItem));
 
         final result = await updateQC2Quantity(
@@ -288,10 +280,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  // HELPER METHODS
-  
-  // Sort directly in this thread
-  void _sortByTimestamp(List<ProcessingItemEntity> items, bool ascending) {
+  Future<void> _sortByTimestampAsync(List<ProcessingItemEntity> items, bool ascending) async {
     items.sort((a, b) {
       return ascending
           ? a.cDate!.compareTo(b.cDate!)
@@ -299,13 +288,10 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     });
   }
   
-  void _sortItems(
-    List<ProcessingItemEntity> items,
-    String column,
-    bool ascending,
-  ) {
+  Future<void> _sortItemsAsync(List<ProcessingItemEntity> items, String column, bool ascending,
+  ) async {
     if (column == 'timestamp') {
-      _sortByTimestamp(items, ascending);
+      _sortByTimestampAsync(items, ascending);
     }
   }
   
@@ -327,7 +313,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }).toList();
   }
 
-  // Static method for compute
   static List<ProcessingItemEntity> _filterItemsStatic(List<dynamic> params) {
     final items = params[0] as List<ProcessingItemEntity>;
     final query = params[1] as String;
@@ -346,9 +331,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }).toList();
   }
   
-  // STATIC METHODS FOR COMPUTE
-  
-  // For background compute
   static List<ProcessingItemEntity> _sortItemsByTimestamp(List<dynamic> params) {
     final items = params[0] as List<ProcessingItemEntity>;
     final ascending = params[1] as bool;
@@ -362,7 +344,6 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     return items;
   }
   
-  // Static methods for compute
   static List<ProcessingItemEntity> _filterAndSortItems(List<dynamic> params) {
     final items = params[0] as List<ProcessingItemEntity>;
     final query = params[1] as String;
@@ -420,11 +401,11 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} 00:00:00';
   }
 
-  void loadData() {
+  Future<void> loadDataAsync() async {
     add(GetProcessingItemsEvent(date: formattedSelectedDate));
   }
 
-  void refreshData() {
+  Future<void> refreshDataAsync() async {
     add(RefreshProcessingItemsEvent(date: formattedSelectedDate));
   }
 }

@@ -1,4 +1,3 @@
-// lib/features/auth/login/data/data_sources/login_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:dio/dio.dart';
@@ -55,8 +54,6 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
   
   @override
   Future<UserModel> validateTokenRemoteDataAsync(String token) async {
-    // Token validation is not specified in the API documentation
-    // This could be implemented later when the endpoint is available
     throw UnimplementedError('Token validation not implemented');
   }
 }

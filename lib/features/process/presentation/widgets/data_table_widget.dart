@@ -30,7 +30,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
     _isQC2User = widget.user.name == "品管正式倉";
   }
 
-  void _onSortColumn(BuildContext context, String column) {
+  Future<void> _onSortColumnAsync(BuildContext context, String column) async{
     context.read<ProcessingBloc>().add(
       SortProcessingItemsEvent(column: column, ascending: false),
     );
@@ -57,7 +57,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
               ? state.filteredItems
               : (state as ProcessingRefreshing).items;
           
-          // Reset current page if data changes
           if (items.length <= _currentPage * _pageSize) {
             _currentPage = 0;
           }
@@ -66,7 +65,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           final ascending = state is ProcessingLoaded ? state.ascending : false;
           final isRefreshing = state is ProcessingRefreshing;
 
-          // Split into pages
           final int totalItems = items.length;
           final int totalPages = (totalItems / _pageSize).ceil();
           final int startIndex = _currentPage * _pageSize;
@@ -116,7 +114,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           Expanded(
             flex: 2,
             child: GestureDetector(
-              onTap: () => _onSortColumn(context, "timestamp"),
+              onTap: () => _onSortColumnAsync(context, "timestamp"),
               child: Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -164,7 +162,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
     );
   }
 
-  // Ultra-optimized table content
   Widget _buildTableContent(BuildContext context, List<ProcessingItemEntity> items) {
     return ListView.builder(
       itemCount: items.length,
@@ -184,7 +181,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
 
   Widget _buildSimpleRow(BuildContext context, ProcessingItemEntity item, Color color) {
     return GestureDetector(
-      onTap: _isQC2User ? () => _showDeductionDialog(context, item) : null,
+      onTap: _isQC2User ? () => _showDeductionDialogAsync(context, item) : null,
       child: Container(
         height: 50,
         color: color,
@@ -278,7 +275,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
     return timestamp.substring(0, 16);
   }
 
-  void _showDeductionDialog(BuildContext context, ProcessingItemEntity item) {
+  Future<void> _showDeductionDialogAsync(BuildContext context, ProcessingItemEntity item) async {
     final double actualQty = item.qcQtyIn! - item.qcQtyOut!;
     
     showDialog(

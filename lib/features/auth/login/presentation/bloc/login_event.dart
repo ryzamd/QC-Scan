@@ -1,4 +1,3 @@
-// lib/features/auth/login/presentation/bloc/login_event.dart
 import 'package:equatable/equatable.dart';
 
 abstract class LoginEvent extends Equatable {
@@ -8,7 +7,6 @@ abstract class LoginEvent extends Equatable {
   List<Object> get props => [];
 }
 
-/// Event triggered when the login button is pressed
 class LoginButtonPressed extends LoginEvent {
   final String userId;
   final String password;
@@ -26,7 +24,6 @@ class LoginButtonPressed extends LoginEvent {
   List<Object> get props => [userId, password, department, name];
 }
 
-/// Event triggered when the department selection changes
 class DepartmentChanged extends LoginEvent {
   final String department;
 
@@ -36,7 +33,6 @@ class DepartmentChanged extends LoginEvent {
   List<Object> get props => [department];
 }
 
-/// Event triggered when the application starts to check saved token
 class CheckToken extends LoginEvent {
   final String token;
 

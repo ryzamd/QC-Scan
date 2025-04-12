@@ -51,7 +51,7 @@ class AuthRepository {
           
           await _secureStorage.saveUserDataAsync(jsonEncode(response.data['user']['users']));
           
-          _dioClient.setAuthToken(token);
+          _dioClient.setAuthTokenAsync(token);
           
           debugPrint('Login successful, token saved and set in DioClient');
           return Right(user);
@@ -87,7 +87,7 @@ class AuthRepository {
   Future<bool> logoutAsync() async {
     try {
       await _secureStorage.clearAllDataAsync();
-      _dioClient.clearAuthToken();
+      _dioClient.clearAuthTokenAsync();
       return true;
     } catch (e) {
       debugPrint('Error during logout: $e');
@@ -118,7 +118,7 @@ class AuthRepository {
 
   Future<void> debugTokenStateAsync() async {
     final token = await _secureStorage.getAccessTokenAsync();
-    final userId = await _secureStorage.getUserId();
+    final userId = await _secureStorage.getUserIdAsync();
     
     debugPrint('=============== TOKEN DEBUG ===============');
     debugPrint('Has token in storage: ${token != null}');
@@ -127,7 +127,7 @@ class AuthRepository {
       debugPrint('Token preview: ${token.substring(0, min(20, token.length))}...');
     }
     debugPrint('Has userId: ${userId != null}');
-    debugPrint('Token in DioClient: ${_dioClient.hasValidToken()}');
+    debugPrint('Token in DioClient: ${_dioClient.hasValidTokenAsync()}');
     debugPrint('==========================================');
   }
 }

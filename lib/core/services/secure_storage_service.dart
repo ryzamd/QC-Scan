@@ -32,7 +32,7 @@ class SecureStorageService {
     await _storage.write(key: _userIdKey, value: userId);
   }
   
-  Future<String?> getUserId() async {
+  Future<String?> getUserIdAsync() async {
     return await _storage.read(key: _userIdKey);
   }
   

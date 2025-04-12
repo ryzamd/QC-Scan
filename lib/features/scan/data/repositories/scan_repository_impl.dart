@@ -1,4 +1,3 @@
-// lib/features/scan/data/repositories/scan_repository_impl.dart
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/scan_exceptions.dart';
