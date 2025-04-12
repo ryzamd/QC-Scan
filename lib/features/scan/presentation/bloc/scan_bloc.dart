@@ -434,7 +434,8 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         ),
       );
 
-      final double qcQtyOut = double.tryParse(event.materialInfo['qc_qty_out'] ?? '0') ?? 0;
+      final double qcQtyOut = double.tryParse(event.materialInfo['Deduction_QC2'] ?? '0') ?? 0;
+      final double qcQtyIn = double.tryParse(event.materialInfo['Deduction_QC1'] ?? '0') ?? 0;
 
       final scanRecord = ScanRecordModel.create(
         code: event.barcode,
@@ -442,7 +443,8 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         quantity: event.quantity,
         userId: event.userId,
         materialInfo: event.materialInfo,
-        qcQtyOut: qcQtyOut
+        qcQtyOut: qcQtyOut,
+        qcQtyIn: qcQtyIn
       );
 
       final result = await saveScanRecord(
@@ -620,6 +622,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           userId: event.userId,
           materialInfo: updatedMaterialInfo,
           qcQtyOut: event.qcQtyOut,
+          qcQtyIn: event.qcQtyIn,
         );
 
         final saveResult = await saveScanRecord(

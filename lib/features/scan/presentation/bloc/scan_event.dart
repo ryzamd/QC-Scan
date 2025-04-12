@@ -110,6 +110,7 @@ class ConfirmDeductionEvent extends ScanEvent {
   final Map<String, String> materialInfo;
   final String userId;
   final double qcQtyOut;
+  final double qcQtyIn;
   final bool isQC2User;
 
   const ConfirmDeductionEvent({
@@ -118,7 +119,9 @@ class ConfirmDeductionEvent extends ScanEvent {
     required this.deduction,
     required this.materialInfo,
     required this.userId,
+    required this.qcQtyIn,
     required this.qcQtyOut,
+    
     required this.isQC2User,
   });
 
