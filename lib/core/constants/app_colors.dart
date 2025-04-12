@@ -31,4 +31,6 @@ class AppColors {
   static const Color evenRowColor = Color(0xFFFAF1E6);
   static const Color oddRowColor = Color(0xFFF5E6CC);
   static const Color headerColor = Color(0xFF1d3557);
+
+  static const Color splashScreenColor = Color(0xFF42A7E7);
 }

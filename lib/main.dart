@@ -11,6 +11,7 @@ import 'core/di/dependencies.dart' as di;
 import 'features/auth/login/presentation/pages/login_page.dart';
 import 'features/scan/presentation/pages/scan_page_provider.dart';
 import 'features/auth/login/domain/entities/user_entity.dart';
+import 'core/widgets/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +71,8 @@ class _MyAppState extends State<MyApp> {
           systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
       ),
-      initialRoute: AppRoutes.login,
+      // home: SplashScreen(),
+      initialRoute: AppRoutes.splash,
       onGenerateRoute: (settings) {
         if (settings.name == AppRoutes.processing) {
           final args = settings.arguments as UserEntity;
@@ -112,6 +114,8 @@ class _MyAppState extends State<MyApp> {
         }
 
         switch (settings.name) {
+          case AppRoutes.splash:
+            return MaterialPageRoute(builder: (_) => const SplashScreen());
           case AppRoutes.login:
             return MaterialPageRoute(builder: (_) => const LoginPage());
           default:
