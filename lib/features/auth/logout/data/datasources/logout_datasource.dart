@@ -19,9 +19,9 @@ class LogoutDataSourceImpl implements LogoutDataSource {
   @override
   Future<bool> logoutDataSourceAsync() async {
     try {
-      dioClient.clearAuthToken();
+      dioClient.clearAuthTokenAsync();
       
-      ScanService.disposeScannerListener();
+      ScanService.disposeScannerListenerAsync();
       
       await sharedPreferences.remove('user_token');
       

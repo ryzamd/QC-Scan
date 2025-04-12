@@ -1,4 +1,3 @@
-// lib/features/auth/login/presentation/pages/login_page.dart
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/logo_custom.dart';
 import 'package:flutter/material.dart';
@@ -38,11 +37,11 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _dismissKeyboard() {
+  Future<void> _dismissKeyboardAsync() async {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  void _handleDepartmentChange(String? department) {
+  Future<void> _handleDepartmentChangeAsync(String? department) async {
     if (department != null && department != _selectedDepartment) {
       setState(() {
         _selectedDepartment = department;
@@ -166,7 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                                               return null;
                                             },
                                             onFieldSubmitted: (_) {
-                                              _dismissKeyboard();
+                                              _dismissKeyboardAsync();
                                             },
                                             onTap: () {
                                               FocusScope.of(context).canRequestFocus = true;
@@ -178,7 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                                           DepartmentDropdown(
                                             selectedDepartment: _selectedDepartment,
                                             departments: _departments,
-                                            onChanged: _handleDepartmentChange,
+                                            onChanged: _handleDepartmentChangeAsync,
                                           ),
 
                                           const SizedBox(height: 24),
@@ -188,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
                                               return LoginButton(
                                                 isLoading: state is LoginLoading,
                                                 onPressed: () {
-                                                  _dismissKeyboard();
+                                                  _dismissKeyboardAsync();
                                                   
                                                   if (_formKey.currentState!.validate()) {
                                                     context.read<LoginBloc>().add(

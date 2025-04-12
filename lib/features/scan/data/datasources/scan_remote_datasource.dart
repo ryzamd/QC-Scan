@@ -1,4 +1,3 @@
-// lib/features/scan/data/datasources/scan_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
@@ -46,7 +45,6 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
             'Status': materialData['qty_state'] ?? '',
             'Deduction_QC2': materialData['qc_qty_out']?.toString() ?? '0',
             'Deduction_QC1': materialData['qc_qty_in']?.toString() ?? '0',
-            
           };
 
         } else {
@@ -101,9 +99,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
         if (response.data['message'] == 'Success') {
           return true;
         } else {
-          throw ProcessingException(
-            'Failed to save quality inspection: ${response.data['message']}',
-          );
+          throw ProcessingException('${response.data['message']}');
         }
       } else {
         throw ServerException(
@@ -123,9 +119,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       }
       throw ProcessingException('Network error: ${e.message}');
     } catch (e) {
-      throw ProcessingException(
-        'Failed to save quality inspection: ${e.toString()}',
-      );
+      throw ProcessingException(e.toString());
     }
   }
   
@@ -145,17 +139,13 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
         if (response.data['message'] == 'Success') {
           return true;
         } else {
-          throw ProcessingException(
-            'Failed to save QC2 deduction: ${response.data['message']}',
-          );
+          throw ProcessingException('${response.data['message']}: Input invalid');
         }
       } else {
-        throw ServerException(
-          'Server returned error code: ${response.statusCode}',
-        );
+        throw ServerException('Server returned error code: ${response.statusCode}');
       }
     } catch (e) {
-      throw ProcessingException('Failed to save QC2 deduction: ${e.toString()}');
+      throw ProcessingException(e.toString());
     }
   }
 }

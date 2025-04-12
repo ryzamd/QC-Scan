@@ -1,4 +1,3 @@
-// lib/core/network/dio_client.dart
 import 'package:architecture_scan_app/core/network/token_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
@@ -21,13 +20,11 @@ class DioClient {
           'Accept': 'application/json',
         },
         validateStatus: (status) {
-          // Don't throw errors here - let the interceptors handle them
           return true;
         },
       ),
     );
 
-    // Add logging interceptor
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -63,7 +60,7 @@ class DioClient {
     );
   }
 
-  void setupTokenInterceptor(TokenInterceptor interceptor) {
+  Future<void> setupTokenInterceptorAsync(TokenInterceptor interceptor) async {
 
     if (_tokenInterceptor != null) {
       dio.interceptors.remove(_tokenInterceptor);
@@ -74,17 +71,17 @@ class DioClient {
     debugPrint('Token interceptor set up');
   }
 
-  void setAuthToken(String token) {
+  Future<void> setAuthTokenAsync(String token) async {
     dio.options.headers['Authorization'] = 'Bearer $token';
     debugPrint('Set Auth Token: Bearer $token');
   }
 
-  void clearAuthToken() {
+  Future<void> clearAuthTokenAsync() async {
     dio.options.headers.remove('Authorization');
     debugPrint('Cleared Auth Token');
   }
 
-  bool hasValidToken() {
+  Future<bool> hasValidTokenAsync() async {
     return dio.options.headers['Authorization'] != null;
   }
 }

@@ -29,7 +29,7 @@ class LogoutButton extends StatelessWidget {
           );
 
         } else if (state is LogoutFailure) {
-          ErrorDialog.show(
+          ErrorDialog.showAsync(
             context,
             title: 'Logout Failed',
             message: state.message,

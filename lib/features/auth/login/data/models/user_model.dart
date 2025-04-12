@@ -1,4 +1,3 @@
-// lib/features/auth/login/data/models/user_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/user_entity.dart';
 
@@ -24,7 +23,7 @@ class UserModel extends UserEntity {
         department: users['department'] ?? '',
         name: users['name'] ?? '',
         token: json['token'] ?? users['token'] ?? '',
-        role: 'user', // API không trả về role, gán mặc định
+        role: 'user',
       );
     }
     return _$UserModelFromJson(json);

@@ -14,7 +14,7 @@ class BackButtonService {
 
   bool _isDialogShowing = false;
 
-  void initialize(BuildContext context) {
+  Future<void> initializeAsync(BuildContext context) async {
     _subscription?.cancel();
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (_) {
@@ -41,7 +41,7 @@ class BackButtonService {
     );
   }
 
-  void dispose() {
+  Future<void> disposeAsync() async {
     _subscription?.cancel();
     _subscription = null;
     _isDialogShowing = false;

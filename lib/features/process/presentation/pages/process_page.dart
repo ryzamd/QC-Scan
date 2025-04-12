@@ -48,14 +48,14 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
     super.dispose();
   }
 
-  void _loadData() {
+  Future<void> _loadDataAsync() async {
     if(!context.mounted) return;
-    context.read<ProcessingBloc>().loadData();
+    context.read<ProcessingBloc>().loadDataAsync();
   }
 
-  void _refreshData() {
+  Future<void> _refreshDataAsync() async {
     if(!context.mounted) return;
-    context.read<ProcessingBloc>().refreshData();
+    context.read<ProcessingBloc>().refreshDataAsync();
   }
 
   
@@ -72,10 +72,10 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
         }
 
         if (state is ProcessingUpdatedState) {
-          _loadData();
+          _loadDataAsync();
          
         } else if (state is ProcessingError) {
-          _loadData();
+          _loadDataAsync();
           NotificationDialog.showAsync(
             context: context,
             title: 'Error',
@@ -105,7 +105,7 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
             const SizedBox(height: 8),
             Expanded(
               child: Card(
-                elevation: 4, // Reduced from 8
+                elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -125,7 +125,7 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
         ),
         IconButton(
           icon: const Icon(Icons.refresh, color: Colors.white),
-          onPressed: _refreshData,
+          onPressed: _refreshDataAsync,
         ),
       ],
     );
@@ -137,7 +137,6 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        // Simplified shadow
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
@@ -166,12 +165,12 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)
         ),
-        onChanged: _handleSearchWithDebounce,
+        onChanged: _handleSearchWithDebounceAsync,
       ),
     );
   }
   
-  void _handleSearchWithDebounce(String value) {
+  Future<void> _handleSearchWithDebounceAsync(String value) async {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     _debounce = Timer(_debounceTime, () {
       if (mounted) {

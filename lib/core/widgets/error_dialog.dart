@@ -14,12 +14,12 @@ class ErrorDialog extends StatelessWidget {
     this.onDismiss,
   });
   
-  static void show(
+  static Future<void> showAsync(
     BuildContext context, {
     String title = 'Error',
     String message = 'An error occurred.',
     VoidCallback? onDismiss,
-  }) {
+  }) async {
     if (!_isShowing && context.mounted) {
       _isShowing = true;
       

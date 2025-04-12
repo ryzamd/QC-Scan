@@ -1,4 +1,3 @@
-// lib/features/auth/login/presentation/bloc/login_bloc.dart
 import 'package:architecture_scan_app/core/di/dependencies.dart' as di;
 import 'package:architecture_scan_app/core/repositories/auth_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,7 +16,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     on<CheckToken>(_onCheckTokenAsync);
   }
 
-  /// Handle login button press event
   Future<void> _onLoginButtonPressedAsync(
     LoginButtonPressed event,
     Emitter<LoginState> emit,
@@ -25,7 +23,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     emit(LoginLoading());
 
-    // Call the authRepository directly
     final result = await di.sl<AuthRepository>().loginUserAsync(
       userId: event.userId,
       password: event.password,

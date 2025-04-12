@@ -1,4 +1,3 @@
-// lib/features/auth/login/domain/usecases/user_login.dart
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
@@ -20,7 +19,6 @@ Future<Either<Failure, UserEntity>> call(LoginParams params) async {
 }
 }
 
-/// Parameters for the login use case
 class LoginParams extends Equatable {
   final String userId;
   final String password;

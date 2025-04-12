@@ -1,4 +1,3 @@
-// lib/features/auth/login/domain/usecases/validate_token.dart
 import 'package:architecture_scan_app/core/errors/failures.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
@@ -10,13 +9,11 @@ class ValidateToken {
 
   ValidateToken(this.repository);
 
-  /// Execute the token validation use case with given parameters
   Future<Either<Failure, UserEntity>> call(TokenParams params) async {
     return await repository.validateTokenRepositoryAsync(params.token);
   }
 }
 
-/// Parameters for the token validation use case
 class TokenParams extends Equatable {
   final String token;
 

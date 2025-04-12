@@ -1,4 +1,3 @@
-// lib/features/process/data/models/processing_item_model.dart
 import 'package:architecture_scan_app/core/enums/enums.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -38,7 +37,6 @@ class ProcessingItemModel extends ProcessingItemEntity {
     required super.status,
   });
 
-  // Remove the fromJson factory constructor if not needed
   factory ProcessingItemModel.fromJson(Map<String, dynamic> json) =>
       _$ProcessingItemModelFromJson(json);
 

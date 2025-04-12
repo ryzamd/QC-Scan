@@ -1,4 +1,3 @@
-// lib/common/widgets/custom_navbar.dart
 import 'package:architecture_scan_app/core/constants/app_routes.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';

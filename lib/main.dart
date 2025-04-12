@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:architecture_scan_app/core/services/exit_confirmation_service.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/pages/profile_page.dart';
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
@@ -16,13 +15,11 @@ import 'features/auth/login/domain/entities/user_entity.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Initialize dependencies
   await di.initAsync();
 
   runApp(const MyApp());
@@ -42,15 +39,14 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Khởi tạo service sau khi build hoàn tất
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _backButtonService.initialize(_navigatorKey.currentContext!);
+      _backButtonService.initializeAsync(_navigatorKey.currentContext!);
     });
   }
 
   @override
   void dispose() {
-    _backButtonService.dispose();
+    _backButtonService.disposeAsync();
     super.dispose();
   }
 
@@ -76,10 +72,9 @@ class _MyAppState extends State<MyApp> {
       ),
       initialRoute: AppRoutes.login,
       onGenerateRoute: (settings) {
-        // For routes that need to pass parameters
         if (settings.name == AppRoutes.processing) {
-          // Extract user from arguments
           final args = settings.arguments as UserEntity;
+
           return MaterialPageRoute(
             builder:
                 (context) => BlocProvider(
@@ -87,31 +82,35 @@ class _MyAppState extends State<MyApp> {
                   child: ProcessingPage(user: args),
                 ),
           );
+
         } else if (settings.name == AppRoutes.scan) {
-          // Kiểm tra arguments không null
           if (settings.arguments != null) {
+
             final args = settings.arguments as UserEntity;
+
             return MaterialPageRoute(
               builder: (context) => ScanPageProvider(user: args),
             );
+
           } else {
-            // Không có user, chuyển về login
             return MaterialPageRoute(builder: (_) => const LoginPage());
+
           }
         } else if (settings.name == AppRoutes.processRecords) {
-          // Extract user from arguments
           final args = settings.arguments as UserEntity;
+
           return MaterialPageRoute(
             builder: (context) => ProcessingPage(user: args),
           );
+
         } else if (settings.name == AppRoutes.profile) {
           final args = settings.arguments as UserEntity;
+
           return MaterialPageRoute(
             builder: (context) => ProfilePage(user: args),
           );
         }
 
-        // Standard routes
         switch (settings.name) {
           case AppRoutes.login:
             return MaterialPageRoute(builder: (_) => const LoginPage());

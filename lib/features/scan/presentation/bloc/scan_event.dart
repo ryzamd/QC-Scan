@@ -1,4 +1,3 @@
-// lib/features/scan/presentation/bloc/scan_event.dart
 import 'package:equatable/equatable.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -9,7 +8,6 @@ abstract class ScanEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Event fired when a barcode is detected
 class BarcodeDetected extends ScanEvent {
   final String barcode;
 
@@ -19,7 +17,6 @@ class BarcodeDetected extends ScanEvent {
   List<Object> get props => [barcode];
 }
 
-/// Event fired when camera is toggled on/off
 class ToggleCamera extends ScanEvent {
   final bool isActive;
 
@@ -29,7 +26,6 @@ class ToggleCamera extends ScanEvent {
   List<Object> get props => [isActive];
 }
 
-/// Event fired when torch/flash is toggled
 class ToggleTorch extends ScanEvent {
   final bool isEnabled;
 
@@ -39,10 +35,8 @@ class ToggleTorch extends ScanEvent {
   List<Object> get props => [isEnabled];
 }
 
-/// Event fired when camera is switched (front/back)
 class SwitchCamera extends ScanEvent {}
 
-/// Event fired when material info is requested
 class GetMaterialInfoEvent extends ScanEvent {
   final String barcode;
 
@@ -52,7 +46,6 @@ class GetMaterialInfoEvent extends ScanEvent {
   List<Object> get props => [barcode];
 }
 
-/// Event fired when save button is pressed
 class SaveScannedData extends ScanEvent {
   final String barcode;
   final String quantity;
@@ -70,7 +63,6 @@ class SaveScannedData extends ScanEvent {
   List<Object> get props => [barcode, quantity, materialInfo, userId];
 }
 
-/// Event fired when data is sent to processing
 class SendToProcessingEvent extends ScanEvent {
   final String userId;
 
@@ -80,7 +72,6 @@ class SendToProcessingEvent extends ScanEvent {
   List<Object> get props => [userId];
 }
 
-/// Event fired to initialize scanner
 class InitializeScanner extends ScanEvent {
   final MobileScannerController? controller;
 
@@ -90,10 +81,8 @@ class InitializeScanner extends ScanEvent {
   List<Object?> get props => [controller];
 }
 
-/// Event fired when a new scan is started
 class StartNewScan extends ScanEvent {}
 
-/// Event fired when hardware scanner button is pressed
 class HardwareScanButtonPressed extends ScanEvent {
   final String scannedData;
 

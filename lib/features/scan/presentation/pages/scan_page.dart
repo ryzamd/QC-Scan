@@ -1,4 +1,3 @@
-// Modified scan_page.dart
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
@@ -177,7 +176,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         }
 
           if (state is ShowClearConfirmationState) {
-            _showClearConfirmationDialog(context);
+            _showClearConfirmationDialogAsync(context);
 
           }
 
@@ -271,8 +270,12 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                     event.logicalKey.keyId,
                   )) {
                     debugPrint("QR DEBUG: Scanner key pressed");
-                  } else if (ScanService.isScannerButtonPressed(event)) {
-                    debugPrint("QR DEBUG: Scanner key pressed via ScanService");
+                  } else {
+                    ScanService.isScannerButtonPressedAsync(event).then((isPressed) {
+                      if (isPressed) {
+                        debugPrint("QR DEBUG: Scanner key pressed via ScanService");
+                      }
+                    });
                   }
                 }
               },
@@ -320,7 +323,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                               ),
                               child: Column(
                                 children: [
-                                  // Each info row as table row
                                   _buildTableRow(
                                     '名稱',
                                     _currentScanRecord?.materialInfo['Material Name'] ?? '',
@@ -392,7 +394,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     return Expanded(
       child: Row(
         children: [
-          // Label side (left)
           Container(
             width: 80,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -413,7 +414,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               ),
             ),
           ),
-          // Value side (right)
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -433,24 +433,25 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     );
   }
 
-  void _showClearConfirmationDialog(BuildContext context) {
-      ConfirmationDialog.showAsync(
-        context: context,
-        title: 'CLEAR DATA',
-        message: 'Are you sure you want to clear all scanned data?',
-        showCancelButton: true,
-        confirmText: 'OK',
-        cancelText: 'Cancel',
-        titleColor: Colors.red,
-        confirmColor: Colors.red,
-        cancelColor: Colors.grey,
-        onConfirm: () {
-          setState(() {
-            _currentScanRecord = null;
-          });
-          context.read<ScanBloc>().add(ConfirmClearScannedItems());
-        },
-      );
+  Future<void> _showClearConfirmationDialogAsync(BuildContext context) async {
+    final result = await ConfirmationDialog
+                  .showAsync(
+                    context: context,
+                    title: 'CLEAR DATA',
+                    message: 'Are you sure you want to clear all scanned data?',
+                    showCancelButton: true,
+                    confirmText: 'OK',
+                    cancelText: 'Cancel',
+                    titleColor: Colors.red,
+                    confirmColor: Colors.red,
+                    cancelColor: Colors.grey,
+                   );
+    if (result == true && context.mounted) {
+      setState(() {
+        _currentScanRecord = null;
+      });
+      context.read<ScanBloc>().add(ConfirmClearScannedItems());
+    }
   }
 
   Widget _buildDivider() {

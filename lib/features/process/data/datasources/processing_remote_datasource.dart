@@ -1,4 +1,3 @@
-// lib/features/process/data/datasources/processing_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/di/dependencies.dart';
 import 'package:architecture_scan_app/core/enums/enums.dart';
@@ -103,7 +102,7 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
         return compute(_processDeductionResponse, response.data);
 
       } else {
-        throw ServerException('Failed to save QC2 deduction: ${response.statusCode}');
+        throw ServerException('${response.statusCode}');
         
       }
     } on DioException catch (e) {

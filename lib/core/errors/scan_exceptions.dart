@@ -1,11 +1,10 @@
-// lib/features/scan/core/errors/scan_exceptions.dart
 class ScanException implements Exception {
   final String message;
 
   ScanException(this.message);
 
   @override
-  String toString() => 'ScanException: $message';
+  String toString() => message;
 }
 
 class MaterialNotFoundException implements Exception {
@@ -14,7 +13,7 @@ class MaterialNotFoundException implements Exception {
   MaterialNotFoundException(this.barcode);
 
   @override
-  String toString() => 'MaterialNotFoundException: No material found for barcode: $barcode';
+  String toString() => 'No material found for barcode: $barcode';
 }
 
 class ProcessingException implements Exception {
@@ -23,7 +22,7 @@ class ProcessingException implements Exception {
   ProcessingException(this.message);
 
   @override
-  String toString() => 'ProcessingException: $message';
+  String toString() => message;
 }
 
 class CameraException implements Exception {
@@ -33,5 +32,5 @@ class CameraException implements Exception {
   CameraException(this.errorCode, this.message);
 
   @override
-  String toString() => 'CameraException: [$errorCode] $message';
+  String toString() => '[$errorCode]: $message';
 }

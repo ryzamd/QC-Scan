@@ -1,4 +1,3 @@
-// lib/features/process/presentation/bloc/processing_state.dart
 import 'package:equatable/equatable.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 
