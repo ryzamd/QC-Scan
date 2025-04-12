@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/key_code_constants.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
+import '../../data/models/scan_record_model.dart';
+import '../../domain/entities/scan_record_entity.dart';
 import '../bloc/scan_bloc.dart';
 import '../bloc/scan_event.dart';
 import '../bloc/scan_state.dart';
@@ -28,15 +30,8 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   final FocusNode _focusNode = FocusNode();
   bool _isDeductionDialogOpen = false;
   late final bool _isQC2User;
-  
-  Map<String, String> _materialData = {
-    'Material Name': '',
-    'Quantity': '',
-    'Deduction': '',
-    'Receipt Date': '',
-    'Supplier': '',
-  };
-  String? _currentScannedValue;
+
+  ScanRecordEntity? _currentScanRecord;
 
   @override
   void initState() {
@@ -70,7 +65,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   }
 
   Future<void> _showDeductionDialogAsync() async {
-    if (_materialData['Material ID']?.isEmpty ?? true) {
+    if (_currentScanRecord == null) {
       NotificationDialog.showAsync(
         context: context,
         title: 'No data to save',
@@ -88,13 +83,18 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     });
   
     try {
+
+      final double? deductionQC1 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC1']!);
+      final double? deductionQC2 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC2']!);
+      final double actualQuantity = deductionQC1! - deductionQC2!;
+
       await showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => DeductionDialog(
-          productName: _materialData['Material Name'] ?? '',
-          productCode: _materialData['Material ID'] ?? '',
-          currentQuantity: _materialData['Quantity'] ?? '0',
+        productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
+        productCode: _currentScanRecord!.code,
+        currentQuantity: actualQuantity.toString(),
           onCancel: () {
             Navigator.of(dialogContext).pop();
             setState(() {
@@ -111,12 +111,13 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
             context.read<ScanBloc>().add(
               ConfirmDeductionEvent(
-                barcode: _materialData['code'] ?? _currentScannedValue!,
-                quantity: _materialData['m_qty'] ?? _materialData['Quantity'] ?? '0',
+                barcode: _currentScanRecord!.code,
+                quantity: actualQuantity.toString(),
                 deduction: deduction,
-                materialInfo: _materialData,
+                materialInfo: _currentScanRecord!.materialInfo,
                 userId: widget.user.name,
-                qcQtyOut: double.tryParse((_materialData['Deduction']).toString()) ?? 0.0,
+                qcQtyOut: _currentScanRecord!.qcQtyOut,
+                qcQtyIn: _currentScanRecord!.qcQtyIn,
                 isQC2User: _isQC2User,
               ),
             );
@@ -149,8 +150,17 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       listener: (context, state) {
         if (state is MaterialInfoLoaded) {
           setState(() {
-            _currentScannedValue = state.currentBarcode;
-            _materialData = Map<String, String>.from(state.materialInfo);
+            _currentScanRecord = ScanRecordModel(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              code: state.currentBarcode,
+              status: 'Pending',
+              quantity: state.materialInfo['Quantity'] ?? '0',
+              timestamp: DateTime.now(),
+              userId: widget.user.userId,
+              materialInfo: state.materialInfo,
+              qcQtyOut: double.tryParse(state.materialInfo['qc_qty_out'] ?? '0') ?? 0.0,
+              qcQtyIn: double.tryParse(state.materialInfo['qc_qty_in'] ?? '0') ?? 0.0,
+            );
           });
         }
 
@@ -169,18 +179,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
           if (state is ShowClearConfirmationState) {
             _showClearConfirmationDialog(context);
 
-          } else if (state is ScanningState && state.scannedItems.isEmpty) {
-            setState(() {
-              _materialData = {
-                'Material Name': '',
-                'Quantity': '',
-                'Deduction': '',
-                'Receipt Date': '',
-                'Supplier': '',
-                'Unit': '',
-              };
-              _currentScannedValue = null;
-            });
           }
 
           if (state is ScanErrorState) {
@@ -202,14 +200,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               onButtonPressed: () {
                 setState(() {
                   _isDeductionDialogOpen = false;
-                  _materialData = {
-                    'Material Name': '',
-                    'Quantity': '',
-                    'Deduction': '',
-                    'Receipt Date': '',
-                    'Supplier': '',
-                  };
-                  _currentScannedValue = null;
+                  _currentScanRecord = null;
                 });
               },
             );
@@ -272,7 +263,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               focusNode: _focusNode,
               autofocus: true,
               onKeyEvent: (KeyEvent event) {
-                // Handle key events from hardware scanner
                 if (event is KeyDownEvent) {
                   debugPrint(
                     "QR DEBUG: Key pressed: ${event.logicalKey.keyId}",
@@ -288,7 +278,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               },
               child: Column(
                 children: [
-                  // QR Camera Section
                   Container(
                     margin: const EdgeInsets.all(5),
                     child: QRScannerWidget(
@@ -334,29 +323,30 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                   // Each info row as table row
                                   _buildTableRow(
                                     '名稱',
-                                    _materialData['Material Name'] ?? '',
+                                    _currentScanRecord?.materialInfo['Material Name'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
                                     '總數',
-                                    _materialData['Quantity'] ?? '',
+                                    _currentScanRecord?.quantity ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
                                     '扣碼',
-                                    _materialData['Deduction'] ?? '',
+                                    _currentScanRecord?.materialInfo['Deduction_QC2'] ?? '0',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
                                     '日期',
-                                    _materialData['Receipt Date'] ?? '',
+                                    _currentScanRecord?.materialInfo['Receipt Date'] ?? '',
                                   ),
                                   _buildDivider(),
                                   _buildTableRow(
                                     '供應商',
-                                    _materialData['Supplier'] ?? '',
+                                    _currentScanRecord?.materialInfo['Supplier'] ?? '',
                                   ),
-                                ],
+                                    _buildDivider(),
+                              ],
                               ),
                             ),
                           ),
@@ -456,15 +446,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         cancelColor: Colors.grey,
         onConfirm: () {
           setState(() {
-            _materialData = {
-              'Material Name': '',
-              'Quantity': '',
-              'Deduction': '',
-              'Receipt Date': '',
-              'Supplier': '',
-              'Unit': '',
-            };
-            _currentScannedValue = null;
+            _currentScanRecord = null;
           });
           context.read<ScanBloc>().add(ConfirmClearScannedItems());
         },

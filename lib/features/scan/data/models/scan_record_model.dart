@@ -14,17 +14,16 @@ class ScanRecordModel extends ScanRecordEntity {
     required super.timestamp,
     required super.userId,
     required super.materialInfo,
-    required super.qcQtyOut
+    required super.qcQtyOut,
+    required super.qcQtyIn,
   });
 
   factory ScanRecordModel.fromJson(Map<String, dynamic> json) => _$ScanRecordModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$ScanRecordModelToJson(this);
 
-  /// Dummy implementation to mock a database for testing
   static List<ScanRecordModel> dummyRecords = [];
 
-  /// Factory constructor to create a new ScanRecordModel with generated ID and timestamp
   factory ScanRecordModel.create({
     required String code,
     required String status,
@@ -32,6 +31,7 @@ class ScanRecordModel extends ScanRecordEntity {
     required String userId,
     required Map<String, String> materialInfo,
     required double qcQtyOut,
+    required double qcQtyIn,
   }) {
     return ScanRecordModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -42,6 +42,7 @@ class ScanRecordModel extends ScanRecordEntity {
       userId: userId,
       materialInfo: materialInfo,
       qcQtyOut: qcQtyOut,
+      qcQtyIn: qcQtyIn,
     );
   }
 }

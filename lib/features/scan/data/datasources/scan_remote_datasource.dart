@@ -44,10 +44,9 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
             'Supplier': materialData['m_vendor'] ?? '',
             'Unit': materialData['m_unit'] ?? '',
             'Status': materialData['qty_state'] ?? '',
-            'qc_qty_out': materialData['qc_qty_out']?.toString() ?? '0',
-            'code': materialData['code'] ?? code,
-            'm_name': materialData['m_name'] ?? '',
-            'm_qty': materialData['m_qty']?.toString() ?? '0',
+            'Deduction_QC2': materialData['qc_qty_out']?.toString() ?? '0',
+            'Deduction_QC1': materialData['qc_qty_in']?.toString() ?? '0',
+            
           };
 
         } else {

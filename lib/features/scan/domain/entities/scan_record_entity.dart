@@ -9,6 +9,7 @@ class ScanRecordEntity extends Equatable {
   final String userId;
   final Map<String, String> materialInfo;
   final double qcQtyOut;
+  final double qcQtyIn;
 
   const ScanRecordEntity({
     required this.id,
@@ -18,7 +19,8 @@ class ScanRecordEntity extends Equatable {
     required this.timestamp,
     required this.userId,
     required this.materialInfo,
-    required this.qcQtyOut
+    required this.qcQtyOut,
+    required this.qcQtyIn,
   });
 
   @override
@@ -30,6 +32,7 @@ class ScanRecordEntity extends Equatable {
     timestamp,
     userId,
     materialInfo,
-    qcQtyOut
+    qcQtyOut,
+    qcQtyIn,
   ];
 }
