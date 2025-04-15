@@ -71,7 +71,6 @@ class _MyAppState extends State<MyApp> {
           systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
       ),
-      // home: SplashScreen(),
       initialRoute: AppRoutes.splash,
       onGenerateRoute: (settings) {
         if (settings.name == AppRoutes.processing) {
