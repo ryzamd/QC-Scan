@@ -41,7 +41,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
     return AlertDialog(
       contentPadding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       content: Container(
         width: 320,
@@ -171,7 +171,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                           child: Text(
                             'CANCEL',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
@@ -196,7 +196,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                           child: Text(
                             'CONFIRM',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),

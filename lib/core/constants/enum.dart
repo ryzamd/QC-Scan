@@ -1,5 +1,4 @@
 enum UserRole {
-  scanQc,
-  warehouseManager,
-  logisticsManager,
+  scanQc1,
+  scanQc2,
 }

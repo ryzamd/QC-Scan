@@ -20,7 +20,7 @@ class NotificationDialog {
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
           title,
@@ -42,6 +42,7 @@ class NotificationDialog {
               style: TextStyle(
                 color: buttonColor,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ),

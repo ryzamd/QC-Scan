@@ -1,12 +1,14 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../../core/constants/enum.dart';
+
 class UserEntity extends Equatable {
   final String userId;
   final String password;
   final String department;
   final String name;
   final String token;
-  final String role;
+  final UserRole role;
 
   const UserEntity({
     required this.userId,

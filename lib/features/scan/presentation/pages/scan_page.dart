@@ -67,7 +67,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     if (_currentScanRecord == null) {
       NotificationDialog.showAsync(
         context: context,
-        title: 'No data to save',
+        title: 'NO DATA TO SAVE',
         message: 'Please scan a barcode first.',
         titleColor: Colors.red,
         buttonColor: Colors.red,
@@ -132,7 +132,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       if(!mounted) return;
       NotificationDialog.showAsync(
         context: context,
-        title: 'Error',
+        title: 'ERROR',
         message: 'An error occurred while processing the data.',
         titleColor: Colors.red,
         buttonColor: Colors.red,

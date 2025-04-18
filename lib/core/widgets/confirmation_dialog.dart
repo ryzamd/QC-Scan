@@ -24,7 +24,7 @@ class ConfirmationDialog {
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
           title,
@@ -47,6 +47,7 @@ class ConfirmationDialog {
               style: TextStyle(
                 color: cancelColor,
                 fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
             ),
           ),
@@ -60,6 +61,7 @@ class ConfirmationDialog {
               style: TextStyle(
                 color: confirmColor,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ),

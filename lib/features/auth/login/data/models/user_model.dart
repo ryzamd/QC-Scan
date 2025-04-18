@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import '../../../../../core/constants/enum.dart';
 import '../../domain/entities/user_entity.dart';
 
 part 'user_model.g.dart';
@@ -15,17 +16,28 @@ class UserModel extends UserEntity {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    UserRole userRole = UserRole.scanQc1;
+    
     if (json['user'] != null && json['user']['users'] != null) {
       final users = json['user']['users'];
+      final name = users['name'] ?? '';
+      
+      if (name == '品管質檢') {
+        userRole = UserRole.scanQc1;
+      } else if (name == '品管正式倉') {
+        userRole = UserRole.scanQc2;
+      }
+      
       return UserModel(
         userId: users['userID'] ?? '',
         password: users['password'] ?? '',
         department: users['department'] ?? '',
-        name: users['name'] ?? '',
-        token: json['token'] ?? users['token'] ?? '',
-        role: 'user',
+        name: name,
+        token: json['token'] ?? '',
+        role: userRole,
       );
     }
+    
     return _$UserModelFromJson(json);
   }
 

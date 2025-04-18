@@ -4,6 +4,7 @@ import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/log
 import 'package:architecture_scan_app/features/auth/logout/presentation/widgets/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/constants/enum.dart';
 import '../../../../../core/di/dependencies.dart' as di;
 
 class ProfilePage extends StatelessWidget {
@@ -42,26 +43,19 @@ class ProfilePage extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          spreadRadius: 3,
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
                     ),
                     child: CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        user.name.isNotEmpty
-                            ? user.name.substring(0, 1).toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          fontSize: 50,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3a7bd5),
+                      radius: 65,
+                      backgroundColor: user.role == UserRole.scanQc1 ? Color(0xFF399918) : Color(0xFFFF7F3E),
+                      child: Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Color(0xFFECE9E6)),
+                        child: ClipOval(
+                          child: SizedBox.fromSize(
+                            size: const Size.fromRadius(48),
+                            child: user.role == UserRole.scanQc1 ? Image.asset('assets/avatar/Frog.png', cacheHeight: 84)
+                                                                        : Image.asset('assets/avatar/Cat.png', cacheHeight: 84),
+                          )
                         ),
                       ),
                     ),
@@ -97,12 +91,20 @@ class ProfilePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white60,
-                      fontStyle: FontStyle.italic,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white30,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      user.role == UserRole.scanQc1 ? '品管質檢' : '品管正式倉',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const Spacer(),

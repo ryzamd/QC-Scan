@@ -15,7 +15,7 @@ class LoadingDialog {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,

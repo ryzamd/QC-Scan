@@ -16,7 +16,7 @@ class ErrorDialog extends StatelessWidget {
   
   static Future<void> showAsync(
     BuildContext context, {
-    String title = 'Error',
+    String title = 'ERROR',
     String message = 'An error occurred.',
     VoidCallback? onDismiss,
   }) async {
@@ -49,11 +49,15 @@ class ErrorDialog extends StatelessWidget {
         }
       },
       child: AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         title: Text(
           title,
           style: const TextStyle(
             color: Colors.red,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
         content: Text(message),
@@ -68,7 +72,7 @@ class ErrorDialog extends StatelessWidget {
                 });
               }
             },
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.redAccent)),
           ),
         ],
       ),
