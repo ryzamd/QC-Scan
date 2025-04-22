@@ -1,8 +1,8 @@
+import 'package:architecture_scan_app/core/constants/app_routes.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/logo_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../../core/constants/app_routes.dart';
 import '../../../../../core/di/dependencies.dart' as di;
 import '../bloc/login_bloc.dart';
 import '../bloc/login_event.dart';
@@ -19,11 +19,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
   final _formKey = GlobalKey<FormState>();
-  
-  String _selectedDepartment = '品管質檢';
-  final List<String> _departments = ['品管質檢', '品管正式倉'];
   
   final FocusNode _userIdFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -41,20 +37,6 @@ class _LoginPageState extends State<LoginPage> {
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
-  Future<void> _handleDepartmentChangeAsync(String? department) async {
-    if (department != null && department != _selectedDepartment) {
-      setState(() {
-        _selectedDepartment = department;
-      });
-      
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) {
-          FocusScope.of(context).canRequestFocus = true;
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -68,16 +50,16 @@ class _LoginPageState extends State<LoginPage> {
           if (state is LoginSuccess) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               try {
-                Navigator.of(context).pushReplacementNamed(
-                  AppRoutes.processing,
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRoutes.qcMenu,
                   arguments: state.user,
+                  (route) => false,
                 );
               } catch (e) {
                 debugPrint("Navigation error: $e");
               }
             });
           } else if (state is LoginFailure) {
-
             ConfirmationDialog.showAsync(
               context: context,
               title: 'LOGIN FAILED',
@@ -172,14 +154,6 @@ class _LoginPageState extends State<LoginPage> {
                                             },
                                           ),
 
-                                          const SizedBox(height: 16),
-
-                                          DepartmentDropdown(
-                                            selectedDepartment: _selectedDepartment,
-                                            departments: _departments,
-                                            onChanged: _handleDepartmentChangeAsync,
-                                          ),
-
                                           const SizedBox(height: 24),
 
                                           BlocBuilder<LoginBloc, LoginState>(
@@ -191,13 +165,13 @@ class _LoginPageState extends State<LoginPage> {
                                                   
                                                   if (_formKey.currentState!.validate()) {
                                                     context.read<LoginBloc>().add(
-                                                            LoginButtonPressed(
-                                                              userId: _userIdController.text,
-                                                              password: _passwordController.text,
-                                                              department: "",
-                                                              name: _selectedDepartment,
-                                                            ),
-                                                          );
+                                                      LoginButtonPressed(
+                                                        userId: _userIdController.text,
+                                                        password: _passwordController.text,
+                                                        department: "",
+                                                        name: "品管質檢",
+                                                      ),
+                                                    );
                                                   }
                                                 },
                                               );

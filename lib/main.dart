@@ -1,13 +1,16 @@
+// lib/main.dart
 import 'package:architecture_scan_app/core/services/exit_confirmation_service.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/pages/profile_page.dart';
 import 'package:architecture_scan_app/features/process/presentation/bloc/processing_bloc.dart';
 import 'package:architecture_scan_app/features/process/presentation/pages/process_page.dart';
+import 'package:architecture_scan_app/features/qc_menu/presentation/pages/qc_menu_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_routes.dart';
 import 'core/di/dependencies.dart' as di;
+import 'core/services/navigation_service.dart';
 import 'features/auth/login/presentation/pages/login_page.dart';
 import 'features/scan/presentation/pages/scan_page_provider.dart';
 import 'features/auth/login/domain/entities/user_entity.dart';
@@ -73,52 +76,67 @@ class _MyAppState extends State<MyApp> {
       ),
       initialRoute: AppRoutes.splash,
       onGenerateRoute: (settings) {
-        if (settings.name == AppRoutes.processing) {
-          final args = settings.arguments as UserEntity;
-
-          return MaterialPageRoute(
-            builder:
-                (context) => BlocProvider(
-                  create: (context) => di.sl<ProcessingBloc>(),
-                  child: ProcessingPage(user: args),
-                ),
-          );
-
-        } else if (settings.name == AppRoutes.scan) {
-          if (settings.arguments != null) {
-
-            final args = settings.arguments as UserEntity;
-
-            return MaterialPageRoute(
-              builder: (context) => ScanPageProvider(user: args),
-            );
-
-          } else {
-            return MaterialPageRoute(builder: (_) => const LoginPage());
-
-          }
-        } else if (settings.name == AppRoutes.processRecords) {
-          final args = settings.arguments as UserEntity;
-
-          return MaterialPageRoute(
-            builder: (context) => ProcessingPage(user: args),
-          );
-
-        } else if (settings.name == AppRoutes.profile) {
-          final args = settings.arguments as UserEntity;
-
-          return MaterialPageRoute(
-            builder: (context) => ProfilePage(user: args),
-          );
-        }
-
+        final args = settings.arguments as UserEntity?;
+        
         switch (settings.name) {
           case AppRoutes.splash:
             return MaterialPageRoute(builder: (_) => const SplashScreen());
+            
           case AppRoutes.login:
             return MaterialPageRoute(builder: (_) => const LoginPage());
+            
+          case AppRoutes.qcMenu:
+            return MaterialPageRoute(builder: (_) => QCMenuPage(user: args!),
+            );
+            
+          case AppRoutes.inspection:
+            NavigationService().setLastQCRoute(AppRoutes.inspection);
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => ScanPageProvider(
+                user: args!,
+                isSpecialFeature: false,
+              ),
+            );
+            
+          case AppRoutes.specialFeature:
+            NavigationService().setLastQCRoute(AppRoutes.specialFeature);
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => ScanPageProvider(
+                user: args!,
+                isSpecialFeature: true,
+              ),
+            );
+            
+          case AppRoutes.processingQC1:
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => BlocProvider(
+                create: (context) => di.sl<ProcessingBloc>(),
+                child: ProcessingPage(user: args!),
+              ),
+            );
+            
+          case AppRoutes.processingQC2:
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => BlocProvider(
+                create: (context) => di.sl<ProcessingBloc>(),
+                child: ProcessingPage(user: args!),
+              ),
+            );
+            
+          case AppRoutes.profile:
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => ProfilePage(user: args!),
+            );
+            
           default:
-            return MaterialPageRoute(builder: (_) => const LoginPage());
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => const LoginPage());
         }
       },
     );

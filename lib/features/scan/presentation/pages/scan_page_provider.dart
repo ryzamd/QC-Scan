@@ -7,14 +7,22 @@ import 'scan_page.dart';
 
 class ScanPageProvider extends StatelessWidget {
   final UserEntity user;
+  final bool isSpecialFeature;
 
-  const ScanPageProvider({super.key, required this.user});
+  const ScanPageProvider({
+    super.key,
+    required this.user,
+    required this.isSpecialFeature,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ScanBloc>(
       create: (context) => di.sl<ScanBloc>(param1: user),
-      child: ScanPage(user: user),
+      child: ScanPage(
+        user: user,
+        isSpecialFeature: isSpecialFeature,
+      ),
     );
   }
 }

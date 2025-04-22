@@ -25,15 +25,15 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
   
   Timer? _debounce;
   final _searchController = TextEditingController();
-  
+
   @override
   void initState() {
     super.initState();
     
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await di.sl<AuthRepository>().debugTokenStateAsync();
-      if (mounted) {
 
+      if (mounted) {
         final now = DateTime.now();
         final formattedDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} 00:00:00';
         context.read<ProcessingBloc>().add(GetProcessingItemsEvent(date: formattedDate));
@@ -92,7 +92,7 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
   Widget _buildScaffold() {
     return CustomScaffold(
       title: 'PROCESSING',
-      showBackButton: false,
+      showHomeIcon: true,
       user: widget.user,
       currentIndex: 0,
       body: Padding(

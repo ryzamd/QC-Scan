@@ -1,3 +1,4 @@
+// lib/features/scan/data/datasources/scan_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
@@ -8,7 +9,7 @@ abstract class ScanRemoteDataSource {
 
   Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction);
 
-  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction);
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction);
 }
 
 class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
@@ -28,7 +29,10 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
 
       final response = await dio.post(
         ApiConstants.checkCodeUrl,
-        data: {'code': code, 'user_name': userName},
+        data: {
+          'code': code,
+          'user_name': userName,
+        },
       );
 
       if (response.statusCode == 200) {
@@ -46,28 +50,20 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
             'Deduction_QC2': materialData['qc_qty_out']?.toString() ?? '0',
             'Deduction_QC1': materialData['qc_qty_in']?.toString() ?? '0',
           };
-
         } else {
           throw MaterialNotFoundException(code);
-
         }
       } else if (response.statusCode == 401) {
-           AuthException('Invalid or expired token');
-
+        throw AuthException('Invalid or expired token');
       } else {
-        throw ServerException(
-          'Server returned error code: ${response.statusCode}',
-        );
+        throw ServerException('Server returned error code: ${response.statusCode}');
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         throw ScanException('Connection timeout. Please check your network.');
-
       } else if (e.type == DioExceptionType.connectionError) {
-        throw ScanException(
-          'Cannot connect to server. Please check your network.',
-        );
+        throw ScanException('Cannot connect to server. Please check your network.');
       }
       throw ScanException('Network error: ${e.message}');
     } catch (e) {
@@ -76,7 +72,6 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       }
       throw ScanException('Failed to get material info: ${e.toString()}');
     }
-    throw ScanException('Unexpected error occurred while fetching material info.');
   }
 
   @override
@@ -89,9 +84,9 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       final response = await dio.post(
         ApiConstants.saveQualityInspectionUrl,
         data: {
-          'post_no_qc_code': code,
-          'post_no_qc_UserName': userName,
-          'post_no_qc_qty': deduction,
+          'qc_code': code,
+          'qc_UserName': userName,
+          'qc_qty': deduction,
         },
       );
 
@@ -102,20 +97,14 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
           throw ProcessingException('${response.data['message']}');
         }
       } else {
-        throw ServerException(
-          'Server returned error code: ${response.statusCode}',
-        );
+        throw ServerException('Server returned error code: ${response.statusCode}');
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        throw ProcessingException(
-          'Connection timeout. Please check your network.',
-        );
+        throw ProcessingException('Connection timeout. Please check your network.');
       } else if (e.type == DioExceptionType.connectionError) {
-        throw ProcessingException(
-          'Cannot connect to server. Please check your network.',
-        );
+        throw ProcessingException('Cannot connect to server. Please check your network.');
       }
       throw ProcessingException('Network error: ${e.message}');
     } catch (e) {
@@ -124,7 +113,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
   
   @override
-  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction) async {
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction) async {
     try {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,
@@ -132,6 +121,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
           'post_qc_code': code,
           'post_qc_UserName': userName,
           'post_qc_qty': deduction,
+          'number': optionFunction,
         },
       );
 

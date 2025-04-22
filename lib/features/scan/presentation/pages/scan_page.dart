@@ -1,13 +1,15 @@
+import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
-import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
 import 'package:architecture_scan_app/core/widgets/notification_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../../../core/constants/app_routes.dart';
 import '../../../../core/constants/key_code_constants.dart';
+import '../../../../core/widgets/scafford_custom.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/models/scan_record_model.dart';
 import '../../domain/entities/scan_record_entity.dart';
@@ -19,8 +21,14 @@ import '../widgets/scan_widgets.dart';
 
 class ScanPage extends StatefulWidget {
   final UserEntity user;
+  final bool isSpecialFeature;
+  
 
-  const ScanPage({super.key, required this.user});
+  const ScanPage({
+    super.key,
+    required this.user,
+    required this.isSpecialFeature,
+  });
 
   @override
   State<ScanPage> createState() => _ScanPageState();
@@ -29,23 +37,16 @@ class ScanPage extends StatefulWidget {
 class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   final FocusNode _focusNode = FocusNode();
   bool _isDeductionDialogOpen = false;
-  late final bool _isQC2User;
-
   ScanRecordEntity? _currentScanRecord;
+  bool isQC2 = false;
 
   @override
   void initState() {
     super.initState();
-    _isQC2User = widget.user.name == "品管正式倉";
     WidgetsBinding.instance.addObserver(this);
     _focusNode.requestFocus();
     
     context.read<ScanBloc>().add(InitializeScanService());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   @override
@@ -64,6 +65,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     }
   }
 
+   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+    isQC2 = currentRoute == AppRoutes.processingQC2;
+  }
+
   Future<void> _showDeductionDialogAsync() async {
     if (_currentScanRecord == null) {
       NotificationDialog.showAsync(
@@ -74,7 +83,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         buttonColor: Colors.red,
         onButtonPressed: () {},
       );
-      
       return;
     }
 
@@ -83,7 +91,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     });
   
     try {
-
       final double? deductionQC1 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC1']!);
       final double? deductionQC2 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC2']!);
       final double actualQuantity = deductionQC1! - deductionQC2!;
@@ -92,9 +99,9 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => DeductionDialog(
-        productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
-        productCode: _currentScanRecord!.code,
-        currentQuantity: actualQuantity.toString(),
+          productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
+          productCode: _currentScanRecord!.code,
+          currentQuantity: actualQuantity.toString(),
           onCancel: () {
             Navigator.of(dialogContext).pop();
             setState(() {
@@ -118,14 +125,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                 userId: widget.user.name,
                 qcQtyOut: _currentScanRecord!.qcQtyOut,
                 qcQtyIn: _currentScanRecord!.qcQtyIn,
-                isQC2User: _isQC2User,
+                isQC2User: widget.isSpecialFeature,
+                optionFunction: widget.optionFunction,
               ),
             );
           },
         ),
       );
     } catch (e) {
-      
       setState(() {
         _isDeductionDialogOpen = false;
       });
@@ -144,8 +151,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("QR DEBUG: Building QRScanPage");
-
     return BlocConsumer<ScanBloc, ScanState>(
       listener: (context, state) {
         if (state is MaterialInfoLoaded) {
@@ -164,266 +169,241 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
           });
         }
 
-          if (state is DataSavedState || state is ScanErrorState) {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
-            
-            if ((state is DataSavedState && state.isCameraActive!) ||
-                (state is ScanErrorState && state.isCameraActive!)) {
-              
-              Future.delayed(Duration(milliseconds: 200), () {
-                if(!context.mounted) return;
-                context.read<ScanBloc>().add(InitializeScanner());
-              });
-            }
-  
+        if (state is DataSavedState || state is ScanErrorState) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          
+          if ((state is DataSavedState && state.isCameraActive!) ||
+              (state is ScanErrorState && state.isCameraActive!)) {
+            Future.delayed(Duration(milliseconds: 200), () {
+              if(!context.mounted) return;
+              context.read<ScanBloc>().add(InitializeScanner());
+            });
+          }
 
           if (_isDeductionDialogOpen) {
-              setState(() {
+            setState(() {
               _isDeductionDialogOpen = false;
             });
           }
         }
 
-          if (state is ShowClearConfirmationState) {
-            _showClearConfirmationDialogAsync(context);
+        if (state is ShowClearConfirmationState) {
+          _showClearConfirmationDialogAsync(context);
+        }
 
-          }
+        if (state is ScanErrorState) {
+          NotificationDialog.showAsync(
+            context: context,
+            title: 'ERROR',
+            message: state.message,
+            titleColor: Colors.red,
+            buttonColor: Colors.red,
+            onButtonPressed: () {
+              setState(() {
+                _isDeductionDialogOpen = false;
+                _currentScanRecord = null;
+              });
+            },
+          );
+        } else if (state is DataSavedState) {
+          NotificationDialog.showAsync(
+            context: context,
+            title: 'SUCCESS',
+            message: 'Data processed successfully',
+            titleColor: Colors.green,
+            buttonColor: Colors.green,
+            onButtonPressed: () {
+              setState(() {
+                _isDeductionDialogOpen = false;
+                _currentScanRecord = null;
+              });
+            },
+          );
+        }
+      },
+      builder: (context, state) {
+        bool isCameraActive = false;
+        bool isTorchEnabled = false;
+        MobileScannerController? controller;
 
-          if (state is ScanErrorState) {
-              NotificationDialog.showAsync(
-                context: context,
-                title: 'ERROR',
-                message: state.message,
-                titleColor: Colors.red,
-                buttonColor: Colors.red,
-                onButtonPressed: () {
-                  setState(() {
-                    _isDeductionDialogOpen = false;
-                    _currentScanRecord = null;
-                  });
-                },
-              );
-          } else if (state is DataSavedState) {
-            NotificationDialog.showAsync(
-              context: context,
-              title: 'SUCCESS',
-              message: 'Data processed successfully',
-              titleColor: Colors.green,
-              buttonColor: Colors.green,
-              onButtonPressed: () {
-                setState(() {
-                  _isDeductionDialogOpen = false;
-                  _currentScanRecord = null;
-                });
-              },
-            );
-          }
-  
-        },
-        builder: (context, state) {
-          bool isCameraActive = false;
-          bool isTorchEnabled = false;
-          MobileScannerController? controller;
+        if (state is ScanningState) {
+          isCameraActive = state.isCameraActive;
+          isTorchEnabled = state.isTorchEnabled;
+          controller = state.controller;
+        } else if (state is MaterialInfoLoaded) {
+          isCameraActive = state.isCameraActive;
+          isTorchEnabled = state.isTorchEnabled;
+          controller = state.controller;
+        } else if (state is DataSavedState) {
+          isCameraActive = state.isCameraActive!;
+          isTorchEnabled = state.isTorchEnabled!;
+          controller = state.controller;
+        } else if (state is ScanErrorState) {
+          isCameraActive = state.isCameraActive!;
+          isTorchEnabled = state.isTorchEnabled!;
+          controller = state.controller;
+        }
 
-           if (state is ScanningState) {
-              isCameraActive = state.isCameraActive;
-              isTorchEnabled = state.isTorchEnabled;
-              controller = state.controller;
-            } else if (state is MaterialInfoLoaded) {
-              isCameraActive = state.isCameraActive;
-              isTorchEnabled = state.isTorchEnabled;
-              controller = state.controller;
-            } else if (state is DataSavedState) {
-              isCameraActive = state.isCameraActive!;
-              isTorchEnabled = state.isTorchEnabled!;
-              controller = state.controller;
-            } else if (state is ScanErrorState) {
-              isCameraActive = state.isCameraActive!;
-              isTorchEnabled = state.isTorchEnabled!;
-              controller = state.controller;
-            }
-
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(
-                'SCAN PAGE',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+        return CustomScaffold(
+            title: 'SCAN PAGE',
+            backgroundColor: AppColors.scaffoldBackground,
+            user: widget.user,
+            showHomeIcon: true,
+            currentIndex: 1,
+            actions: [
+              IconButton(
+                icon: Icon(
+                  isTorchEnabled ? Icons.flash_on : Icons.flash_off,
+                  color: isTorchEnabled ? Colors.yellow : Colors.white,
+                ),
+                onPressed: () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                onPressed: () => context.read<ScanBloc>().add(SwitchCamera()),
+              ),
+              IconButton(
+                icon: Icon(
+                  isCameraActive ? Icons.stop : Icons.play_arrow,
+                  color: isCameraActive ? Colors.red : Colors.white,
+                ),
+                onPressed: () => context.read<ScanBloc>().add(
+                  ToggleCamera(isActive: !isCameraActive),
                 ),
               ),
-              backgroundColor: Colors.blue.shade700,
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    isTorchEnabled ? Icons.flash_on : Icons.flash_off,
-                    color: isTorchEnabled ? Colors.yellow : Colors.white,
-                  ),
-                   onPressed: () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                  onPressed: () => context.read<ScanBloc>().add(SwitchCamera()),
-                ),
-                IconButton(
-                  icon: Icon(
-                    isCameraActive ? Icons.stop : Icons.play_arrow,
-                    color: isCameraActive ? Colors.red : Colors.white,
-                  ),
-                  onPressed:
-                      () => context.read<ScanBloc>().add(
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.white),
+                onPressed: () => context.read<ScanBloc>().add(ClearScannedItems()),
+              ),
+            ],
+          body: KeyboardListener(
+            focusNode: _focusNode,
+            autofocus: true,
+            onKeyEvent: (KeyEvent event) {
+              if (event is KeyDownEvent) {
+                debugPrint("QR DEBUG: Key pressed: ${event.logicalKey.keyId}");
+                if (KeycodeConstants.scannerKeyCodes.contains(event.logicalKey.keyId)) {
+                  debugPrint("QR DEBUG: Scanner key pressed");
+                } else {
+                  ScanService.isScannerButtonPressedAsync(event).then((isPressed) {
+                    if (isPressed) {
+                      debugPrint("QR DEBUG: Scanner key pressed via ScanService");
+                    }
+                  });
+                }
+              }
+            },
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.all(5),
+                  child: QRScannerWidget(
+                    controller: state is ScanningState ? state.controller : state is MaterialInfoLoaded
+                                  ? state.controller : null,
+                    onDetect: (capture) {
+                      if (capture.barcodes.isNotEmpty) {
+                        final barcode = capture.barcodes.first;
+                        if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                            context.read<ScanBloc>().add(
+                            BarcodeDetected(barcode.rawValue!),
+                          );
+                        }
+                      }
+                    },
+                    isActive: isCameraActive,
+                    onToggle: () {
+                      context.read<ScanBloc>().add(
                         ToggleCamera(isActive: !isCameraActive),
-                      ),
+                      );
+                    },
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.white),
-                  onPressed:
-                      () => context.read<ScanBloc>().add(ClearScannedItems()),
+
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: const Color(0xFFFAF1E6),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              children: [
+                                _buildTableRow(
+                                  '名稱',
+                                  _currentScanRecord?.materialInfo['Material Name'] ?? '',
+                                ),
+                                _buildDivider(),
+                                _buildTableRow(
+                                  '總數',
+                                  _currentScanRecord?.quantity ?? '',
+                                ),
+                                _buildDivider(),
+                                _buildTableRow(
+                                  '扣碼',
+                                  _currentScanRecord?.materialInfo['Deduction_QC2'] ?? '0',
+                                ),
+                                _buildDivider(),
+                                _buildTableRow(
+                                  '日期',
+                                  _currentScanRecord?.materialInfo['Receipt Date'] ?? '',
+                                ),
+                                _buildDivider(),
+                                _buildTableRow(
+                                  '供應商',
+                                  _currentScanRecord?.materialInfo['Supplier'] ?? '',
+                                ),
+                                _buildDivider(),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Center(
+                              child: MediaQuery.of(context).viewInsets.bottom > 0
+                                ? const SizedBox.shrink()
+                                : ElevatedButton(
+                                    onPressed: _showDeductionDialogAsync,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green.shade600,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 32,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Save',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
-            body: KeyboardListener(
-              focusNode: _focusNode,
-              autofocus: true,
-              onKeyEvent: (KeyEvent event) {
-                if (event is KeyDownEvent) {
-                  debugPrint(
-                    "QR DEBUG: Key pressed: ${event.logicalKey.keyId}",
-                  );
-                  if (KeycodeConstants.scannerKeyCodes.contains(
-                    event.logicalKey.keyId,
-                  )) {
-                    debugPrint("QR DEBUG: Scanner key pressed");
-                  } else {
-                    ScanService.isScannerButtonPressedAsync(event).then((isPressed) {
-                      if (isPressed) {
-                        debugPrint("QR DEBUG: Scanner key pressed via ScanService");
-                      }
-                    });
-                  }
-                }
-              },
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.all(5),
-                    child: QRScannerWidget(
-                      controller: state is ScanningState ? state.controller : state is MaterialInfoLoaded
-                                    ? state.controller : null,
-                      onDetect: (capture) {
-                        if (capture.barcodes.isNotEmpty) {
-                          final barcode = capture.barcodes.first;
-                          if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                              context.read<ScanBloc>().add(
-                              BarcodeDetected(barcode.rawValue!),
-
-                            );
-                          }
-                        }
-                      },
-                      isActive: isCameraActive,
-                      onToggle: () {
-                        context.read<ScanBloc>().add(
-                          ToggleCamera(isActive: !isCameraActive),
-                        );
-                      },
-                    ),
-                  ),
-
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 5,
-                      ),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: const Color(0xFFFAF1E6),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: Column(
-                                children: [
-                                  _buildTableRow(
-                                    '名稱',
-                                    _currentScanRecord?.materialInfo['Material Name'] ?? '',
-                                  ),
-                                  _buildDivider(),
-                                  _buildTableRow(
-                                    '總數',
-                                    _currentScanRecord?.quantity ?? '',
-                                  ),
-                                  _buildDivider(),
-                                  _buildTableRow(
-                                    '扣碼',
-                                    _currentScanRecord?.materialInfo['Deduction_QC2'] ?? '0',
-                                  ),
-                                  _buildDivider(),
-                                  _buildTableRow(
-                                    '日期',
-                                    _currentScanRecord?.materialInfo['Receipt Date'] ?? '',
-                                  ),
-                                  _buildDivider(),
-                                  _buildTableRow(
-                                    '供應商',
-                                    _currentScanRecord?.materialInfo['Supplier'] ?? '',
-                                  ),
-                                    _buildDivider(),
-                              ],
-                              ),
-                            ),
-                          ),
-
-                          SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Center(
-                                child: MediaQuery.of(context).viewInsets.bottom > 0
-                                  ? const SizedBox.shrink()
-                                  : ElevatedButton(
-                                      onPressed: _showDeductionDialogAsync,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green.shade600,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                          vertical: 12,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Save',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            bottomNavigationBar: CustomNavBar(
-              currentIndex: 1,
-              user: widget.user,
-              disableNavigation: _isDeductionDialogOpen,
-            ),
-          );
-        },
+          ),
+        );
+      },
     );
   }
 
@@ -471,18 +451,17 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   }
 
   Future<void> _showClearConfirmationDialogAsync(BuildContext context) async {
-    final result = await ConfirmationDialog
-                  .showAsync(
-                    context: context,
-                    title: 'CLEAR DATA',
-                    message: 'Are you sure you want to clear all scanned data?',
-                    showCancelButton: true,
-                    confirmText: 'OK',
-                    cancelText: 'Cancel',
-                    titleColor: Colors.red,
-                    confirmColor: Colors.red,
-                    cancelColor: Colors.grey,
-                   );
+    final result = await ConfirmationDialog.showAsync(
+      context: context,
+      title: 'CLEAR DATA',
+      message: 'Are you sure you want to clear all scanned data?',
+      showCancelButton: true,
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+      titleColor: Colors.red,
+      confirmColor: Colors.red,
+      cancelColor: Colors.grey,
+    );
     if (result == true && context.mounted) {
       setState(() {
         _currentScanRecord = null;

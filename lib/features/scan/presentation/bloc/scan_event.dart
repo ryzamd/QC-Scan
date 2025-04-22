@@ -101,6 +101,7 @@ class ConfirmDeductionEvent extends ScanEvent {
   final double qcQtyOut;
   final double qcQtyIn;
   final bool isQC2User;
+  final int optionFunction;
 
   const ConfirmDeductionEvent({
     required this.barcode,
@@ -110,12 +111,12 @@ class ConfirmDeductionEvent extends ScanEvent {
     required this.userId,
     required this.qcQtyIn,
     required this.qcQtyOut,
-    
+    required this.optionFunction,
     required this.isQC2User,
   });
 
   @override
-  List<Object> get props => [barcode, quantity, deduction, materialInfo, userId, qcQtyOut,isQC2User];
+  List<Object> get props => [barcode, quantity, deduction, materialInfo, userId, qcQtyOut,isQC2User, optionFunction];
 }
 
 class InitializeScanService extends ScanEvent {}

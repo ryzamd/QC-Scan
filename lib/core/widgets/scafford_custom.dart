@@ -2,6 +2,7 @@ import 'package:architecture_scan_app/core/widgets/navbar_custom.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../services/navigation_service.dart';
 
 class CustomScaffold extends StatelessWidget {
   final String title;
@@ -13,6 +14,8 @@ class CustomScaffold extends StatelessWidget {
   final Color? backgroundColor;
   final PreferredSizeWidget? customAppBar;
   final UserEntity? user;
+  final bool showHomeIcon;
+  final Function(int)? customNavBarCallback;
 
   const CustomScaffold({
     super.key,
@@ -24,7 +27,9 @@ class CustomScaffold extends StatelessWidget {
     this.showBackButton = false,
     this.backgroundColor,
     this.customAppBar,
-    this.user
+    this.user,
+    required this.showHomeIcon,
+    this.customNavBarCallback,
   });
 
   @override
@@ -35,13 +40,20 @@ class CustomScaffold extends StatelessWidget {
       body: SafeArea(
         child: body,
       ),
-      bottomNavigationBar: showNavBar
-          ? CustomNavBar(currentIndex: currentIndex, user: user,)
-          : null,
+     bottomNavigationBar: showNavBar ? CustomNavBar(
+                            currentIndex: currentIndex,
+                            user: user,
+                            showHomeIcon: showHomeIcon,
+                            customCallback: customNavBarCallback,
+                          ) : null,
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
+
+    final navigationService = NavigationService();
+    final shouldShowBack = navigationService.shouldShowBackButton(context);
+    
     return AppBar(
       flexibleSpace: Container(
         decoration: const BoxDecoration(
@@ -53,17 +65,17 @@ class CustomScaffold extends StatelessWidget {
       title: Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
+          color: AppColors.scaffoldBackground,
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
       ),
-      leading: showBackButton
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            )
-          : null,
+      leading: shouldShowBack && showHomeIcon
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: AppColors.scaffoldBackground),
+                onPressed: () => navigationService.handleBackButton(context),
+              )
+            : null,
       actions: actions,
     );
   }

@@ -1,6 +1,4 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
-import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
-import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -20,14 +18,12 @@ class ProcessingDataTable extends StatefulWidget {
 
 class _ProcessingDataTableState extends State<ProcessingDataTable> {
   
-  late final bool _isQC2User;
   final int _pageSize = 15;
   int _currentPage = 0;
   
   @override
   void initState() {
     super.initState();
-    _isQC2User = widget.user.name == "品管正式倉";
   }
 
   Future<void> _onSortColumnAsync(BuildContext context, String column) async{
@@ -180,9 +176,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
   }
 
   Widget _buildSimpleRow(BuildContext context, ProcessingItemEntity item, Color color) {
-    return GestureDetector(
-      onTap: _isQC2User ? () => _showDeductionDialogAsync(context, item) : null,
-      child: Container(
+    return Container(
         height: 50,
         color: color,
         child: Row(
@@ -241,7 +235,6 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -273,38 +266,5 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
   String _formatTimestamp(String timestamp) {
     if (timestamp.length < 16) return timestamp;
     return timestamp.substring(0, 16);
-  }
-
-  Future<void> _showDeductionDialogAsync(BuildContext context, ProcessingItemEntity item) async {
-    final double actualQty = item.qcQtyIn! - item.qcQtyOut!;
-    
-    showDialog(
-      context: context,
-      builder: (dialogContext) => DeductionDialog(
-        productName: item.mName ?? '',
-        productCode: item.code ?? '',
-        currentQuantity: actualQty.toString(),
-        onCancel: () {
-          Navigator.of(dialogContext).pop();
-        },
-        onConfirm: (deduction) {
-          Navigator.of(dialogContext).pop();
-
-          LoadingDialog.showAsync(
-            context: context,
-            message: 'Processing deduction...',
-          );
-
-          BlocProvider.of<ProcessingBloc>(context).add(
-            UpdateQC2QuantityEvent(
-              code: item.code ?? '',
-              userName: widget.user.name,
-              deduction: deduction.toDouble(),
-              currentQuantity: item.mQty ?? 0,
-            ),
-          );
-        },
-      ),
-    );
   }
 }
