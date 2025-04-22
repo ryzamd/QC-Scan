@@ -318,7 +318,7 @@ class ScannerControls extends StatelessWidget {
                 isCameraActive ? Icons.stop : Icons.play_arrow,
                 color: isCameraActive ? Colors.red : Colors.green,
               ),
-              onPressed: () => context.read<ScanBloc>().add(ToggleCamera(!isCameraActive)),
+              onPressed: () => context.read<ScanBloc>().add(ToggleCamera(isActive: !isCameraActive)),
             ),
           ],
         );
@@ -674,7 +674,7 @@ class QRScanSection extends StatelessWidget {
             },
             isActive: isActive,
             onToggle: () {
-              context.read<ScanBloc>().add(ToggleCamera(!isActive));
+              context.read<ScanBloc>().add(ToggleCamera(isActive: !isActive));
             },
           ),
         );

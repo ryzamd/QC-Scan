@@ -20,7 +20,7 @@ class BarcodeDetected extends ScanEvent {
 class ToggleCamera extends ScanEvent {
   final bool isActive;
 
-  const ToggleCamera(this.isActive);
+  const ToggleCamera({required this.isActive});
 
   @override
   List<Object> get props => [isActive];

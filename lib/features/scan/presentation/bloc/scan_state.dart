@@ -124,11 +124,20 @@ class SavingDataState extends ScanState {
 class DataSavedState extends ScanState {
   final ScanRecordEntity savedRecord;
   final List<List<String>> scannedItems;
+  final bool? isCameraActive;
+  final bool? isTorchEnabled;
+  final MobileScannerController? controller;
 
-  const DataSavedState({required this.savedRecord, required this.scannedItems});
+  const DataSavedState({
+    required this.savedRecord,
+    required this.scannedItems,
+    this.isCameraActive,
+    this.isTorchEnabled,
+    this.controller,
+  });
 
   @override
-  List<Object> get props => [savedRecord, scannedItems];
+  List<Object> get props => [savedRecord, scannedItems, isCameraActive!, isTorchEnabled!];
 }
 
   class ScanProcessingState extends ScanState {
@@ -152,11 +161,20 @@ class SendingToProcessingState extends ScanState {
 class ScanErrorState extends ScanState {
   final String message;
   final ScanState previousState;
+  final bool? isCameraActive;
+  final bool? isTorchEnabled;
+  final MobileScannerController? controller;
 
-  const ScanErrorState({required this.message, required this.previousState});
+  const ScanErrorState({
+    required this.message,
+    required this.previousState,
+    this.isCameraActive,
+    this.isTorchEnabled,
+    this.controller,
+  });
 
   @override
-  List<Object> get props => [message, previousState];
+  List<Object> get props => [message, previousState, isCameraActive!, isTorchEnabled!, controller!];
 }
 
 class ProcessingCompleteState extends ScanState {

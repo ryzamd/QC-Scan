@@ -53,8 +53,8 @@ class ProfilePage extends StatelessWidget {
                         child: ClipOval(
                           child: SizedBox.fromSize(
                             size: const Size.fromRadius(48),
-                            child: user.role == UserRole.scanQc1 ? Image.asset('assets/avatar/Frog.png', cacheHeight: 84)
-                                                                        : Image.asset('assets/avatar/Cat.png', cacheHeight: 84),
+                            child: user.role == UserRole.scanQc1 ? Image.asset('assets/avatar/Frog.png')
+                                                                        : Image.asset('assets/avatar/Cat.png', cacheHeight: 91),
                           )
                         ),
                       ),

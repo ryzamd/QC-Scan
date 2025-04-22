@@ -6,6 +6,7 @@ import 'package:architecture_scan_app/core/widgets/notification_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/constants/key_code_constants.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/models/scan_record_model.dart';
@@ -58,7 +59,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       if (mounted) {
-        context.read<ScanBloc>().add(const ToggleCamera(false));
+        context.read<ScanBloc>().add(const ToggleCamera(isActive: false));
       }
     }
   }
@@ -163,10 +164,20 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
           });
         }
 
-        if (state is! ScanProcessingState && state is! SavingDataState) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
+          if (state is DataSavedState || state is ScanErrorState) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            
+            if ((state is DataSavedState && state.isCameraActive!) ||
+                (state is ScanErrorState && state.isCameraActive!)) {
+              
+              Future.delayed(Duration(milliseconds: 200), () {
+                if(!context.mounted) return;
+                context.read<ScanBloc>().add(InitializeScanner());
+              });
+            }
+  
 
           if (_isDeductionDialogOpen) {
               setState(() {
@@ -187,7 +198,12 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                 message: state.message,
                 titleColor: Colors.red,
                 buttonColor: Colors.red,
-                onButtonPressed: () {},
+                onButtonPressed: () {
+                  setState(() {
+                    _isDeductionDialogOpen = false;
+                    _currentScanRecord = null;
+                  });
+                },
               );
           } else if (state is DataSavedState) {
             NotificationDialog.showAsync(
@@ -209,14 +225,25 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         builder: (context, state) {
           bool isCameraActive = false;
           bool isTorchEnabled = false;
+          MobileScannerController? controller;
 
-          if (state is ScanningState) {
-            isCameraActive = state.isCameraActive;
-            isTorchEnabled = state.isTorchEnabled;
-          } else if (state is MaterialInfoLoaded) {
-            isCameraActive = state.isCameraActive;
-            isTorchEnabled = state.isTorchEnabled;
-          }
+           if (state is ScanningState) {
+              isCameraActive = state.isCameraActive;
+              isTorchEnabled = state.isTorchEnabled;
+              controller = state.controller;
+            } else if (state is MaterialInfoLoaded) {
+              isCameraActive = state.isCameraActive;
+              isTorchEnabled = state.isTorchEnabled;
+              controller = state.controller;
+            } else if (state is DataSavedState) {
+              isCameraActive = state.isCameraActive!;
+              isTorchEnabled = state.isTorchEnabled!;
+              controller = state.controller;
+            } else if (state is ScanErrorState) {
+              isCameraActive = state.isCameraActive!;
+              isTorchEnabled = state.isTorchEnabled!;
+              controller = state.controller;
+            }
 
           return Scaffold(
             appBar: AppBar(
@@ -248,7 +275,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                   ),
                   onPressed:
                       () => context.read<ScanBloc>().add(
-                        ToggleCamera(!isCameraActive),
+                        ToggleCamera(isActive: !isCameraActive),
                       ),
                 ),
                 IconButton(
@@ -300,7 +327,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                       isActive: isCameraActive,
                       onToggle: () {
                         context.read<ScanBloc>().add(
-                          ToggleCamera(!isCameraActive),
+                          ToggleCamera(isActive: !isCameraActive),
                         );
                       },
                     ),
@@ -353,26 +380,36 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                             ),
                           ),
 
-                          Container(
-                            width: 120,
-                            height: 40,
-                            margin: const EdgeInsets.only(top: 5, bottom: 5),
-                            child: ElevatedButton(
-                              onPressed: _showDeductionDialogAsync,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                elevation: 3,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Center(
+                                child: MediaQuery.of(context).viewInsets.bottom > 0
+                                  ? const SizedBox.shrink()
+                                  : ElevatedButton(
+                                      onPressed: _showDeductionDialogAsync,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green.shade600,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Save',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white
+                                        ),
+                                      ),
+                                    ),
                               ),
-                              child: const Text('Save', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,),),
                             ),
-                          ),
+                          )
                         ],
                       ),
                     ),

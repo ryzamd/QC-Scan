@@ -110,7 +110,8 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   try {
     scannerController = MobileScannerController(
       formats: const [BarcodeFormat.qrCode, BarcodeFormat.code128],
-      detectionSpeed: DetectionSpeed.noDuplicates,
+      detectionSpeed: DetectionSpeed.normal,
+      detectionTimeoutMs: 1000,
       facing: CameraFacing.back,
       torchEnabled: _isTorchEnabled
     );
@@ -568,33 +569,37 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     Emitter<ScanState> emit,
   ) async {
     try {
-    emit(
-      SavingDataState(
-        isCameraActive: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isCameraActive : false,
-        isTorchEnabled: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).isTorchEnabled : false,
-        controller: scannerController,
-        scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
-        materialInfo: event.materialInfo,
-        currentBarcode: event.barcode,
-      ),
-    );
 
-    bool result;
-    if (event.isQC2User) {
-      result = await remoteDataSource.saveQC2DeductionRemoteDataAsync(
-        event.barcode,
-        event.userId,
-        event.deduction,
+       bool currentCameraActive = _isCameraActive;
+       bool currentTorchEnabled = _isTorchEnabled;
+
+      emit(
+        SavingDataState(
+          isCameraActive: currentCameraActive,
+          isTorchEnabled: currentTorchEnabled,
+          controller: scannerController,
+          scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
+          materialInfo: event.materialInfo,
+          currentBarcode: event.barcode,
+        ),
       );
 
-    } else {
-      result = await remoteDataSource.saveQualityInspectionRemoteDataAsync(
-        event.barcode,
-        event.userId,
-        event.deduction,
-      );
+      bool result;
+      if (event.isQC2User) {
+        result = await remoteDataSource.saveQC2DeductionRemoteDataAsync(
+          event.barcode,
+          event.userId,
+          event.deduction,
+        );
 
-    }
+      } else {
+        result = await remoteDataSource.saveQualityInspectionRemoteDataAsync(
+          event.barcode,
+          event.userId,
+          event.deduction,
+        );
+
+      }
 
       if (result) {
         final remainingQuantity =
@@ -619,13 +624,16 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           SaveScanRecordParams(record: scanRecord),
         );
 
-        saveResult.fold(
-          (failure) => emit(
-            ScanErrorState(
-              message: 'Failed to save record: ${failure.message}',
-              previousState: state,
+          saveResult.fold(
+            (failure) => emit(
+              ScanErrorState(
+                message: 'Failed to save record: ${failure.message}',
+                previousState: state,
+                isCameraActive: currentCameraActive,
+                isTorchEnabled: currentTorchEnabled,
+                controller: scannerController,
+              ),
             ),
-          ),
           (savedRecord) {
             List<List<String>> scannedItems = [];
             if (state is MaterialInfoLoaded) {
@@ -636,32 +644,41 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
               DataSavedState(
                 savedRecord: savedRecord,
                 scannedItems: scannedItems,
+                isCameraActive: currentCameraActive,
+                isTorchEnabled: currentTorchEnabled,
+                controller: scannerController,
               ),
             );
           },
         );
-
-      } else {
-        emit(
-          ScanErrorState(
-            message: 'Failed to process deduction',
-            previousState: state,
-          ),
-        );
       }
     } catch (e) {
       if(event.isQC2User) {
+
+        bool currentCameraActive = _isCameraActive;
+        bool currentTorchEnabled = _isTorchEnabled;
+
         emit(
           ScanErrorState(
             message: '$e',
             previousState: state,
+            isCameraActive: currentCameraActive,
+            isTorchEnabled: currentTorchEnabled,
+            controller: scannerController,
           ),
         );
-      }else {
+      } else {
+        
+        bool currentCameraActive = _isCameraActive;
+        bool currentTorchEnabled = _isTorchEnabled;
+        
         emit(
           ScanErrorState(
             message: '$e',
             previousState: state,
+            isCameraActive: currentCameraActive,
+            isTorchEnabled: currentTorchEnabled,
+            controller: scannerController,
           ),
         );
       }

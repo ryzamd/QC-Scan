@@ -18,6 +18,7 @@ class NotificationDialog {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
+      useSafeArea: true,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

@@ -19,8 +19,10 @@ class ConfirmationDialog {
     if (_isShowing) return null;
     
     _isShowing = true;
+    
     final result = await showDialog<bool>(
       context: context,
+      useSafeArea: true,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
