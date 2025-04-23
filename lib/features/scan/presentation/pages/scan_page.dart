@@ -39,6 +39,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   bool _isDeductionDialogOpen = false;
   ScanRecordEntity? _currentScanRecord;
   bool isQC2 = false;
+  int optionFunction = 2;
 
   @override
   void initState() {
@@ -126,7 +127,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                 qcQtyOut: _currentScanRecord!.qcQtyOut,
                 qcQtyIn: _currentScanRecord!.qcQtyIn,
                 isQC2User: widget.isSpecialFeature,
-                optionFunction: widget.optionFunction,
+                optionFunction: optionFunction,
               ),
             );
           },
@@ -170,10 +171,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         }
 
         if (state is DataSavedState || state is ScanErrorState) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
-          
           if ((state is DataSavedState && state.isCameraActive!) ||
               (state is ScanErrorState && state.isCameraActive!)) {
             Future.delayed(Duration(milliseconds: 200), () {
@@ -366,35 +363,69 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                         ),
 
                         SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Center(
-                              child: MediaQuery.of(context).viewInsets.bottom > 0
-                                ? const SizedBox.shrink()
-                                : ElevatedButton(
-                                    onPressed: _showDeductionDialogAsync,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green.shade600,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 32,
-                                        vertical: 12,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Center(
+                            child: MediaQuery.of(context).viewInsets.bottom > 0
+                              ? const SizedBox.shrink()
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    ElevatedButton(
+                                        onPressed: _showDeductionDialogAsync,
+                                        style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green.shade600,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Save',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white
-                                      ),
-                                    ),
-                                  ),
-                            ),
+                                          child: const Text(
+                                            '保存',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white
+                                            ),
+                                          ),
+                                        ),
+
+                                        if (widget.isSpecialFeature) ...[
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                optionFunction = optionFunction == 2 ? 1 : 2;
+                                              });
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: optionFunction == 2 ? Colors.red : Colors.green.shade600,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 32,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              optionFunction == 2 ? '减少' : '增加',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                          
+                                        ],
+                                      ],
+                                    )
                           ),
-                        )
+                        ),
+                      )
                       ],
                     ),
                   ),

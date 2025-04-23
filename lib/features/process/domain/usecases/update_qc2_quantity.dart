@@ -22,7 +22,8 @@ class UpdateQC2Quantity {
     return await repository.updateQC2QuantityRepositoryAsync(
       params.code,
       params.userName,
-      params.deduction
+      params.deduction,
+      params.optionFunction
     );
   }
 }
@@ -32,14 +33,16 @@ class UpdateQC2QuantityParams extends Equatable {
   final String userName;
   final double deduction;
   final double currentQuantity;
+  final int optionFunction;
 
   const UpdateQC2QuantityParams({
     required this.code,
     required this.userName,
     required this.deduction,
     required this.currentQuantity,
+    required this.optionFunction,
   });
 
   @override
-  List<Object> get props => [code, userName, deduction, currentQuantity];
+  List<Object> get props => [code, userName, deduction, currentQuantity, optionFunction];
 }

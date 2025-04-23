@@ -6,6 +6,6 @@ abstract class ProcessingRepository {
   
   Future<Either<Failure, List<ProcessingItemEntity>>> getProcessingItemsRepositoryAsync(String date);
 
-  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(String code, String userName, double deduction);
+  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(String code, String userName, double deduction, int optionFunction);
 
 }

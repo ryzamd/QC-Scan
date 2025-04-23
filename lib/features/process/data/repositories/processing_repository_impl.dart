@@ -33,12 +33,11 @@ class ProcessingRepositoryImpl implements ProcessingRepository {
   }
 
   @override
-  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(
-    String code, String userName, double deduction) async {
+  Future<Either<Failure, ProcessingItemEntity>> updateQC2QuantityRepositoryAsync(String code, String userName, double deduction, int optionFunction) async {
     if (await networkInfo.isConnected) {
       try {
         
-        final response = await remoteDataSource.saveQC2DeductionRemoteDataAsync(code, userName, deduction);
+        final response = await remoteDataSource.saveQC2DeductionRemoteDataAsync(code, userName, deduction, optionFunction);
 
         return Right(ProcessingItemModel.fromJson(response));
         

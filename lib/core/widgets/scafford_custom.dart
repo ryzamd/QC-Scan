@@ -62,6 +62,7 @@ class CustomScaffold extends StatelessWidget {
       ),
       elevation: 0,
       centerTitle: true,
+      titleSpacing: 4,
       title: Text(
         title,
         style: const TextStyle(

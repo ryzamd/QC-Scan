@@ -118,9 +118,9 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,
         data: {
-          'post_qc_code': code,
-          'post_qc_UserName': userName,
-          'post_qc_qty': deduction,
+          'qc_code': code,
+          'qc_UserName': userName,
+          'qc_qty': deduction,
           'number': optionFunction,
         },
       );

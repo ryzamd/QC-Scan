@@ -17,7 +17,7 @@ class QCMenuPage extends StatelessWidget {
     });
     
     return CustomScaffold(
-      title: 'QC Menu',
+      title: 'Quality Control Menu',
       user: user,
       showHomeIcon: false,
       currentIndex: 1,
@@ -38,14 +38,14 @@ class QCMenuPage extends StatelessWidget {
             children: [
               _buildFunctionTile(
                 context,
-                title: 'Inspection',
-                icon: Icons.assignment_turned_in,
+                title: '品管質檢',
+                icon: Icons.assignment,
                 route: AppRoutes.inspection,
               ),
               _buildFunctionTile(
                 context,
-                title: 'Special Feature',
-                icon: Icons.star,
+                title: '品管修改',
+                icon: Icons.assignment,
                 route: AppRoutes.specialFeature,
               ),
             ],

@@ -52,16 +52,18 @@ class UpdateQC2QuantityEvent extends ProcessingEvent {
   final String userName;
   final double deduction;
   final double currentQuantity;
+  final int optionFunction;
 
   const UpdateQC2QuantityEvent({
     required this.code,
     required this.userName,
     required this.deduction,
     required this.currentQuantity,
+    required this.optionFunction,
   });
 
   @override
-  List<Object> get props => [code, userName, deduction, currentQuantity];
+  List<Object> get props => [code, userName, deduction, currentQuantity, optionFunction];
 }
 
 class SelectDateEvent extends ProcessingEvent {

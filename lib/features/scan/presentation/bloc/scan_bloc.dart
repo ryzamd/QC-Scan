@@ -223,14 +223,8 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
             if (!emit.isDone) {
               emit(
                 MaterialInfoLoaded(
-                  isCameraActive:
-                      state is ScanningState
-                          ? (state as ScanningState).isCameraActive
-                          : true,
-                  isTorchEnabled:
-                      state is ScanningState
-                          ? (state as ScanningState).isTorchEnabled
-                          : false,
+                  isCameraActive: state is ScanningState ? (state as ScanningState).isCameraActive : true,
+                  isTorchEnabled: state is ScanningState ? (state as ScanningState).isTorchEnabled : false,
                   controller: scannerController,
                   scannedItems: processedItems,
                   materialInfo: materialInfoMap,

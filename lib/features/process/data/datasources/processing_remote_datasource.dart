@@ -9,7 +9,7 @@ import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
   Future<List<ProcessingItemModel>> getProcessingItemsRemoteDataAsync(String date);
-  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction);
+  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction);
 }
 
 class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
@@ -82,14 +82,15 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction) async {
+  Future<Map<String, dynamic>> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction) async {
     try {
       final response = await dio.post(
         ApiConstants.saveQC2DeductionUrl,
         data: {
-          'post_qc_code': code,
-          'post_qc_UserName': userName,
-          'post_qc_qty': deduction,
+          'qc_code': code,
+          'qc_UserName': userName,
+          'qc_qty': deduction,
+          'number': optionFunction,
         },
         options: Options(
           headers: {"Authorization": "Bearer $token"},

@@ -15,6 +15,9 @@ class NotificationDialog {
     if (_isShowing) return;
 
     _isShowing = true;
+
+    final originContext = context;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -36,7 +39,10 @@ class NotificationDialog {
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              if (onButtonPressed != null) onButtonPressed();
+              
+              if (onButtonPressed != null && originContext.mounted) {
+                onButtonPressed();
+              }
             },
             child: Text(
               buttonText,

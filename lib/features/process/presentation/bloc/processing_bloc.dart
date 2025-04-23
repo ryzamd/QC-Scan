@@ -258,6 +258,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             userName: event.userName,
             deduction: event.deduction,
             currentQuantity: event.currentQuantity,
+            optionFunction: event.optionFunction,
           ),
         );
 
