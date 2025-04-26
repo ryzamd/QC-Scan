@@ -583,7 +583,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           event.barcode,
           event.userId,
           event.deduction,
-          event.optionFunction,
+          event.optionFunction!,
         );
       } else {
         result = await remoteDataSource.saveQualityInspectionRemoteDataAsync(

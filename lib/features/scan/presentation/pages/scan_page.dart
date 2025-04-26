@@ -118,17 +118,28 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             );
 
             context.read<ScanBloc>().add(
-              ConfirmDeductionEvent(
-                barcode: _currentScanRecord!.code,
-                quantity: actualQuantity.toString(),
-                deduction: deduction,
-                materialInfo: _currentScanRecord!.materialInfo,
-                userId: widget.user.name,
-                qcQtyOut: _currentScanRecord!.qcQtyOut,
-                qcQtyIn: _currentScanRecord!.qcQtyIn,
-                isQC2User: widget.isSpecialFeature,
-                optionFunction: optionFunction,
-              ),
+              widget.isSpecialFeature ?
+                ConfirmDeductionEvent(
+                  barcode: _currentScanRecord!.code,
+                  quantity: actualQuantity.toString(),
+                  deduction: deduction,
+                  materialInfo: _currentScanRecord!.materialInfo,
+                  userId: widget.user.name,
+                  qcQtyOut: _currentScanRecord!.qcQtyOut,
+                  qcQtyIn: _currentScanRecord!.qcQtyIn,
+                  isQC2User: widget.isSpecialFeature,
+                  optionFunction: optionFunction,
+                )
+                : ConfirmDeductionEvent(
+                  barcode: _currentScanRecord!.code,
+                  quantity: actualQuantity.toString(),
+                  deduction: deduction,
+                  materialInfo: _currentScanRecord!.materialInfo,
+                  userId: widget.user.name,
+                  qcQtyOut: _currentScanRecord!.qcQtyOut,
+                  qcQtyIn: _currentScanRecord!.qcQtyIn,
+                  isQC2User: widget.isSpecialFeature,
+                )
             );
           },
         ),
@@ -190,35 +201,40 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
           _showClearConfirmationDialogAsync(context);
         }
 
-        if (state is ScanErrorState) {
-          NotificationDialog.showAsync(
-            context: context,
-            title: 'ERROR',
-            message: state.message,
-            titleColor: Colors.red,
-            buttonColor: Colors.red,
-            onButtonPressed: () {
-              setState(() {
-                _isDeductionDialogOpen = false;
-                _currentScanRecord = null;
-              });
-            },
-          );
-        } else if (state is DataSavedState) {
-          NotificationDialog.showAsync(
-            context: context,
-            title: 'SUCCESS',
-            message: 'Data processed successfully',
-            titleColor: Colors.green,
-            buttonColor: Colors.green,
-            onButtonPressed: () {
-              setState(() {
-                _isDeductionDialogOpen = false;
-                _currentScanRecord = null;
-              });
-            },
-          );
+        if (state is DataSavedState || state is ScanErrorState) {
+          LoadingDialog.hideAsync(context);
+
+          if (state is ScanErrorState) {
+            NotificationDialog.showAsync(
+              context: context,
+              title: 'ERROR',
+              message: state.message,
+              titleColor: Colors.red,
+              buttonColor: Colors.red,
+              onButtonPressed: () {
+                setState(() {
+                  _isDeductionDialogOpen = false;
+                  _currentScanRecord = null;
+                });
+              },
+            );
+          } else {
+            NotificationDialog.showAsync(
+              context: context,
+              title: 'SUCCESS',
+              message: 'Data processed successfully',
+              titleColor: Colors.green,
+              buttonColor: Colors.green,
+              onButtonPressed: () {
+                setState(() {
+                  _isDeductionDialogOpen = false;
+                  _currentScanRecord = null;
+                });
+              },
+            );
+          }
         }
+         
       },
       builder: (context, state) {
         bool isCameraActive = false;
