@@ -90,9 +90,19 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     setState(() {
       _isDeductionDialogOpen = true;
     });
-  
+
+    final scanBloc = context.read<ScanBloc>();
+    List<String> availableReasons = scanBloc.getAvailableReasons();
+      if (availableReasons.isEmpty) {
+        await scanBloc.remoteDataSource.getDeductionReasonsAsync().then((reasons) {
+          availableReasons = reasons;
+        });
+      }
+
+    if (!mounted) return;
+
     try {
-      final double? deductionQC1 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC1']!);
+      final double? deductionQC1 = double.tryParse( _currentScanRecord?.quantity ?? '0');
       final double? deductionQC2 = double.tryParse(_currentScanRecord!.materialInfo['Deduction_QC2']!);
       final double actualQuantity = deductionQC1! - deductionQC2!;
 
@@ -103,20 +113,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
           productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
           productCode: _currentScanRecord!.code,
           currentQuantity: actualQuantity.toString(),
+          availableReasons: availableReasons,
           onCancel: () {
             Navigator.of(dialogContext).pop();
             setState(() {
               _isDeductionDialogOpen = false;
             });
           },
-          onConfirm: (deduction) {
-            Navigator.of(dialogContext).pop();
-
-            LoadingDialog.showAsync(
-              context: context,
-              message: 'Processing data...',
-            );
-
+          onConfirm: (deduction, reasons) async {
             context.read<ScanBloc>().add(
               widget.isSpecialFeature ?
                 ConfirmDeductionEvent(
@@ -129,6 +133,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                   qcQtyIn: _currentScanRecord!.qcQtyIn,
                   isQC2User: widget.isSpecialFeature,
                   optionFunction: optionFunction,
+                  reasons: reasons,
                 )
                 : ConfirmDeductionEvent(
                   barcode: _currentScanRecord!.code,
@@ -139,7 +144,13 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                   qcQtyOut: _currentScanRecord!.qcQtyOut,
                   qcQtyIn: _currentScanRecord!.qcQtyIn,
                   isQC2User: widget.isSpecialFeature,
+                  reasons: reasons,
                 )
+            );
+            
+            LoadingDialog.showAsync(
+              context: context,
+              message: 'Processing data...',
             );
           },
         ),
@@ -378,8 +389,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                           ),
                         ),
 
-                        SafeArea(
-                        child: Padding(
+                        Padding(
                           padding: const EdgeInsets.only(top: 5),
                           child: Center(
                             child: MediaQuery.of(context).viewInsets.bottom > 0
@@ -441,7 +451,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                     )
                           ),
                         ),
-                      )
                       ],
                     ),
                   ),

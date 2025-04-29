@@ -205,3 +205,39 @@ class ShowClearConfirmationState extends ScanState {
   @override
   List<Object> get props => [previousState];
 }
+
+class ReasonsLoadingState extends ScanState {
+  final ScanState baseState;
+  
+  const ReasonsLoadingState({required this.baseState});
+  
+  @override
+  List<Object> get props => [baseState];
+}
+
+class ReasonsLoadedState extends ScanState {
+  final ScanState baseState;
+  final List<String> availableReasons;
+  final List<String> selectedReasons;
+  
+  const ReasonsLoadedState({
+    required this.baseState,
+    required this.availableReasons,
+    this.selectedReasons = const [],
+  });
+  
+  @override
+  List<Object> get props => [baseState, availableReasons, selectedReasons];
+  
+  ReasonsLoadedState copyWith({
+    ScanState? baseState,
+    List<String>? availableReasons,
+    List<String>? selectedReasons,
+  }) {
+    return ReasonsLoadedState(
+      baseState: baseState ?? this.baseState,
+      availableReasons: availableReasons ?? this.availableReasons,
+      selectedReasons: selectedReasons ?? this.selectedReasons,
+    );
+  }
+}

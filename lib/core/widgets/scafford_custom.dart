@@ -37,6 +37,7 @@ class CustomScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.scaffoldBackground,
       appBar: customAppBar ?? _buildAppBar(context),
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: body,
       ),

@@ -3,13 +3,16 @@ import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 abstract class ScanRemoteDataSource {
   Future<Map<String, String>> getMaterialInfoRemoteDataAsync(String code, String userName);
 
-  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction);
+  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, [List<String>? reasons]);
 
-  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction);
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction, [List<String>? reasons]);
+
+   Future<List<String>> getDeductionReasonsAsync();
 }
 
 class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
@@ -75,67 +78,77 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
 
   @override
-  Future<bool> saveQualityInspectionRemoteDataAsync(
-    String code,
-    String userName,
-    double deduction,
-  ) async {
-    try {
-      final response = await dio.post(
-        ApiConstants.saveQualityInspectionUrl,
-        data: {
+  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, [List<String>? reasons]) async {
+      try {
+        final data = {
           'qc_code': code,
           'qc_UserName': userName,
           'qc_qty': deduction,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        if (response.data['message'] == 'Success') {
-          return true;
-        } else {
-          throw ProcessingException('${response.data['message']}');
+        };
+        
+        if (reasons != null && reasons.isNotEmpty) {
+          data['reason'] = reasons.join(',');
         }
+
+        final response = await dio.post(
+          ApiConstants.saveQualityInspectionUrl,
+          data: data,
+        );
+        
+        if (response.statusCode == 200 && response.data['message'] == 'Success') {
+          return true;
+
+        } else {
+          throw ProcessingException(response.data['message'] ?? 'Unknown error');
+        }
+      } catch (e) {
+        throw ProcessingException(e.toString());
+      }
+    }
+  
+  @override
+  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction, [List<String>? reasons]) async {
+     try {
+      final data = {
+        'qc_code': code,
+        'qc_UserName': userName,
+        'qc_qty': deduction,
+        'number': optionFunction,
+      };
+      
+      if (reasons != null && reasons.isNotEmpty) {
+        data['reason'] = reasons.join(',');
+      }
+      
+      final response = await dio.post(
+        ApiConstants.saveQC2DeductionUrl,
+        data: data,
+      );
+      
+      if (response.statusCode == 200 && response.data['message'] == 'Success') {
+        return true;
+
       } else {
-        throw ServerException('Server returned error code: ${response.statusCode}');
+        throw ProcessingException(response.data['message'] ?? 'Unknown error');
       }
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        throw ProcessingException('Connection timeout. Please check your network.');
-      } else if (e.type == DioExceptionType.connectionError) {
-        throw ProcessingException('Cannot connect to server. Please check your network.');
-      }
-      throw ProcessingException('Network error: ${e.message}');
     } catch (e) {
       throw ProcessingException(e.toString());
     }
   }
   
   @override
-  Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction) async {
+  Future<List<String>> getDeductionReasonsAsync() async {
     try {
-      final response = await dio.post(
-        ApiConstants.saveQC2DeductionUrl,
-        data: {
-          'qc_code': code,
-          'qc_UserName': userName,
-          'qc_qty': deduction,
-          'number': optionFunction,
-        },
-      );
+      final response = await dio.post(ApiConstants.getListReasonUrl);
 
-      if (response.statusCode == 200) {
-        if (response.data['message'] == 'Success') {
-          return true;
-        } else {
-          throw ProcessingException('${response.data['message']}: Input invalid');
-        }
-      } else {
-        throw ServerException('Server returned error code: ${response.statusCode}');
+      if (response.statusCode == 200 && response.data['message'] == 'success') {
+        return List<String>.from(response.data['addressList'] ?? []);
       }
+      return [];
+
     } catch (e) {
-      throw ProcessingException(e.toString());
+      debugPrint('Error fetching reasons: $e');
+      return [];
     }
   }
 }
