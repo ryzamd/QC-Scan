@@ -9,7 +9,9 @@ class ApiConstants {
   static const String saveQualityInspectionEndpoint = 'qc_scan/qc_int/NoFormal_save';
   static const String saveQC2DeductionEndpoint = 'qc_check/qc_check/Formal_save';
 
+  static const String getListReasonEndpoint = 'login/GetListReason';
   static const String getListEndpoint = 'login/GetList';
+  
   static String getListUrl(String date) => '$baseUrl$getListEndpoint?date=$date';
   
   static String get loginUrl => baseUrl + loginEndpoint;
@@ -17,4 +19,5 @@ class ApiConstants {
   static String get checkCodeUrl => baseUrl + checkCodeEndpoint;
   static String get saveQualityInspectionUrl => baseUrl + saveQualityInspectionEndpoint;
   static String get saveQC2DeductionUrl => baseUrl + saveQC2DeductionEndpoint;
+  static String get getListReasonUrl => baseUrl + getListReasonEndpoint;
 }

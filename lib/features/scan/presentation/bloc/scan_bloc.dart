@@ -11,6 +11,7 @@ import '../../domain/usecases/send_to_processing.dart';
 import '../../data/models/scan_record_model.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/datasources/scan_service_impl.dart';
+import 'bloc_helper.dart';
 import 'scan_event.dart';
 import 'scan_state.dart';
 
@@ -20,13 +21,16 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   final SendToProcessing sendToProcessing;
   final UserEntity currentUser;
   final ScanRemoteDataSource remoteDataSource;
-  bool _isCameraInitializing = false;
-  bool _isCameraDisposing = false;
 
   MobileScannerController? scannerController;
-  
+
+  bool _isCameraInitializing = false;
+  bool _isCameraDisposing = false;
   bool _isCameraActive = false;
   bool _isTorchEnabled = false;
+  bool _isLoadingReasons = false;
+
+  List<String> _cachedReasons = [];
 
   ScanBloc({
     required this.remoteDataSource,
@@ -50,6 +54,8 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     on<ShowClearConfirmationEvent>(_onShowClearConfirmationAsync);
     on<ConfirmClearScannedItems>(_onConfirmClearScannedItemsAsync);
     on<CancelClearScannedItems>(_onCancelClearScannedItemsAsync);
+    on<LoadReasonsEvent>(_onLoadReasonsAsync);
+    on<ReasonsSelectedEvent>(_onReasonsSelected);
     
     ScanService.initializeScannerListenerAsync(_handleHardwareScan);
   }
@@ -351,10 +357,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  Future<void> _onGetMaterialInfoAsync(
-    GetMaterialInfoEvent event,
-    Emitter<ScanState> emit,
-  ) async {
+  Future<void> _onGetMaterialInfoAsync(GetMaterialInfoEvent event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Getting material info for: ${event.barcode}");
 
     final currentState = state;
@@ -400,10 +403,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     );
   }
 
-  Future<void> _onSaveScannedDataAsync(
-    SaveScannedData event,
-    Emitter<ScanState> emit,
-  ) async {
+  Future<void> _onSaveScannedDataAsync(SaveScannedData event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Saving scanned data: ${event.barcode}");
 
     final currentState = state;
@@ -461,10 +461,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  Future<void> _onSendToProcessingAsync(
-    SendToProcessingEvent event,
-    Emitter<ScanState> emit,
-  ) async {
+  Future<void> _onSendToProcessingAsync(SendToProcessingEvent event, Emitter<ScanState> emit) async {
     debugPrint("ScanBloc: Sending to processing for user: ${event.userId}");
 
     final currentState = state;
@@ -558,24 +555,38 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
   }
 
 
-  Future<void> _onConfirmDeductionAsync(
-    ConfirmDeductionEvent event,
-    Emitter<ScanState> emit,
-  ) async {
+  Future<void> _onConfirmDeductionAsync(ConfirmDeductionEvent event, Emitter<ScanState> emit) async {
     try {
       bool currentCameraActive = _isCameraActive;
       bool currentTorchEnabled = _isTorchEnabled;
 
-      emit(
-        SavingDataState(
+      List<String> selectedReasons = [];
+
+      if (state is ReasonsLoadedState) {
+        selectedReasons = (state as ReasonsLoadedState).selectedReasons;
+      } else if (event.reasons != null) {
+        selectedReasons = event.reasons!;
+      }
+      
+      if (!ScanBlocHelper.validateDeduction(event.deduction, selectedReasons, event.isQC2User)) {
+        emit(ScanErrorState(
+          message: event.isQC2User ? 'Either deduction or reasons must be provided' : 'Reasons are required when deducting quantity',
+          previousState: state,
           isCameraActive: currentCameraActive,
           isTorchEnabled: currentTorchEnabled,
           controller: scannerController,
-          scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
-          materialInfo: event.materialInfo,
-          currentBarcode: event.barcode,
-        ),
-      );
+        ));
+        return;
+      }
+
+      emit(SavingDataState(
+        isCameraActive: currentCameraActive,
+        isTorchEnabled: currentTorchEnabled,
+        controller: scannerController,
+        scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
+        materialInfo: event.materialInfo,
+        currentBarcode: event.barcode,
+      ));
 
       bool result;
       if (event.isQC2User) {
@@ -584,64 +595,42 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           event.userId,
           event.deduction,
           event.optionFunction!,
+          selectedReasons,
         );
       } else {
         result = await remoteDataSource.saveQualityInspectionRemoteDataAsync(
           event.barcode,
           event.userId,
           event.deduction,
+          selectedReasons,
         );
       }
 
       if (result) {
-        final remainingQuantity =
-            (int.tryParse(event.quantity) ?? 0 - event.deduction).toString();
-
-        final updatedMaterialInfo = Map<String, String>.from(event.materialInfo);
-        updatedMaterialInfo['Quantity'] = remainingQuantity;
-
-        final scanRecord = ScanRecordModel.create(
+      emit(DataSavedState(
+        savedRecord: ScanRecordModel.create(
           code: event.barcode,
-          status: 'Processed',
-          quantity: remainingQuantity,
+          status: 'Saved',
+          quantity: event.quantity,
           userId: event.userId,
-          materialInfo: updatedMaterialInfo,
+          materialInfo: event.materialInfo,
           qcQtyOut: event.qcQtyOut,
           qcQtyIn: event.qcQtyIn,
-        );
-
-        final saveResult = await saveScanRecord(
-          SaveScanRecordParams(record: scanRecord),
-        );
-
-        saveResult.fold(
-          (failure) => emit(
-            ScanErrorState(
-              message: 'Failed to save record: ${failure.message}',
-              previousState: state,
-              isCameraActive: currentCameraActive,
-              isTorchEnabled: currentTorchEnabled,
-              controller: scannerController,
-            ),
-          ),
-          (savedRecord) {
-            List<List<String>> scannedItems = [];
-            if (state is MaterialInfoLoaded) {
-              scannedItems = (state as MaterialInfoLoaded).scannedItems;
-            }
-
-            emit(
-              DataSavedState(
-                savedRecord: savedRecord,
-                scannedItems: scannedItems,
-                isCameraActive: currentCameraActive,
-                isTorchEnabled: currentTorchEnabled,
-                controller: scannerController,
-              ),
-            );
-          },
-        );
-      }
+        ),
+        scannedItems: state is MaterialInfoLoaded ? (state as MaterialInfoLoaded).scannedItems : [],
+        isCameraActive: true,
+        isTorchEnabled: _isTorchEnabled,
+        controller: scannerController,
+      ));
+    } else {
+      emit(ScanErrorState(
+        message: 'Save failed',
+        previousState: state,
+        isCameraActive: _isCameraActive,
+        isTorchEnabled: _isTorchEnabled,
+        controller: scannerController,
+      ));
+}
     } catch (e) {
       bool currentCameraActive = _isCameraActive;
       bool currentTorchEnabled = _isTorchEnabled;
@@ -656,5 +645,57 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         ),
       );
     }
+  }
+
+  Future<void> _onLoadReasonsAsync(LoadReasonsEvent event, Emitter<ScanState> emit) async {
+    if (_isLoadingReasons || (_cachedReasons.isNotEmpty && state is! ReasonsLoadingState)) {
+      if (_cachedReasons.isNotEmpty) {
+        emit(ReasonsLoadedState(
+          baseState: state,
+          availableReasons: _cachedReasons,
+        ));
+      }
+      return;
+    }
+
+    _isLoadingReasons = true;
+    emit(ReasonsLoadingState(baseState: state));
+
+    try {
+      final reasons = await remoteDataSource.getDeductionReasonsAsync();
+      _cachedReasons = reasons;
+      
+      emit(ReasonsLoadedState(
+        baseState: state is ReasonsLoadingState
+            ? (state as ReasonsLoadingState).baseState
+            : state,
+        availableReasons: reasons,
+      ));
+    } catch (e) {
+      emit(ScanErrorState(
+        message: 'Failed to load reasons: $e',
+        previousState: state is ReasonsLoadingState
+            ? (state as ReasonsLoadingState).baseState
+            : state,
+      ));
+    } finally {
+      _isLoadingReasons = false;
+    }
+  }
+
+  void _onReasonsSelected(ReasonsSelectedEvent event, Emitter<ScanState> emit) {
+    if (state is ReasonsLoadedState) {
+      final currentState = state as ReasonsLoadedState;
+      emit(currentState.copyWith(selectedReasons: event.selectedReasons));
+    }
+  }
+
+  List<String> getAvailableReasons() {
+    if (_cachedReasons.isNotEmpty) {
+      return _cachedReasons;
+    }
+    
+    add(LoadReasonsEvent());
+    return [];
   }
 }
