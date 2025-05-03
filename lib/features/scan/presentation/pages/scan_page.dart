@@ -1,18 +1,21 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
+import 'package:architecture_scan_app/core/widgets/error_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/loading_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/notification_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/constants/key_code_constants.dart';
 import '../../../../core/widgets/scafford_custom.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/models/scan_record_model.dart';
 import '../../domain/entities/scan_record_entity.dart';
+import '../bloc/camera_bloc.dart';
+import '../bloc/camera_event.dart';
+import '../bloc/camera_state.dart';
 import '../bloc/scan_bloc.dart';
 import '../bloc/scan_event.dart';
 import '../bloc/scan_state.dart';
@@ -41,37 +44,37 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   bool isQC2 = false;
   int optionFunction = 2;
 
+  CameraBloc? _cameraBloc;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _focusNode.requestFocus();
     
-    context.read<ScanBloc>().add(InitializeScanService());
+    ScanService.initializeScannerListenerAsync((barcode) {
+      context.read<ScanBloc>().add(BarcodeDetected(barcode));
+    });
+    context.read<CameraBloc>().add(InitializeCamera());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _focusNode.dispose();
+    ScanService.disposeScannerListenerAsync();
+    _cameraBloc?.add(CleanupCamera());
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      if (mounted) {
-        context.read<ScanBloc>().add(const ToggleCamera(isActive: false));
-      }
-    }
-  }
-
-   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     
     final currentRoute = ModalRoute.of(context)?.settings.name;
     isQC2 = currentRoute == AppRoutes.processingQC2;
+
+    _cameraBloc ??= context.read<CameraBloc>();
   }
 
   Future<void> _showDeductionDialogAsync() async {
@@ -176,100 +179,76 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return BlocConsumer<ScanBloc, ScanState>(
       listener: (context, state) {
-        if (state is MaterialInfoLoaded) {
-          setState(() {
-            _currentScanRecord = ScanRecordModel(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              code: state.currentBarcode,
-              status: 'Pending',
-              quantity: state.materialInfo['Quantity'] ?? '0',
-              timestamp: DateTime.now(),
-              userId: widget.user.userId,
-              materialInfo: state.materialInfo,
-              qcQtyOut: double.tryParse(state.materialInfo['qc_qty_out'] ?? '0') ?? 0.0,
-              qcQtyIn: double.tryParse(state.materialInfo['qc_qty_in'] ?? '0') ?? 0.0,
-            );
-          });
+        switch (state) {
+          case ScanProcessingState():
+          case SavingDataState():
+            LoadingDialog.showAsync(context: context, message: 'Loading...');
+          default:
+            LoadingDialog.hideAsync(context);
         }
 
-        if (state is DataSavedState || state is ScanErrorState) {
-          if ((state is DataSavedState && state.isCameraActive!) ||
-              (state is ScanErrorState && state.isCameraActive!)) {
-            Future.delayed(Duration(milliseconds: 200), () {
-              if(!context.mounted) return;
-              context.read<ScanBloc>().add(InitializeScanner());
-            });
-          }
-
-          if (_isDeductionDialogOpen) {
+        switch (state) {
+          case MaterialInfoLoaded(:final currentBarcode, :final materialInfo):
             setState(() {
-              _isDeductionDialogOpen = false;
+              _currentScanRecord = ScanRecordModel(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                code: currentBarcode,
+                status: 'Pending',
+                quantity: materialInfo['Quantity'] ?? '0',
+                timestamp: DateTime.now(),
+                userId: widget.user.userId,
+                materialInfo: materialInfo,
+                qcQtyOut: double.tryParse(materialInfo['qc_qty_out'] ?? '0') ?? 0.0,
+                qcQtyIn: double.tryParse(materialInfo['qc_qty_in'] ?? '0') ?? 0.0,
+              );
+
+              
             });
-          }
-        }
+            break;
 
-        if (state is ShowClearConfirmationState) {
-          _showClearConfirmationDialogAsync(context);
-        }
+          case DataSavedState():
+          case ScanErrorState():
+            if (_isDeductionDialogOpen) {
+              setState(() {
+                _isDeductionDialogOpen = false;
+              });
+            }
+            LoadingDialog.hideAsync(context);
 
-        if (state is DataSavedState || state is ScanErrorState) {
-          LoadingDialog.hideAsync(context);
+            if (state is ScanErrorState) {
+              ErrorDialog.showAsync(
+                context,
+                title: 'ERROR',
+                message: state.message,
+                onDismiss: () {},
+              );
+            } else {
+              NotificationDialog.showAsync(
+                context: context,
+                title: 'SUCCESS',
+                message: 'Data processed successfully',
+                titleColor: Colors.green,
+                buttonColor: Colors.green,
+                onButtonPressed: () {
+                  setState(() {
+                    _isDeductionDialogOpen = false;
+                    _currentScanRecord = null;
+                  });
+                  Navigator.of(context).pop();
+                },
+              );
+            }
+            break;
 
-          if (state is ScanErrorState) {
-            NotificationDialog.showAsync(
-              context: context,
-              title: 'ERROR',
-              message: state.message,
-              titleColor: Colors.red,
-              buttonColor: Colors.red,
-              onButtonPressed: () {
-                setState(() {
-                  _isDeductionDialogOpen = false;
-                  _currentScanRecord = null;
-                });
-              },
-            );
-          } else {
-            NotificationDialog.showAsync(
-              context: context,
-              title: 'SUCCESS',
-              message: 'Data processed successfully',
-              titleColor: Colors.green,
-              buttonColor: Colors.green,
-              onButtonPressed: () {
-                setState(() {
-                  _isDeductionDialogOpen = false;
-                  _currentScanRecord = null;
-                });
-              },
-            );
-          }
+          case ShowClearConfirmationState():
+            _showClearConfirmationDialogAsync(context);
+            break;
+
+          default:
+            break;
         }
-         
       },
       builder: (context, state) {
-        bool isCameraActive = false;
-        bool isTorchEnabled = false;
-        MobileScannerController? controller;
-
-        if (state is ScanningState) {
-          isCameraActive = state.isCameraActive;
-          isTorchEnabled = state.isTorchEnabled;
-          controller = state.controller;
-        } else if (state is MaterialInfoLoaded) {
-          isCameraActive = state.isCameraActive;
-          isTorchEnabled = state.isTorchEnabled;
-          controller = state.controller;
-        } else if (state is DataSavedState) {
-          isCameraActive = state.isCameraActive!;
-          isTorchEnabled = state.isTorchEnabled!;
-          controller = state.controller;
-        } else if (state is ScanErrorState) {
-          isCameraActive = state.isCameraActive!;
-          isTorchEnabled = state.isTorchEnabled!;
-          controller = state.controller;
-        }
-
         return CustomScaffold(
             title: 'SCAN PAGE',
             backgroundColor: AppColors.scaffoldBackground,
@@ -277,26 +256,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             showHomeIcon: true,
             currentIndex: 1,
             actions: [
-              IconButton(
-                icon: Icon(
-                  isTorchEnabled ? Icons.flash_on : Icons.flash_off,
-                  color: isTorchEnabled ? Colors.yellow : Colors.white,
-                ),
-                onPressed: () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled)),
-              ),
-              IconButton(
-                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                onPressed: () => context.read<ScanBloc>().add(SwitchCamera()),
-              ),
-              IconButton(
-                icon: Icon(
-                  isCameraActive ? Icons.stop : Icons.play_arrow,
-                  color: isCameraActive ? Colors.red : Colors.white,
-                ),
-                onPressed: () => context.read<ScanBloc>().add(
-                  ToggleCamera(isActive: !isCameraActive),
-                ),
-              ),
+              ScannerControls(),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.white),
                 onPressed: () => context.read<ScanBloc>().add(ClearScannedItems()),
@@ -321,28 +281,28 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             },
             child: Column(
               children: [
-                Container(
-                  margin: const EdgeInsets.all(5),
-                  child: QRScannerWidget(
-                    controller: state is ScanningState ? state.controller : state is MaterialInfoLoaded
-                                  ? state.controller : null,
-                    onDetect: (capture) {
-                      if (capture.barcodes.isNotEmpty) {
-                        final barcode = capture.barcodes.first;
-                        if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
-                            context.read<ScanBloc>().add(
-                            BarcodeDetected(barcode.rawValue!),
+                BlocBuilder<CameraBloc, CameraState>(
+                  builder: (context, cameraState) {
+                    final cameraBloc = context.read<CameraBloc>();
+                    final controller = cameraBloc.scannerController;
+                    final isActive = cameraState is CameraReady && cameraState.isActive;
+
+                    return Container(
+                      margin: const EdgeInsets.all(5),
+                      child: QRScannerWidget(
+                        controller: controller,
+                        onDetect: (capture) {
+                          cameraBloc.handleDetection(capture);
+                        },
+                        isActive: isActive,
+                        onToggle: () {
+                          context.read<CameraBloc>().add(
+                            ToggleCamera(isActive: !isActive),
                           );
-                        }
-                      }
-                    },
-                    isActive: isCameraActive,
-                    onToggle: () {
-                      context.read<ScanBloc>().add(
-                        ToggleCamera(isActive: !isCameraActive),
-                      );
-                    },
-                  ),
+                        },
+                      ),
+                    );
+                  },
                 ),
 
                 Expanded(

@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../bloc/camera_bloc.dart';
+import '../bloc/camera_event.dart';
+import '../bloc/camera_state.dart';
 import '../bloc/scan_bloc.dart';
 import '../bloc/scan_event.dart';
 import '../bloc/scan_state.dart';
@@ -279,46 +282,31 @@ class ScannerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ScanBloc, ScanState>(
-      buildWhen: (previous, current) {
-        return current is ScanningState || current is MaterialInfoLoaded;
-      },
+    return BlocBuilder<CameraBloc, CameraState>(
       builder: (context, state) {
-        bool isCameraActive = false;
+        bool isActive = false;
         bool isTorchEnabled = false;
-        
-        if (state is ScanningState) {
-          isCameraActive = state.isCameraActive;
-          isTorchEnabled = state.isTorchEnabled;
-        } else if (state is MaterialInfoLoaded) {
-          isCameraActive = state.isCameraActive;
+        if (state is CameraReady) {
+          isActive = state.isActive;
           isTorchEnabled = state.isTorchEnabled;
         }
-        
         return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              icon: Icon(
-                isTorchEnabled ? Icons.flash_on : Icons.flash_off,
-                color: isTorchEnabled ? Colors.yellow : Colors.grey,
+              icon: Icon(isActive ? Icons.stop : Icons.play_arrow),
+              onPressed: () => context.read<CameraBloc>().add(
+                ToggleCamera(isActive: !isActive),
               ),
-              onPressed: isCameraActive
-                ? () => context.read<ScanBloc>().add(ToggleTorch(!isTorchEnabled))
-                : null,
+            ),
+            IconButton(
+              icon: Icon(isTorchEnabled ? Icons.flash_on : Icons.flash_off),
+              onPressed: () => context.read<CameraBloc>().add(
+                ToggleTorch(isEnabled: !isTorchEnabled),
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.flip_camera_ios),
-              onPressed: isCameraActive
-                ? () => context.read<ScanBloc>().add(SwitchCamera())
-                : null,
-            ),
-            IconButton(
-              icon: Icon(
-                isCameraActive ? Icons.stop : Icons.play_arrow,
-                color: isCameraActive ? Colors.red : Colors.green,
-              ),
-              onPressed: () => context.read<ScanBloc>().add(ToggleCamera(isActive: !isCameraActive)),
+              onPressed: () => context.read<CameraBloc>().add(SwitchCamera()),
             ),
           ],
         );
@@ -642,22 +630,12 @@ class QRScanSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ScanBloc, ScanState>(
-      buildWhen: (previous, current) {
-        return current is ScanningState || current is MaterialInfoLoaded;
-      },
-      builder: (context, state) {
-        bool isActive = false;
-        MobileScannerController? controller;
-        
-        if (state is ScanningState) {
-          isActive = state.isCameraActive;
-          controller = state.controller;
-        } else if (state is MaterialInfoLoaded) {
-          isActive = state.isCameraActive;
-          controller = state.controller;
-        }
-        
+    return BlocBuilder<CameraBloc, CameraState>(
+      builder: (context, cameraState) {
+        final cameraBloc = context.read<CameraBloc>();
+        final controller = cameraBloc.scannerController;
+        final isActive = cameraState is CameraReady && cameraState.isActive;
+
         return Container(
           height: 160,
           width: double.infinity,
@@ -665,16 +643,11 @@ class QRScanSection extends StatelessWidget {
           child: QRScannerWidget(
             controller: controller,
             onDetect: (barcodes) {
-              if (barcodes.barcodes.isNotEmpty) {
-                final barcode = barcodes.barcodes.first;
-                if (barcode.rawValue != null) {
-                  context.read<ScanBloc>().add(BarcodeDetected(barcode.rawValue!));
-                }
-              }
+              cameraBloc.handleDetection(barcodes);
             },
             isActive: isActive,
             onToggle: () {
-              context.read<ScanBloc>().add(ToggleCamera(isActive: !isActive));
+              context.read<CameraBloc>().add(ToggleCamera(isActive: !isActive));
             },
           ),
         );

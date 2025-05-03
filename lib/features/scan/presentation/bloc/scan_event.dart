@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 abstract class ScanEvent extends Equatable {
   const ScanEvent();
@@ -16,26 +15,6 @@ class BarcodeDetected extends ScanEvent {
   @override
   List<Object> get props => [barcode];
 }
-
-class ToggleCamera extends ScanEvent {
-  final bool isActive;
-
-  const ToggleCamera({required this.isActive});
-
-  @override
-  List<Object> get props => [isActive];
-}
-
-class ToggleTorch extends ScanEvent {
-  final bool isEnabled;
-
-  const ToggleTorch(this.isEnabled);
-
-  @override
-  List<Object> get props => [isEnabled];
-}
-
-class SwitchCamera extends ScanEvent {}
 
 class GetMaterialInfoEvent extends ScanEvent {
   final String barcode;
@@ -62,26 +41,6 @@ class SaveScannedData extends ScanEvent {
   @override
   List<Object> get props => [barcode, quantity, materialInfo, userId];
 }
-
-class SendToProcessingEvent extends ScanEvent {
-  final String userId;
-
-  const SendToProcessingEvent(this.userId);
-
-  @override
-  List<Object> get props => [userId];
-}
-
-class InitializeScanner extends ScanEvent {
-  final MobileScannerController? controller;
-
-  const InitializeScanner([this.controller]);
-
-  @override
-  List<Object?> get props => [controller];
-}
-
-class StartNewScan extends ScanEvent {}
 
 class HardwareScanButtonPressed extends ScanEvent {
   final String scannedData;

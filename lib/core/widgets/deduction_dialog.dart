@@ -195,7 +195,6 @@ class _DeductionDialogState extends State<DeductionDialog> {
                       InkWell(
                         onTap: () {
                           final deduction = double.tryParse(_deductionController.text) ?? 0;
-                          Navigator.of(context).pop();
                           widget.onConfirm(deduction, _selectedReasons);
                         },
                         child: Container(
