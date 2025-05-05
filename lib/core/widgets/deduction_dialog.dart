@@ -11,6 +11,7 @@ class DeductionDialog extends StatefulWidget {
   final List<String> availableReasons;
   final Function(double, List<String>) onConfirm;
   final VoidCallback onCancel;
+  final int optionFunction;
 
   const DeductionDialog({
     super.key,
@@ -21,6 +22,7 @@ class DeductionDialog extends StatefulWidget {
     required this.onCancel,
     required this.availableReasons,
     this.selectedReasons = const [],
+    required this.optionFunction,
   });
 
   @override
@@ -148,7 +150,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                               controller: _deductionController,
                               keyboardType: TextInputType.number,
                               inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
+                                FilteringTextInputFormatter.singleLineFormatter,
                               ],
                               decoration: const InputDecoration(
                                 contentPadding: EdgeInsets.only(left: 10)
@@ -158,7 +160,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         ],
                       ),
                       
-                      _buildReasonsSection(),
+                      _buildReasonsSection(widget.optionFunction),
                     ],
                   ),
                 ),
@@ -227,7 +229,9 @@ class _DeductionDialogState extends State<DeductionDialog> {
     );
   }
 
-  Widget _buildReasonsSection() {
+  Widget _buildReasonsSection(int optionFunction) {
+    final isDecreaseMode = optionFunction == 2;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -241,14 +245,15 @@ class _DeductionDialogState extends State<DeductionDialog> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            TextButton.icon(
-              onPressed: _showReasonsDialogAsync,
-              icon: const Icon(Icons.edit, size: 16, color: Colors.redAccent,),
-              label: const Text('Select', style: TextStyle(color: Colors.redAccent),),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            if (!isDecreaseMode)
+              TextButton.icon(
+                onPressed: _showReasonsDialogAsync,
+                icon: const Icon(Icons.edit, size: 16, color: Colors.redAccent),
+                label: const Text('Select', style: TextStyle(color: Colors.redAccent)),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                ),
               ),
-            ),
           ],
         ),
         Container(
@@ -276,13 +281,12 @@ class _DeductionDialogState extends State<DeductionDialog> {
                     return Chip(
                       label: Text(reason),
                       labelStyle: const TextStyle(fontSize: 12),
-                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: isDecreaseMode ? null : () { setState(() {
+                                                                _selectedReasons.remove(reason);
+                                                              });
+                                                            },
+                      deleteIcon: isDecreaseMode ? null : const Icon(Icons.close, size: 14),
                       deleteIconColor: Colors.redAccent,
-                      onDeleted: () {
-                        setState(() {
-                          _selectedReasons.remove(reason);
-                        });
-                      },
                     );
                   }).toList(),
                 ),

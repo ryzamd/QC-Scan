@@ -96,6 +96,20 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
 
     final scanBloc = context.read<ScanBloc>();
     List<String> availableReasons = scanBloc.getAvailableReasons();
+    List<String> previouslySelectedReasons = [];
+  
+      if (widget.isSpecialFeature && optionFunction == 2) {
+        try {
+          final String? reasonsString = _currentScanRecord!.materialInfo['qc_reason'];
+          
+          if (reasonsString != null && reasonsString.isNotEmpty) {
+            previouslySelectedReasons = reasonsString.split(' | ');
+          }
+        } catch (e) {
+          debugPrint('Error parsing previously selected reasons: $e');
+        }
+      }
+
       if (availableReasons.isEmpty) {
         await scanBloc.remoteDataSource.getDeductionReasonsAsync().then((reasons) {
           availableReasons = reasons;
@@ -115,8 +129,10 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         builder: (dialogContext) => DeductionDialog(
           productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
           productCode: _currentScanRecord!.code,
-          currentQuantity: actualQuantity.toString(),
+          currentQuantity: optionFunction == 1 ? actualQuantity.toString() : deductionQC2.toString(),
           availableReasons: availableReasons,
+          selectedReasons: previouslySelectedReasons,
+          optionFunction: optionFunction,
           onCancel: () {
             Navigator.of(dialogContext).pop();
             setState(() {
