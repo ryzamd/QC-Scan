@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -66,10 +67,10 @@ class BackButtonService {
 
       ConfirmationDialog.showAsync(
         context: context,
-        title: 'EXIT',
-        message: 'Are you sure to exit the application?',
-        confirmText: 'OK',
-        cancelText: 'Cancel',
+        title: context.multiLanguage.exitTitleUPCASE,
+        message: context.multiLanguage.exitTheAppMessage,
+        confirmText: context.multiLanguage.okButtonUPCASE,
+        cancelText: context.multiLanguage.cancelButton,
         showCancelButton: true,
         titleColor: Colors.red,
         confirmColor: Colors.red,

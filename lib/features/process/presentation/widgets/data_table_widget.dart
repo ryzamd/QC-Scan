@@ -1,4 +1,5 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -46,8 +47,10 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
       builder: (context, state) {
         if (state is ProcessingInitial || state is ProcessingLoading) {
           return const Center(child: CircularProgressIndicator());
+
         } else if (state is ProcessingError) {
-          return Center(child: Text('Error: ${state.message}'));
+          return Center(child: Text('${context.multiLanguage.errorTitleUPCASE}: ${state.message}'));
+
         } else if (state is ProcessingLoaded || state is ProcessingRefreshing) {
           final items = state is ProcessingLoaded
               ? state.filteredItems
@@ -77,7 +80,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
                   _buildTableHeader(context, sortColumn, ascending),
                   Expanded(
                     child: items.isEmpty
-                        ? const Center(child: Text('No data available'))
+                        ? Center(child: Text(context.multiLanguage.noDataMessageTable))
                         : _buildTableContent(context, currentPageItems),
                   ),
                   if (totalPages > 1)
@@ -92,7 +95,7 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           );
         }
 
-        return const Center(child: Text('No data'));
+        return Center(child: Text(context.multiLanguage.noDataMessageTable));
       },
     );
   }
@@ -103,10 +106,10 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
       color: AppColors.headerColor,
       child: Row(
         children: [
-          _buildHeaderCell('名稱', flex: 2),
-          _buildHeaderCell('指令號', flex: 2),
-          _buildHeaderCell('總數', flex: 2),
-          _buildHeaderCell('扣碼', flex: 2),
+          _buildHeaderCell(context.multiLanguage.nameLabel, flex: 2),
+          _buildHeaderCell(context.multiLanguage.projectCodeLabel, flex: 2),
+          _buildHeaderCell(context.multiLanguage.totalQuantityLabel, flex: 2),
+          _buildHeaderCell(context.multiLanguage.deductionLabel, flex: 2),
           Expanded(
             flex: 2,
             child: GestureDetector(
@@ -115,8 +118,8 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      '時間',
+                    Text(
+                      context.multiLanguage.dateLabel,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

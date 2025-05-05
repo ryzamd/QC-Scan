@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/core/widgets/scafford_custom.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/logout_bloc.dart';
@@ -5,6 +6,7 @@ import 'package:architecture_scan_app/features/auth/logout/presentation/widgets/
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/di/dependencies.dart' as di;
+import '../../../../../core/widgets/language_selector.dart';
 
 class ProfilePage extends StatelessWidget {
   final UserEntity user;
@@ -16,12 +18,15 @@ class ProfilePage extends StatelessWidget {
     return BlocProvider(
       create: (context) => di.sl<LogoutBloc>(),
       child: CustomScaffold(
-        title: 'PROFILE',
+        title: context.multiLanguage.profilePageTitleUPCASE,
         showNavBar: true,
         showHomeIcon: false,
         currentIndex: 2,
         user: user,
         backgroundColor: Colors.transparent,
+        actions: [
+          const LanguageSelector(),
+        ],
         body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -97,7 +102,7 @@ class ProfilePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'Quality Control',
+                      context.multiLanguage.profilePageSubtitle,
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.white,

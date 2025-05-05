@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/get_translate_key.dart';
 import '../../domain/usecases/get_material_info.dart';
 import '../../domain/usecases/save_scan_record.dart';
 import '../../domain/usecases/send_to_processing.dart';
@@ -316,7 +317,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       
       if (!ScanBlocHelper.validateDeduction(event.deduction, selectedReasons, event.isQC2User)) {
         emit(ScanErrorState(
-          message: event.isQC2User ? 'Either deduction or reasons must be provided' : 'Reasons are required when deducting quantity',
+          message: event.isQC2User ? StringKey.eitherDeductionOrReasonsMessage : StringKey.reasonsRequiredMessage,
           previousState: state,
         ));
         return;
@@ -361,14 +362,14 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       ));
     } else {
       emit(ScanErrorState(
-        message: 'Save failed',
+        message: StringKey.saveFailedMessage,
         previousState: state,
       ));
 }
     } catch (e) {
       emit(
         ScanErrorState(
-          message: '$e',
+          message: StringKey.eitherDeductionOrReasonsMessage,
           previousState: state,
         ),
       );

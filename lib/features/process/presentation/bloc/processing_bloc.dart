@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:architecture_scan_app/features/process/domain/usecases/get_processing_items.dart';
+import '../../../../core/services/get_translate_key.dart';
 import 'processing_event.dart';
 import 'processing_state.dart';
 
@@ -65,7 +66,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
         },
       );
     } catch (e) {
-      emit(ProcessingError(message: 'Error loading data: ${e.toString()}'));
+      emit(ProcessingError(message: StringKey.errorLoadingDataMessage));
     }
   }
 
@@ -153,7 +154,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
               selectedDate: DateTime.now(),
             ),
           );
-          emit(ProcessingError(message: 'Error refreshing data: ${e.toString()}'));
+          emit(ProcessingError(message: StringKey.errorLoadingDataMessage));
         }
       }
     } else {
@@ -247,7 +248,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
       try {
         final targetItem = currentState.items.firstWhere(
           (item) => item.code == event.code,
-          orElse: () => throw ServerFailure('Item not found'),
+          orElse: () => throw ServerFailure(StringKey.itemNotFound),
         );
 
         emit(ProcessingUpdatingState(item: targetItem));
@@ -270,7 +271,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             emit(
               ProcessingUpdatedState(
                 updatedItem: updatedItem,
-                message: 'Deduction successful: ${event.deduction}',
+                message: '${StringKey.deductionSuccessMessage}: ${event.deduction}',
               ),
             );
           },

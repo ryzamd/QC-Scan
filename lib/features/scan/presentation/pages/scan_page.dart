@@ -74,7 +74,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     super.didChangeDependencies();
     
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    isQC2 = currentRoute == AppRoutes.processingQC2;
+    isQC2 = currentRoute == AppRoutes.specialFeature;
 
     _cameraBloc ??= context.read<CameraBloc>();
   }
@@ -101,7 +101,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     List<String> availableReasons = scanBloc.getAvailableReasons();
     List<String> previouslySelectedReasons = [];
   
-      if (widget.isSpecialFeature && optionFunction == 2) {
+      if (widget.isSpecialFeature) {
         try {
           final String? reasonsString = _currentScanRecord!.materialInfo['qc_reason'];
           
@@ -130,12 +130,14 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => DeductionDialog(
+          user: widget.user,
           productName: _currentScanRecord!.materialInfo['Material Name'] ?? '',
           productCode: _currentScanRecord!.code,
           currentQuantity: optionFunction == 1 ? actualQuantity.toString() : deductionQC2.toString(),
           availableReasons: availableReasons,
           selectedReasons: previouslySelectedReasons,
-          optionFunction: optionFunction,
+          optionFunction: isQC2 ? optionFunction : 1,
+          isQC2: isQC2,
           onCancel: () {
             Navigator.of(dialogContext).pop();
             setState(() {

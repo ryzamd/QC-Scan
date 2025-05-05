@@ -1,9 +1,8 @@
-// lib/features/scan/data/datasources/scan_remote_datasource.dart
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/errors/scan_exceptions.dart';
+import 'package:architecture_scan_app/core/services/get_translate_key.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 
 abstract class ScanRemoteDataSource {
   Future<Map<String, String>> getMaterialInfoRemoteDataAsync(String code, String userName);
@@ -58,23 +57,24 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
           throw MaterialNotFoundException(code);
         }
       } else if (response.statusCode == 401) {
-        throw AuthException('Invalid or expired token');
+        throw AuthException(StringKey.invalidTokenMessage);
+
       } else {
-        throw ServerException('Server returned error code: ${response.statusCode}');
+        throw ServerException(StringKey.serverErrorMessage);
       }
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        throw ScanException('Connection timeout. Please check your network.');
+      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+        throw ScanException(StringKey.connectionTimeoutMessage);
+
       } else if (e.type == DioExceptionType.connectionError) {
-        throw ScanException('Cannot connect to server. Please check your network.');
+        throw ScanException(StringKey.cannotConnectToServerMessage);
+
+      } else {
+        throw ScanException(StringKey.serverErrorMessage);
       }
-      throw ScanException('Network error: ${e.message}');
+
     } catch (e) {
-      if (e is MaterialNotFoundException) {
-        rethrow;
-      }
-      throw ScanException('Failed to get material info: ${e.toString()}');
+      throw ScanException(StringKey.failedToGetMaterialInfoMessage);
     }
   }
 
@@ -97,15 +97,18 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
         );
         
         if (response.statusCode == 200 && response.data['message'] == 'Success') {
-          return true;
+        return true;
 
-        } else {
-          throw ProcessingException(response.data['message'] ?? 'Unknown error');
-        }
-      } catch (e) {
-        throw ProcessingException(e.toString());
+      } else {
+        throw ProcessingException(StringKey.unknownErrorMessage);
       }
+    } on DioException catch (_) {
+      throw ScanException(StringKey.networkErrorMessage);
+
+    } catch (e) {
+      throw ServerException(StringKey.serverErrorMessage);
     }
+  }
   
   @override
   Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction, [List<String>? reasons]) async {
@@ -130,10 +133,14 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
         return true;
 
       } else {
-        throw ProcessingException(response.data['message'] ?? 'Unknown error');
+        throw ProcessingException(response.data['message'] ?? StringKey.unknownErrorMessage);
       }
+
+    } on DioException catch (_) {
+      throw ScanException(StringKey.networkErrorMessage);
+
     } catch (e) {
-      throw ProcessingException(e.toString());
+      throw ServerException(StringKey.serverErrorMessage);
     }
   }
   
@@ -145,11 +152,14 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       if (response.statusCode == 200 && response.data['message'] == 'success') {
         return List<String>.from(response.data['addressList'] ?? []);
       }
-      return [];
+      
+      throw ProcessingException(StringKey.failedToGetDeductionReasons);
+
+    } on DioException catch (_) {
+      throw ScanException(StringKey.networkErrorMessage);
 
     } catch (e) {
-      debugPrint('Error fetching reasons: $e');
-      return [];
+      throw ServerException(StringKey.serverErrorMessage);
     }
   }
 }

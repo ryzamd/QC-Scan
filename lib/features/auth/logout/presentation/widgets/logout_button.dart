@@ -1,4 +1,5 @@
 import 'package:architecture_scan_app/core/constants/app_routes.dart';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/error_dialog.dart';
 import 'package:architecture_scan_app/features/auth/logout/presentation/bloc/logout_bloc.dart';
@@ -31,7 +32,7 @@ class LogoutButton extends StatelessWidget {
         } else if (state is LogoutFailure) {
           ErrorDialog.showAsync(
             context,
-            title: 'LOGOUT FAILED',
+            title: context.multiLanguage.logoutFailedTitleUPCASE,
             message: state.message,
             onDismiss: () => Navigator.of(context).pop(),
           );
@@ -44,8 +45,8 @@ class LogoutButton extends StatelessWidget {
           onPressed: () {
             ConfirmationDialog.showAsync(
               context: context,
-              title: 'LOGOUT',
-              message: 'Are you sure you want to log out?',
+              title: context.multiLanguage.logoutDialogTitleUPCASE,
+              message: context.multiLanguage.logoutConfirmationMessage,
               showCancelButton: true,
               onConfirm: () {
                 context.read<LogoutBloc>().add(LogoutButtonPressed());
@@ -72,8 +73,8 @@ class LogoutButton extends StatelessWidget {
                   ),
                 );
               }
-              return const Text(
-                'LOGOUT',
+              return Text(
+                context.multiLanguage.logoutButtonTextUPCASE,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

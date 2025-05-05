@@ -1,5 +1,6 @@
 import 'package:architecture_scan_app/core/constants/api_constants.dart';
 import 'package:architecture_scan_app/core/errors/exceptions.dart';
+import 'package:architecture_scan_app/core/services/get_translate_key.dart';
 import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 
@@ -38,17 +39,17 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
         if (response.data['message'] == '登錄成功') {
           return UserModel.fromJson(response.data);
         } else {
-          throw AuthException(response.data['message'] ?? 'Invalid credentials');
+          throw AuthException(response.data['message'] ?? StringKey.invalidCredentialsMessage);
         }
       } else {
-        throw AuthException('Invalid credentials');
+        throw AuthException(StringKey.invalidTokenMessage);
       }
-    } on DioException catch (e) {
-      throw ServerException(e.message ?? 'Server error occurred');
+    } on DioException catch (_) {
+      throw ServerException(StringKey.networkErrorMessage);
     } on AuthException {
       rethrow;
     } catch (e) {
-      throw ServerException(e.toString());
+      throw ServerException(StringKey.serverErrorMessage);
     }
   }
   

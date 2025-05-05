@@ -1,4 +1,5 @@
 import 'package:architecture_scan_app/core/localization/context_extension.dart';
+import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,6 +14,8 @@ class DeductionDialog extends StatefulWidget {
   final Function(double, List<String>) onConfirm;
   final VoidCallback onCancel;
   final int optionFunction;
+  final UserEntity user;
+  final bool isQC2;
 
   const DeductionDialog({
     super.key,
@@ -24,6 +27,8 @@ class DeductionDialog extends StatefulWidget {
     required this.availableReasons,
     this.selectedReasons = const [],
     required this.optionFunction,
+    required this.user,
+    required this.isQC2,
   });
 
   @override
@@ -33,11 +38,13 @@ class DeductionDialog extends StatefulWidget {
 class _DeductionDialogState extends State<DeductionDialog> {
   final TextEditingController _deductionController = TextEditingController(text: '0');
   List<String> _selectedReasons = [];
+  late final List<String> _oldReasons;
   
   @override
   void initState() {
     super.initState();
     _selectedReasons = List.from(widget.selectedReasons);
+    _oldReasons = List.from(widget.selectedReasons);
   }
 
   @override
@@ -161,7 +168,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         ],
                       ),
                       
-                      _buildReasonsSection(widget.optionFunction),
+                      _buildReasonsSection(widget.optionFunction, widget.isQC2),
                     ],
                   ),
                 ),
@@ -230,27 +237,26 @@ class _DeductionDialogState extends State<DeductionDialog> {
     );
   }
 
-  Widget _buildReasonsSection(int optionFunction) {
+  Widget _buildReasonsSection(int optionFunction, bool isQC2) {
     final isDecreaseMode = optionFunction == 2;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               context.multiLanguage.reasonsLabel,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            if (!isDecreaseMode)
+            if (!(isQC2 && isDecreaseMode))
               TextButton.icon(
                 onPressed: _showReasonsDialogAsync,
                 icon: const Icon(Icons.edit, size: 16, color: Colors.redAccent),
-                label: Text(context.multiLanguage.selectButton, style: TextStyle(color: Colors.redAccent)),
+                label: Text(
+                  context.multiLanguage.selectButton,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 ),
@@ -267,31 +273,65 @@ class _DeductionDialogState extends State<DeductionDialog> {
           ),
           constraints: const BoxConstraints(maxHeight: 100),
           child: _selectedReasons.isEmpty
-            ? Center(
-                child: Text(
+              ? Center(
+                  child: Text(
                     context.multiLanguage.noReasonsSelected,
-                    style: TextStyle(fontStyle: FontStyle.italic),
+                    style: const TextStyle(fontStyle: FontStyle.italic),
                     textAlign: TextAlign.center,
-              ),
-            )
-            : SingleChildScrollView(
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: -10 ,
-                  children: _selectedReasons.map((reason) {
-                    return Chip(
-                      label: Text(reason),
-                      labelStyle: const TextStyle(fontSize: 12),
-                      onDeleted: isDecreaseMode ? null : () { setState(() {
-                                                                _selectedReasons.remove(reason);
-                                                              });
-                                                            },
-                      deleteIcon: isDecreaseMode ? null : const Icon(Icons.close, size: 14),
-                      deleteIconColor: Colors.redAccent,
-                    );
-                  }).toList(),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: -10,
+                    children: _selectedReasons.map((reason) {
+                      final isOldReason = _oldReasons.contains(reason);
+
+                      if (isQC2) {
+                        for (final reason in _oldReasons) {
+                          if (!_selectedReasons.contains(reason)) {
+                            _selectedReasons.add(reason);
+                          }
+                        }
+                      }
+
+                      if (isQC2 && isDecreaseMode) {
+                        return Chip(
+                          label: Text(reason),
+                          labelStyle: const TextStyle(fontSize: 12),
+                        );
+                      }
+
+                      if (isQC2 && !isDecreaseMode) {
+                        return Chip(
+                          label: Text(reason),
+                          labelStyle: const TextStyle(fontSize: 12),
+                          onDeleted: isOldReason
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _selectedReasons.remove(reason);
+                                  });
+                                },
+                          deleteIcon: isOldReason ? null : const Icon(Icons.close, size: 14),
+                          deleteIconColor: Colors.redAccent,
+                        );
+                      }
+
+                      return Chip(
+                        label: Text(reason),
+                        labelStyle: const TextStyle(fontSize: 12),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedReasons.remove(reason);
+                          });
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        deleteIconColor: Colors.redAccent,
+                      );
+                    }).toList(),
+                  ),
                 ),
-              ),
         ),
       ],
     );
@@ -335,12 +375,20 @@ class _DeductionDialogState extends State<DeductionDialog> {
                   itemBuilder: (context, index) {
                     final reason = availableReasons[index];
                     final isSelected = tempSelectedReasons.contains(reason);
+                    final isOldReason = _oldReasons.contains(reason);
+                    final isDisabled = widget.isQC2 && isOldReason;
 
                     return CheckboxListTile(
-                      title: Text(reason, style: TextStyle(fontSize: 16),),
+                      title: Text(
+                        reason,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isDisabled ? Colors.grey : Colors.black
+                        ),
+                      ),
                       value: isSelected,
-                      activeColor: AppColors.success,
-                      onChanged: (bool? value) {
+                      activeColor: isDisabled ? Colors.grey : AppColors.success,
+                      onChanged: isDisabled ? null : (bool? value) {
                         setState(() {
                           if (value == true) {
                             tempSelectedReasons.add(reason);

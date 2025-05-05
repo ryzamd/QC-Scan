@@ -5,6 +5,7 @@ import 'package:architecture_scan_app/core/errors/exceptions.dart';
 import 'package:architecture_scan_app/core/services/secure_storage_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../../../../core/services/get_translate_key.dart';
 import '../models/processing_item_model.dart';
 
 abstract class ProcessingRemoteDataSource {
@@ -65,15 +66,15 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
         return compute(_parseProcessingItems, itemsJson);
 
       } else {
-        throw ServerException('Failed to load processing items: ${response.statusCode}');
+        throw ServerException(StringKey.failedToLoadProcessingItemsMessage);
       }
     } on DioException catch (e) {
       debugPrint('DioException in getProcessingItems: ${e.message}');
       debugPrint('Request path: ${e.requestOptions.path}');
-      throw ServerException(e.message ?? 'Error fetching processing items');
+      throw ServerException(StringKey.errorFetchingProcessingItemsMessage);
     } catch (e) {
       debugPrint('Unexpected error in getProcessingItems: $e');
-      throw ServerException(e.toString());
+      throw ServerException(StringKey.networkErrorMessage);
     }
   }
 
@@ -108,11 +109,11 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
       }
     } on DioException catch (e) {
       debugPrint('DioException in saveQC2Deduction: ${e.message}');
-      throw ServerException('Error processing deduction');
+      throw ServerException(StringKey.errorProcessingDeductionMessage);
 
     } catch (e) {
       debugPrint('Unexpected error in saveQC2Deduction: $e');
-      throw ServerException(e.toString());
+      throw ServerException(StringKey.networkErrorMessage);
 
     }
   }
@@ -122,10 +123,10 @@ class ProcessingRemoteDataSourceImpl implements ProcessingRemoteDataSource {
       return data;
 
     } else if (data['message'] == 'Too large a quantity') {
-      throw ServerException('Error: ${data['error'] ?? 'La cantidad ingresada excede el límite permitido'}');
+      throw ServerException(StringKey.serverErrorMessage);
 
     } else {
-      throw ServerException(data['error'] ?? data['message'] ?? 'Unknown error');
+      throw ServerException(StringKey.unknownErrorMessage);
     }
   }
 }
