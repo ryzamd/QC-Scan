@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_routes.dart';
@@ -17,7 +18,7 @@ class QCMenuPage extends StatelessWidget {
     });
     
     return CustomScaffold(
-      title: 'Quality Control Menu',
+      title: context.multiLanguage.qualityCheckMenuLabel,
       user: user,
       showHomeIcon: false,
       currentIndex: 1,
@@ -38,13 +39,13 @@ class QCMenuPage extends StatelessWidget {
             children: [
               _buildFunctionTile(
                 context,
-                title: '品管質檢',
+                title: context.multiLanguage.qc1InspectionMenuLabel,
                 icon: Icons.assignment,
                 route: AppRoutes.inspection,
               ),
               _buildFunctionTile(
                 context,
-                title: '品管修改',
+                title: context.multiLanguage.qc2InspectionMenuLabel,
                 icon: Icons.assignment,
                 route: AppRoutes.specialFeature,
               ),

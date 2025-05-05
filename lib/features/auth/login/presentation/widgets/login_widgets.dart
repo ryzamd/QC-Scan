@@ -1,4 +1,5 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:flutter/material.dart';
 
 class LoginTextField extends StatelessWidget {
@@ -230,8 +231,8 @@ class LoginButton extends StatelessWidget {
           child: Center(
             child: isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text(
-                    '登录',
+                : Text(
+                    context.multiLanguage.loginButton,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

@@ -10,23 +10,20 @@ import 'package:dartz/dartz.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../services/get_translate_key.dart';
+
 class AuthRepository {
   final SecureStorageService _secureStorage;
   final DioClient _dioClient;
 
   AuthRepository(this._secureStorage, this._dioClient);
 
-  Future<Either<Failure, UserEntity>> loginUserAsync({
-    required String userId,
-    required String password,
-    required String name,
-  }) async {
-
+  Future<Either<Failure, UserEntity>> loginUserAsync({required String userId, required String password, required String name}) async {
     final authDio = Dio()
-    ..options.baseUrl = _dioClient.dio.options.baseUrl
-    ..options.connectTimeout = _dioClient.dio.options.connectTimeout
-    ..options.receiveTimeout = _dioClient.dio.options.receiveTimeout;
-    
+      ..options.baseUrl = _dioClient.dio.options.baseUrl
+      ..options.connectTimeout = _dioClient.dio.options.connectTimeout
+      ..options.receiveTimeout = _dioClient.dio.options.receiveTimeout;
+
     try {
       final response = await authDio.post(
         ApiConstants.loginUrl,
@@ -36,37 +33,31 @@ class AuthRepository {
           'name': name,
         },
       );
-      
+
       if (response.statusCode == 200) {
         if (response.data['message'] == '登錄成功') {
           final user = UserModel.fromJson(response.data);
           final token = response.data['token'];
-          
+
           if (token == null || token.isEmpty) {
             return Left(AuthFailure('No token received from server'));
           }
-          
+
           await _secureStorage.saveAccessTokenAsync(token);
           await _secureStorage.saveUserIdAsync(user.userId);
-          
           await _secureStorage.saveUserDataAsync(jsonEncode(response.data['user']['users']));
-          
           _dioClient.setAuthTokenAsync(token);
-          
-          debugPrint('Login successful, token saved and set in DioClient');
+
           return Right(user);
+
         } else {
-          return Left(AuthFailure(response.data['message'] ?? 'Invalid credentials'));
+          return Left(AuthFailure(response.data['message'] ?? StringKey.invalidCredentialsMessage));
         }
       } else {
-        return Left(AuthFailure('Server returned ${response.statusCode}'));
+        return Left(ServerFailure(StringKey.serverErrorMessage));
       }
-    } on DioException catch (e) {
-      debugPrint('DioException in loginUser: ${e.message}');
-      return Left(ServerFailure(e.message ?? 'Server error occurred'));
-    } catch (e) {
-      debugPrint('Unexpected error in loginUser: $e');
-      return Left(ServerFailure(e.toString()));
+    } on DioException catch (_) {
+      return Left(ServerFailure(StringKey.networkErrorMessage));
     }
   }
 

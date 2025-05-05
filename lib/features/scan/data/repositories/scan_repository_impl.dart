@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/services/get_translate_key.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/errors/scan_exceptions.dart';
@@ -52,7 +53,7 @@ class ScanRepositoryImpl implements ScanRepository {
         return Right(materialInfo);
 
       } on MaterialNotFoundException catch (_) {
-        return Left(ServerFailure('Material not found in the system.'));
+        return Left(ServerFailure(StringKey.materialNotFound));
 
       } on ScanException catch (e) {
         return Left(ServerFailure(e.message));

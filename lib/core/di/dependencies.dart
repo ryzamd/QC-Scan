@@ -9,6 +9,7 @@ import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../localization/language_bloc.dart';
 import '../network/dio_client.dart';
 import '../network/network_infor.dart';
 
@@ -46,38 +47,43 @@ import '../../features/process/presentation/bloc/processing_bloc.dart';
 final sl = GetIt.instance;
 
 Future<void> initAsync() async {
+  await _initSystemCore();
+  await _initLoginFeature();
+  await _initLogoutFeature();
+  await _initScanFeature();
+  await _initProcessFeature();
+  await _initExternal();
+}
 
-  //Sytem
-  // Register SecureStorageService first
+Future<void> _initSystemCore() async {
   sl.registerLazySingleton(() => SecureStorageService());
-  
-  // Create DioClient instance
+
   final dioClient = DioClient();
   sl.registerLazySingleton<DioClient>(() => dioClient);
-  
-  // Register AuthRepository
+
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepository(sl<SecureStorageService>(), sl<DioClient>()),
   );
-  
-  // Register navigator key
+
   final navigatorKey = GlobalKey<NavigatorState>();
   sl.registerLazySingleton<GlobalKey<NavigatorState>>(() => navigatorKey);
-  
-  // Create TokenInterceptor and add it to DioClient immediately
+
   final tokenInterceptor = TokenInterceptor(
     authRepository: sl<AuthRepository>(),
     navigatorKey: sl<GlobalKey<NavigatorState>>(),
   );
-  
-  // Add interceptor to dio client directly
   dioClient.dio.interceptors.insert(0, tokenInterceptor);
-  
-  // Register the individual Dio instance for components that need direct access
+
   sl.registerLazySingleton<Dio>(() => dioClient.dio);
-  
-  //! Features - Login
-  // BLoC
+
+  sl.registerLazySingleton(() => LanguageBloc(sharedPreferences: sl()));
+
+  sl.registerLazySingleton<NetworkInfo>(
+    () => NetworkInfoImpl(sl()),
+  );
+}
+
+Future<void> _initLoginFeature() async {
   sl.registerFactory(
     () => LoginBloc(
       userLogin: sl(),
@@ -85,11 +91,9 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => UserLogin(sl()));
   sl.registerLazySingleton(() => ValidateToken(sl()));
 
-  // Repository
   sl.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(
       remoteDataSource: sl(),
@@ -97,17 +101,16 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Data sources
   sl.registerLazySingleton<LoginRemoteDataSource>(
     () => LoginRemoteDataSourceImpl(dio: sl<Dio>()),
   );
+}
 
-    // Logout feature dependencies
+Future<void> _initLogoutFeature() async {
   sl.registerLazySingleton<LogoutDataSource>(
     () => LogoutDataSourceImpl(
       sharedPreferences: sl(),
       dioClient: sl(),
-      //processingDataService: sl(),
     ),
   );
 
@@ -124,9 +127,9 @@ Future<void> initAsync() async {
       logoutUseCase: sl(),
     ),
   );
+}
 
-  //! Features - Scan
-  // BLoC - Factory for each instance (created when needed)
+Future<void> _initScanFeature() async {
   sl.registerFactoryParam<ScanBloc, UserEntity, void>(
     (user, _) => ScanBloc(
       getMaterialInfo: sl(),
@@ -137,12 +140,10 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => GetMaterialInfo(sl()));
   sl.registerLazySingleton(() => SaveScanRecord(sl()));
   sl.registerLazySingleton(() => SendToProcessing(sl()));
 
-  // Repository
   sl.registerLazySingleton<ScanRepository>(
     () => ScanRepositoryImpl(
       localDataSource: sl(),
@@ -151,16 +152,16 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Data sources
   sl.registerLazySingleton<ScanLocalDataSource>(
     () => ScanLocalDataSourceImpl(sharedPreferences: sl()),
   );
-  
+
   sl.registerLazySingleton<ScanRemoteDataSource>(
     () => ScanRemoteDataSourceImpl(dio: sl()),
   );
+}
 
-  // Update BLoC registration
+Future<void> _initProcessFeature() async {
   sl.registerFactory(
     () => ProcessingBloc(
       getProcessingItems: sl(),
@@ -168,12 +169,9 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => GetProcessingItems(sl()));
   sl.registerLazySingleton(() => UpdateQC2Quantity(sl()));
-  //sl.registerLazySingleton(() => RefreshProcessingItems(sl()));
 
-  // Repository
   sl.registerLazySingleton<ProcessingRepository>(
     () => ProcessingRepositoryImpl(
       remoteDataSource: sl(),
@@ -181,17 +179,12 @@ Future<void> initAsync() async {
     ),
   );
 
-  // Data sources
   sl.registerLazySingleton<ProcessingRemoteDataSource>(
     () => ProcessingRemoteDataSourceImpl(dio: sl(), useMockData: false),
   );
+}
 
-  //! Core
-  sl.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(sl()),
-  );
-
-  //! External
+Future<void> _initExternal() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
   sl.registerLazySingleton(() => InternetConnectionChecker());

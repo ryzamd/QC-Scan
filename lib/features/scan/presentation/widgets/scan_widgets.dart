@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -51,11 +52,11 @@ class QRScannerWidget extends StatelessWidget {
                   },
                   errorBuilder: _buildErrorWidget,
                 )
-              : const ColoredBox(
+              : ColoredBox(
                   color: Colors.black,
                   child: Center(
                     child: Text(
-                      "Camera is off",
+                      context.multiLanguage.cameraOffMessage,
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -81,7 +82,7 @@ class QRScannerWidget extends StatelessWidget {
           children: [
             const Icon(Icons.error, color: Colors.red, size: 50),
             Text(
-              "Camera error: ${error.errorCode}",
+              context.multiLanguage.cameraErrorMessage(error.errorCode),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red),
             ),
@@ -97,7 +98,7 @@ class QRScannerWidget extends StatelessWidget {
                 controller!.stop();
                 controller!.start();
               },
-              child: const Text("Try Again",
+              child: Text(context.multiLanguage.tryAgainButton,
                 style: TextStyle(color: Color(0xFFFEF9E1)),
               ),
             ),

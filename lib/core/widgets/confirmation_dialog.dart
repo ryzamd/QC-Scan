@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:flutter/material.dart';
 
 class ConfirmationDialog {
@@ -45,7 +46,7 @@ class ConfirmationDialog {
               if (onCancel != null) onCancel();
             },
             child: Text(
-              cancelText,
+              context.multiLanguage.cancelButton,
               style: TextStyle(
                 color: cancelColor,
                 fontWeight: FontWeight.w500,
@@ -59,7 +60,7 @@ class ConfirmationDialog {
               if (onConfirm != null) onConfirm();
             },
             child: Text(
-              confirmText,
+              context.multiLanguage.confirmButton,
               style: TextStyle(
                 color: confirmColor,
                 fontWeight: FontWeight.bold,

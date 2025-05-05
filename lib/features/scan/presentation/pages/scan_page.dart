@@ -1,4 +1,5 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/deduction_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/error_dialog.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/constants/key_code_constants.dart';
+import '../../../../core/services/get_translate_key.dart';
 import '../../../../core/widgets/scafford_custom.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/models/scan_record_model.dart';
@@ -81,8 +83,9 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
     if (_currentScanRecord == null) {
       NotificationDialog.showAsync(
         context: context,
-        title: 'NO DATA TO SAVE',
-        message: 'Please scan a barcode first.',
+        title: context.multiLanguage.noDataTitleUPCASE,
+        message: context.multiLanguage.noDataMessage,
+        buttonText: context.multiLanguage.okButtonUPCASE,
         titleColor: Colors.red,
         buttonColor: Colors.red,
         onButtonPressed: () {},
@@ -169,7 +172,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             
             LoadingDialog.showAsync(
               context: context,
-              message: 'Processing data...',
+              message: context.multiLanguage.processingLoadingMessage,
             );
           },
         ),
@@ -182,8 +185,8 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       if(!mounted) return;
       NotificationDialog.showAsync(
         context: context,
-        title: 'ERROR',
-        message: 'An error occurred while processing the data.',
+        title: context.multiLanguage.errorTitleUPCASE,
+        message: context.multiLanguage.processingErorrMessage,
         titleColor: Colors.red,
         buttonColor: Colors.red,
         onButtonPressed: () {},
@@ -198,7 +201,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         switch (state) {
           case ScanProcessingState():
           case SavingDataState():
-            LoadingDialog.showAsync(context: context, message: 'Loading...');
+            LoadingDialog.showAsync(context: context, message: context.multiLanguage.loadingMessage);
           default:
             LoadingDialog.hideAsync(context);
         }
@@ -234,15 +237,15 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
             if (state is ScanErrorState) {
               ErrorDialog.showAsync(
                 context,
-                title: 'ERROR',
-                message: state.message,
+                title: context.multiLanguage.errorTitleUPCASE,
+                message: TranslateKey.getStringKey(context.multiLanguage, state.message),
                 onDismiss: () {},
               );
             } else {
               NotificationDialog.showAsync(
                 context: context,
-                title: 'SUCCESS',
-                message: 'Data processed successfully',
+                title: context.multiLanguage.successTitleUPCASE,
+                message: context.multiLanguage.dataProcessedSuccessMessage,
                 titleColor: Colors.green,
                 buttonColor: Colors.green,
                 onButtonPressed: () {
@@ -266,7 +269,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       },
       builder: (context, state) {
         return CustomScaffold(
-            title: 'SCAN PAGE',
+            title: context.multiLanguage.scanPageTitle,
             backgroundColor: AppColors.scaffoldBackground,
             user: widget.user,
             showHomeIcon: true,
@@ -336,27 +339,27 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                             child: Column(
                               children: [
                                 _buildTableRow(
-                                  '名稱',
+                                  context.multiLanguage.nameLabel,
                                   _currentScanRecord?.materialInfo['Material Name'] ?? '',
                                 ),
                                 _buildDivider(),
                                 _buildTableRow(
-                                  '總數',
+                                  context.multiLanguage.totalQuantityLabel,
                                   _currentScanRecord?.quantity ?? '',
                                 ),
                                 _buildDivider(),
                                 _buildTableRow(
-                                  '扣碼',
+                                  context.multiLanguage.deductionLabel,
                                   _currentScanRecord?.materialInfo['Deduction_QC2'] ?? '0',
                                 ),
                                 _buildDivider(),
                                 _buildTableRow(
-                                  '日期',
+                                  context.multiLanguage.dateLabel,
                                   _currentScanRecord?.materialInfo['Receipt Date'] ?? '',
                                 ),
                                 _buildDivider(),
                                 _buildTableRow(
-                                  '供應商',
+                                  context.multiLanguage.supplierLabel,
                                   _currentScanRecord?.materialInfo['Supplier'] ?? '',
                                 ),
                                 _buildDivider(),
@@ -385,8 +388,8 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
-                                          child: const Text(
-                                            '保存',
+                                          child: Text(
+                                            context.multiLanguage.saveButton,
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -413,7 +416,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                               ),
                                             ),
                                             child: Text(
-                                              optionFunction == 2 ? '减少' : '增加',
+                                              optionFunction == 2 ? context.multiLanguage.decreaseButton : context.multiLanguage.increaseButton,
                                               style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
@@ -468,7 +471,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               alignment: Alignment.centerLeft,
               child: Text(
-                value.isEmpty ? 'No Scan data' : value,
+                value.isEmpty ? context.multiLanguage.noScanDataMessage : value,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -485,11 +488,11 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   Future<void> _showClearConfirmationDialogAsync(BuildContext context) async {
     final result = await ConfirmationDialog.showAsync(
       context: context,
-      title: 'CLEAR DATA',
-      message: 'Are you sure you want to clear all scanned data?',
+      title: context.multiLanguage.clearDataTitleUPCASE,
+      message: context.multiLanguage.clearScannedDataConfirmMessage,
       showCancelButton: true,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      confirmText: context.multiLanguage.okButtonUPCASE,
+      cancelText: context.multiLanguage.cancelButton,
       titleColor: Colors.red,
       confirmColor: Colors.red,
       cancelColor: Colors.grey,

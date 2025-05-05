@@ -1,3 +1,4 @@
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -67,8 +68,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
                   decoration: const BoxDecoration(
                     color: Colors.white,
                   ),
-                  child: const Text(
-                    'DEDUCTION',
+                  child: Text(
+                    context.multiLanguage.deductionTitleUPCASE,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -86,8 +87,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         text: TextSpan(
                           style: const TextStyle(fontSize: 16, color: Colors.black),
                           children: [
-                            const TextSpan(
-                              text: 'Product: ',
+                            TextSpan(
+                              text: context.multiLanguage.productLabel,
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             TextSpan(text: widget.productName),
@@ -99,8 +100,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         text: TextSpan(
                           style: const TextStyle(fontSize: 16, color: Colors.black),
                           children: [
-                            const TextSpan(
-                              text: 'Code: ',
+                            TextSpan(
+                              text: context.multiLanguage.codeLabel,
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             TextSpan(text: widget.productCode),
@@ -114,8 +115,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
                         text: TextSpan(
                           style: const TextStyle(fontSize: 16, color: Colors.black),
                           children: [
-                            const TextSpan(
-                              text: 'Current Quantity: ',
+                            TextSpan(
+                              text: context.multiLanguage.currentQuantityLabel,
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             TextSpan(
@@ -134,8 +135,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Deduction',
+                          Text(
+                            context.multiLanguage.deductionLabel,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -181,9 +182,9 @@ class _DeductionDialogState extends State<DeductionDialog> {
                             color: Color(0xFFCCCCCC),
                             borderRadius: BorderRadius.all(Radius.circular(5)),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'CANCEL',
+                              context.multiLanguage.cancelButtonUPCASE,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -206,9 +207,9 @@ class _DeductionDialogState extends State<DeductionDialog> {
                             color: Colors.red,
                             borderRadius: BorderRadius.all(Radius.circular(5)),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'CONFIRM',
+                              context.multiLanguage.confirmButtonUPCASE,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -238,8 +239,8 @@ class _DeductionDialogState extends State<DeductionDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Reasons',
+            Text(
+              context.multiLanguage.reasonsLabel,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -249,7 +250,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
               TextButton.icon(
                 onPressed: _showReasonsDialogAsync,
                 icon: const Icon(Icons.edit, size: 16, color: Colors.redAccent),
-                label: const Text('Select', style: TextStyle(color: Colors.redAccent)),
+                label: Text(context.multiLanguage.selectButton, style: TextStyle(color: Colors.redAccent)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 ),
@@ -266,9 +267,9 @@ class _DeductionDialogState extends State<DeductionDialog> {
           ),
           constraints: const BoxConstraints(maxHeight: 100),
           child: _selectedReasons.isEmpty
-            ? const Center(
+            ? Center(
                 child: Text(
-                    'No reasons selected',
+                    context.multiLanguage.noReasonsSelected,
                     style: TextStyle(fontStyle: FontStyle.italic),
                     textAlign: TextAlign.center,
               ),
@@ -316,7 +317,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
 
     return StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: const Text('SELECT REASONS',
+        title: Text(context.multiLanguage.selectReasonsTitleUPCASE,
           style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 18)
         ),
         shape: RoundedRectangleBorder(
@@ -327,7 +328,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
           width: double.maxFinite,
           height: maxDialogHeight,
           child: availableReasons.isEmpty
-              ? const Center(child: Text('No reasons available'))
+              ? Center(child: Text(context.multiLanguage.noReasonsAvailableMessage))
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: availableReasons.length,
@@ -357,7 +358,7 @@ class _DeductionDialogState extends State<DeductionDialog> {
             onPressed: () {
               Navigator.pop(context, tempSelectedReasons);
             },
-            child: const Text('OK',
+            child: Text(context.multiLanguage.okButtonUPCASE,
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error)
             ),
           ),

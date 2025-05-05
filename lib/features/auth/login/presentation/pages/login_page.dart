@@ -1,9 +1,11 @@
 import 'package:architecture_scan_app/core/constants/app_routes.dart';
+import 'package:architecture_scan_app/core/localization/context_extension.dart';
 import 'package:architecture_scan_app/core/widgets/confirmation_dialog.dart';
 import 'package:architecture_scan_app/core/widgets/logo_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/di/dependencies.dart' as di;
+import '../../../../../core/widgets/language_selector.dart';
 import '../bloc/login_bloc.dart';
 import '../bloc/login_event.dart';
 import '../bloc/login_state.dart';
@@ -62,9 +64,9 @@ class _LoginPageState extends State<LoginPage> {
           } else if (state is LoginFailure) {
             ConfirmationDialog.showAsync(
               context: context,
-              title: 'LOGIN FAILED',
+              title: context.multiLanguage.loginFailedTitleUPCASE,
               message: state.message,
-              confirmText: 'OK',
+              confirmText: context.multiLanguage.okButtonUPCASE,
               showCancelButton: false,
               onConfirm: () {},
             );
@@ -88,6 +90,17 @@ class _LoginPageState extends State<LoginPage> {
               bottom: false,
               child: Stack(
                 children: [
+                   Stack(
+                    children: [
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: SafeArea(
+                          child: const LanguageSelector(),
+                        ),
+                      ),
+                    ]
+                  ),
                   Positioned.fill(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -117,11 +130,11 @@ class _LoginPageState extends State<LoginPage> {
                                         children: [
                                           LoginTextField(
                                             controller: _userIdController,
-                                            hintText: '请选择用户名',
+                                            hintText: context.multiLanguage.usernameHint,
                                             focusNode: _userIdFocusNode,
                                             validator: (value) {
                                               if (value == null || value.isEmpty) {
-                                                return 'Please enter your username';
+                                                return context.multiLanguage.pleaseEnterUsername;
                                               }
                                               return null;
                                             },
@@ -137,12 +150,12 @@ class _LoginPageState extends State<LoginPage> {
 
                                           LoginTextField(
                                             controller: _passwordController,
-                                            hintText: '输入密码',
+                                            hintText: context.multiLanguage.passwordHint,
                                             obscureText: true,
                                             focusNode: _passwordFocusNode,
                                             validator: (value) {
                                               if (value == null || value.isEmpty) {
-                                                return 'Please enter your password';
+                                                return context.multiLanguage.pleaseEnterPassword;
                                               }
                                               return null;
                                             },
