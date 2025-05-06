@@ -91,5 +91,6 @@
   "profilePageSubtitle": "Quality Control",
   "exitTheAppMessage": "Are you sure you want to exit the app?",
   "exitTitleUPCASE": "EXIT",
-  "noDataMessageTable": "No data"
+  "noDataMessageTable": "No data",
+  "alreadyQuantityInspectedMessage": "Already quality inspected"
 }

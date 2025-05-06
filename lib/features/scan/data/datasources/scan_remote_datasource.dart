@@ -100,13 +100,13 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
         return true;
 
       } else {
-        throw ProcessingException(StringKey.unknownErrorMessage);
+        throw ProcessingException(response.data['message'] ?? StringKey.unknownErrorMessage);
       }
     } on DioException catch (_) {
       throw ScanException(StringKey.networkErrorMessage);
 
     } catch (e) {
-      throw ServerException(StringKey.serverErrorMessage);
+      throw ServerException(e.toString());
     }
   }
   

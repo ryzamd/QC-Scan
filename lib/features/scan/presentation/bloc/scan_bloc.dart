@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:architecture_scan_app/core/constants/key_code_constants.dart';
 import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote_datasource.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/get_translate_key.dart';
 import '../../domain/usecases/get_material_info.dart';
 import '../../domain/usecases/save_scan_record.dart';
@@ -311,10 +313,13 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
       if (state is ReasonsLoadedState) {
         selectedReasons = (state as ReasonsLoadedState).selectedReasons;
-      } else if (event.reasons != null) {
-        selectedReasons = event.reasons!;
       }
       
+      if (event.reasons != null) {
+        selectedReasons = event.reasons!;
+      }
+
+      debugPrint('DEBUG: deduction=${event.deduction}, selectedReasons=$selectedReasons, isQC2User=${event.isQC2User}');
       if (!ScanBlocHelper.validateDeduction(event.deduction, selectedReasons, event.isQC2User)) {
         emit(ScanErrorState(
           message: event.isQC2User ? StringKey.eitherDeductionOrReasonsMessage : StringKey.reasonsRequiredMessage,
@@ -365,14 +370,22 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         message: StringKey.saveFailedMessage,
         previousState: state,
       ));
-}
-    } catch (e) {
-      emit(
-        ScanErrorState(
-          message: StringKey.eitherDeductionOrReasonsMessage,
+    }
+  } catch (e) {
+      if((e as ServerException).message.contains(KeyFunction.ALREADY_INSPECTED)) {
+        emit(ScanErrorState(
+          message: StringKey.alreadyQuantityInspectedMessage,
           previousState: state,
-        ),
-      );
+        ));
+      } else{
+        emit(
+          ScanErrorState(
+            message: StringKey.eitherDeductionOrReasonsMessage,
+            previousState: state,
+          ),
+        );
+      }
+      
     }
   }
 

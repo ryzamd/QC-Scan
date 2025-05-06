@@ -8,3 +8,7 @@ class KeycodeConstants {
   static const int keyEvent2 = 294;
   static const int keyEventFromLogs = 73014444552;
 }
+
+class KeyFunction {
+  static const String ALREADY_INSPECTED = "Already quality inspected";
+}

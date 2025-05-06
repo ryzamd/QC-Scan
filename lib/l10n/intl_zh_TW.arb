@@ -91,5 +91,6 @@
   "profilePageSubtitle": "品質管制",
   "exitTheAppMessage": "確定要退出應用程序嗎？",
   "exitTitleUPCASE": "退出",
-  "noDataMessageTable": "沒有數據"
+  "noDataMessageTable": "沒有數據",
+  "alreadyQuantityInspectedMessage": "已質檢數量"
 }

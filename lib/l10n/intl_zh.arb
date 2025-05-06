@@ -91,5 +91,6 @@
   "profilePageSubtitle": "质量控制",
   "exitTitleUPCASE": "退出",
   "exitTheAppMessage": "确定要退出应用程序吗？",
-  "noDataMessageTable": "没有数据"
+  "noDataMessageTable": "没有数据",
+  "alreadyQuantityInspectedMessage": "已质检数量"
 }

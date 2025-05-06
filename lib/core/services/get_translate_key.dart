@@ -29,6 +29,7 @@ class StringKey {
   static const String noInternetConnectionMessage = "noInternetConnectionMessage";
   static const String itemNotFound = "itemNotFound";
   static const String deductionSuccessMessage = "deductionSuccessMessage";
+  static const String alreadyQuantityInspectedMessage = "alreadyQuantityInspectedMessage";
 }
 
 class TranslateKey {
@@ -108,6 +109,9 @@ class TranslateKey {
 
       case StringKey.deductionSuccessMessage:
         return l10n.deductionSuccessMessage;
+
+      case StringKey.alreadyQuantityInspectedMessage:
+        return l10n.alreadyQuantityInspectedMessage;
 
       default:
         return 'Cannot find the key $key';
