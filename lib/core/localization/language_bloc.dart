@@ -2,7 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 
-enum LanguageEvent { toEnglish, toChineseSimplified, toChineseTraditional }
+enum LanguageEvent { toEnglish, toChineseSimplified, toChineseTraditional, toVietnamese }
 
 class LanguageState {
   final Locale locale;
@@ -63,6 +63,11 @@ class LanguageBloc extends Bloc<LanguageEvent, LanguageState> {
         await sharedPreferences.setString(LANGUAGE_CODE, 'zh');
         await sharedPreferences.setString(COUNTRY_CODE, 'TW');
         emit(LanguageState(const Locale('zh', 'TW')));
+        break;
+      case LanguageEvent.toVietnamese:
+        await sharedPreferences.setString(LANGUAGE_CODE, 'vi');
+        await sharedPreferences.setString(COUNTRY_CODE, '');
+        emit(LanguageState(const Locale('vi')));
         break;
     }
   }

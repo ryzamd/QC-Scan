@@ -24,8 +24,10 @@ class LanguageSelector extends StatelessWidget {
            flagIcon = Image.asset('assets/flags/TW.png', width: 28, height: 28);
         } else if (locale.languageCode == 'zh' && locale.countryCode == 'CN') {
           flagIcon = Image.asset('assets/flags/CN.png', width: 28, height: 28);
-        } else {
+        } else if (locale.languageCode == 'en') {
           flagIcon = Image.asset('assets/flags/US.png', width: 28, height: 28);
+        } else {
+          flagIcon = Image.asset('assets/flags/VN.png', width: 28, height: 28);
         }
         
         return PopupMenuButton<LanguageEvent>(
@@ -66,6 +68,19 @@ class LanguageSelector extends StatelessWidget {
                   const Text('简体中文'),
                   const Spacer(),
                   if (locale.languageCode == 'zh' && locale.countryCode == 'CN')
+                    Icon(Icons.check, color: iconColor ?? AppColors.primary),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: LanguageEvent.toVietnamese,
+              child: Row(
+                children: [
+                  Image.asset('assets/flags/VN.png', width: 24, height: 24),
+                  const SizedBox(width: 12),
+                  const Text('Việt Nam'),
+                  const Spacer(),
+                  if (locale.languageCode == 'vi')
                     Icon(Icons.check, color: iconColor ?? AppColors.primary),
                 ],
               ),
