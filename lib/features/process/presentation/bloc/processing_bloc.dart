@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:architecture_scan_app/features/process/domain/entities/processing_item_entity.dart';
 import 'package:architecture_scan_app/features/process/domain/usecases/get_processing_items.dart';
+import '../../../../core/network/network_infor.dart';
 import '../../../../core/services/get_translate_key.dart';
 import 'processing_event.dart';
 import 'processing_state.dart';
@@ -13,14 +14,19 @@ import 'processing_state.dart';
 class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
   final GetProcessingItems getProcessingItems;
   final UpdateQC2Quantity updateQC2Quantity;
+  final NetworkInfo networkInfo;
   
+  static const int MAX_CACHED_ITEMS = 100;
+
   String _lastQuery = '';
   List<ProcessingItemEntity>? _lastItems;
   List<ProcessingItemEntity>? _cachedFilteredItems;
+  DateTime _lastCacheTime = DateTime.now();
 
   ProcessingBloc({
     required this.getProcessingItems,
     required this.updateQC2Quantity,
+    required this.networkInfo,
   }) : super(ProcessingInitial()) {
     on<GetProcessingItemsEvent>(_onGetProcessingItemsAsync);
     on<RefreshProcessingItemsEvent>(_onRefreshProcessingItemsAsync);
@@ -30,11 +36,41 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     on<SelectDateEvent>(_onSelectDateAsync);
   }
 
-  Future<void> _onGetProcessingItemsAsync(
-    GetProcessingItemsEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  @override
+  Future<void> close() {
+    _clearCache();
+    return super.close();
+  }
+
+  void _clearCache() {
+    _lastItems = null;
+    _cachedFilteredItems = null;
+  }
+
+  void _limitCacheSize() {
+    final now = DateTime.now();
+    if (now.difference(_lastCacheTime).inMinutes > 5) {
+      _clearCache();
+      _lastCacheTime = now;
+      return;
+    }
+
+    if (_lastItems != null && _lastItems!.length > MAX_CACHED_ITEMS) {
+      _lastItems = _lastItems!.sublist(0, MAX_CACHED_ITEMS);
+    }
+    
+    if (_cachedFilteredItems != null && _cachedFilteredItems!.length > MAX_CACHED_ITEMS) {
+      _cachedFilteredItems = _cachedFilteredItems!.sublist(0, MAX_CACHED_ITEMS);
+    }
+  }
+
+  Future<void> _onGetProcessingItemsAsync(GetProcessingItemsEvent event, Emitter<ProcessingState> emit) async {
     emit(ProcessingLoading());
+
+    if (!await networkInfo.isConnected) {
+      emit(ProcessingError(message: StringKey.networkErrorMessage));
+      return;
+    }
 
     try {
       final result = await getProcessingItems(
@@ -63,6 +99,8 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
             ascending: false,
             selectedDate: DateTime.now(),
           ));
+
+          _limitCacheSize();
         },
       );
     } catch (e) {
@@ -70,14 +108,26 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-    Future<void> _onRefreshProcessingItemsAsync(
-    RefreshProcessingItemsEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  Future<void> _onRefreshProcessingItemsAsync(RefreshProcessingItemsEvent event, Emitter<ProcessingState> emit) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
       final existingItems = List<ProcessingItemEntity>.from(currentState.items);
       emit(ProcessingRefreshing(items: existingItems));
+
+      if (!await networkInfo.isConnected) {
+        emit(
+          ProcessingLoaded(
+            items: existingItems,
+            filteredItems: existingItems,
+            sortColumn: currentState.sortColumn,
+            ascending: currentState.ascending,
+            searchQuery: currentState.searchQuery,
+            selectedDate: DateTime.now(),
+          ),
+        );
+        emit(ProcessingError(message: StringKey.networkErrorMessage));
+        return;
+      }
 
       try {
         final result = await getProcessingItems(
@@ -162,10 +212,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onSortProcessingItemsAsync(
-    SortProcessingItemsEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  Future<void> _onSortProcessingItemsAsync(SortProcessingItemsEvent event, Emitter<ProcessingState> emit) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
       final sortColumn = event.column;
@@ -187,10 +234,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onSearchProcessingItemsAsync(
-    SearchProcessingItemsEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  Future<void> _onSearchProcessingItemsAsync(SearchProcessingItemsEvent event, Emitter<ProcessingState> emit) async {
     final currentState = state;
     if (currentState is ProcessingLoaded) {
       final query = event.query;
@@ -238,10 +282,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
 
-  Future<void> _onUpdateQC2QuantityAsync(
-    UpdateQC2QuantityEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  Future<void> _onUpdateQC2QuantityAsync(UpdateQC2QuantityEvent event, Emitter<ProcessingState> emit) async {
     final currentState = state;
 
     if (currentState is ProcessingLoaded) {
@@ -297,10 +338,7 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     }
   }
   
-  List<ProcessingItemEntity> _filterItemsSync(
-    List<ProcessingItemEntity> items,
-    String query,
-  ) {
+  List<ProcessingItemEntity> _filterItemsSync(List<ProcessingItemEntity> items, String query) {
     if (query.isEmpty) {
       return List.from(items);
     }
@@ -380,10 +418,12 @@ class ProcessingBloc extends Bloc<ProcessingEvent, ProcessingState> {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} 00:00:00';
   }
 
-  Future<void> _onSelectDateAsync(
-    SelectDateEvent event,
-    Emitter<ProcessingState> emit,
-  ) async {
+  Future<void> _onSelectDateAsync(SelectDateEvent event, Emitter<ProcessingState> emit) async {
+    if (!await networkInfo.isConnected) {
+      emit(ProcessingError(message: StringKey.networkErrorMessage));
+      return;
+    }
+    
     final currentState = state;
     
     if (currentState is ProcessingLoaded) {

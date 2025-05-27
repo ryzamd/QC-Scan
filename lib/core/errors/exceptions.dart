@@ -15,3 +15,9 @@ class AuthException implements Exception {
 
   AuthException(this.message);
 }
+
+class NetWorkException implements Exception {
+  final String message;
+
+  NetWorkException(this.message);
+}

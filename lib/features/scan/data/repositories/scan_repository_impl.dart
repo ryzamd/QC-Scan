@@ -62,38 +62,38 @@ class ScanRepositoryImpl implements ScanRepository {
         return Left(ServerFailure(e.toString()));
       }
     } else {
-      return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
+      return Left(ConnectionFailure(StringKey.networkErrorMessage));
     }
   }
 
 
-  @override
-  Future<Either<Failure, bool>> sendToProcessingRepositoryAsync(List<ScanRecordEntity> records) async {
-    if (await networkInfo.isConnected) {
-      try {
-        if (records.isEmpty) {
-          return const Left(ServerFailure('No records to process'));
-        }
+  // @override
+  // Future<Either<Failure, bool>> sendToProcessingRepositoryAsync(List<ScanRecordEntity> records) async {
+  //   if (await networkInfo.isConnected) {
+  //     try {
+  //       if (records.isEmpty) {
+  //         return const Left(ServerFailure('No records to process'));
+  //       }
         
-        final lastRecord = records.last;
-        final String code = lastRecord.code;
-        final String userName = lastRecord.userId;
-        final double deduction = 0.0;
+  //       final lastRecord = records.last;
+  //       final String code = lastRecord.code;
+  //       final String userName = lastRecord.userId;
+  //       final double deduction = 0.0;
         
-        final success = await remoteDataSource.saveQualityInspectionRemoteDataAsync(code, userName, deduction);
+  //       final success = await remoteDataSource.saveQualityInspectionRemoteDataAsync(code, userName, deduction);
         
-        return Right(success);
+  //       return Right(success);
 
-      } on ProcessingException catch (e) {
-        return Left(ServerFailure(e.message));
+  //     } on ProcessingException catch (e) {
+  //       return Left(ServerFailure(e.message));
 
-      } catch (e) {
-        return Left(ServerFailure(e.toString()));
+  //     } catch (e) {
+  //       return Left(ServerFailure(e.toString()));
 
-      }
-    } else {
-      return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
+  //     }
+  //   } else {
+  //     return Left(ConnectionFailure('No internet connection. Please check your network settings and try again.'));
       
-    }
-  }
+  //   }
+  // }
 }

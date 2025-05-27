@@ -33,7 +33,7 @@
   "usernameHint": "请选择用户名",
   "passwordHint": "输入密码",
   "selectDepartmentLabel": "选择部门",
-  "invalidCredentialsMessage": "凭证无效",
+  "invalidCredentialsMessage": "账户不存在",
   "loginSuccessMessage": "登录成功",
   "qcMenuTitle": "质检菜单",
   "qualityCheckMenuLabel": "质量检查",
@@ -66,7 +66,7 @@
   "invalidTokenMessage": "无效或过期的令牌",
   "failedToGetMaterialInfoMessage": "获取材料信息失败",
   "unknownErrorMessage": "未知错误",
-  "eitherDeductionOrReasonsMessage": "輸入有誤",
+  "eitherDeductionOrReasonsMessage": "请输入扣除金额",
   "reasonsRequiredMessage": "扣除数量时需要提供原因",
   "saveFailedMessage": "保存失败",
   "processingLoadingMessage": "处理中...",
@@ -92,5 +92,8 @@
   "exitTitleUPCASE": "退出",
   "exitTheAppMessage": "确定要退出应用程序吗？",
   "noDataMessageTable": "没有数据",
-  "alreadyQuantityInspectedMessage": "已质检数量"
+  "alreadyQuantityInspectedMessage": "已质检数量",
+  "defaultDeductionButton":"虚拟",
+  "virtualDeductionButton":"真实",
+  "invalidQuantityNumberMessage": "輸入有誤"
 }

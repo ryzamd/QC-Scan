@@ -51,13 +51,13 @@ class AuthRepository {
           return Right(user);
 
         } else {
-          return Left(AuthFailure(response.data['message'] ?? StringKey.invalidCredentialsMessage));
+          return Left(AuthFailure(StringKey.invalidCredentialsMessage));
         }
       } else {
-        return Left(ServerFailure(StringKey.serverErrorMessage));
+        return Left(ConnectionFailure(StringKey.networkErrorMessage));
       }
     } on DioException catch (_) {
-      return Left(ServerFailure(StringKey.networkErrorMessage));
+      return Left(ServerFailure(StringKey.serverErrorMessage));
     }
   }
 

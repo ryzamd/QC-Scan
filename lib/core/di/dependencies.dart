@@ -33,7 +33,6 @@ import '../../features/scan/data/repositories/scan_repository_impl.dart';
 import '../../features/scan/domain/repositories/scan_repository.dart';
 import '../../features/scan/domain/usecases/get_material_info.dart';
 import '../../features/scan/domain/usecases/save_scan_record.dart';
-import '../../features/scan/domain/usecases/send_to_processing.dart';
 import '../../features/scan/presentation/bloc/scan_bloc.dart';
 import '../../features/auth/login/domain/entities/user_entity.dart';
 
@@ -134,15 +133,14 @@ Future<void> _initScanFeature() async {
     (user, _) => ScanBloc(
       getMaterialInfo: sl(),
       saveScanRecord: sl(),
-      sendToProcessing: sl(),
       remoteDataSource: sl<ScanRemoteDataSource>(),
       currentUser: user,
+      networkInfo: sl<NetworkInfo>(),
     ),
   );
 
   sl.registerLazySingleton(() => GetMaterialInfo(sl()));
   sl.registerLazySingleton(() => SaveScanRecord(sl()));
-  sl.registerLazySingleton(() => SendToProcessing(sl()));
 
   sl.registerLazySingleton<ScanRepository>(
     () => ScanRepositoryImpl(
@@ -166,6 +164,7 @@ Future<void> _initProcessFeature() async {
     () => ProcessingBloc(
       getProcessingItems: sl(),
       updateQC2Quantity: sl(),
+      networkInfo: sl<NetworkInfo>(),
     ),
   );
 

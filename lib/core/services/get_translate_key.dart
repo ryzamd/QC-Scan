@@ -26,10 +26,10 @@ class StringKey {
   static const String deductionMustBeGreaterThanZeroMessage = "deductionMustBeGreaterThanZeroMessage";
   static const String errorLoadingDataMessage = "errorLoadingDataMessage";
   static const String errorRefreshingDataMessage = "errorRefreshingDataMessage";
-  static const String noInternetConnectionMessage = "noInternetConnectionMessage";
   static const String itemNotFound = "itemNotFound";
   static const String deductionSuccessMessage = "deductionSuccessMessage";
   static const String alreadyQuantityInspectedMessage = "alreadyQuantityInspectedMessage";
+  static const String invalidQuantityNumberMessage = "invalidQuantityNumberMessage";
 }
 
 class TranslateKey {
@@ -112,6 +112,12 @@ class TranslateKey {
 
       case StringKey.alreadyQuantityInspectedMessage:
         return l10n.alreadyQuantityInspectedMessage;
+
+      case StringKey.failedToGetMaterialInfoMessage:
+        return l10n.failedToGetMaterialInfoMessage;
+
+      case StringKey.invalidQuantityNumberMessage:
+        return l10n.invalidQuantityNumberMessage;
 
       default:
         return 'Cannot find the key $key';

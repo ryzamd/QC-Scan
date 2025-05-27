@@ -13,21 +13,20 @@ class ScanService {
   
   Function(String)? onBarcodeScanned;
 
+  static const int MAX_HISTORY_SIZE = 20;
   final List<String> scannedBarcodes = [];
   
   StreamSubscription? _subscription;
-  
   Timer? _debounceTimer;
-  
   bool _isInitialized = false;
 
   static Future<void> initializeScannerListenerAsync(Function(String) onScanned) async {
-    instance._initializeListenerAsync(onScanned);
+    await instance._initializeListenerAsync(onScanned);
   }
   
   Future<void> _initializeListenerAsync(Function(String) onScanned) async {
     if (_isInitialized) {
-      _disposeListenerAsync();
+      await _disposeListenerAsync();
     }
     
     _isInitialized = true;
@@ -63,15 +62,20 @@ class ScanService {
   }
   
   Future<void> _processScanDataAsync(String data) async {
+    if (scannedBarcodes.length >= MAX_HISTORY_SIZE) {
+      scannedBarcodes.removeAt(0);
+    }
+    scannedBarcodes.add(data);
+    
     onBarcodeScanned?.call(data);
   }
   
   static Future<void> disposeScannerListenerAsync() async {
-    instance._disposeListenerAsync();
+    await instance._disposeListenerAsync();
   }
   
   Future<void> _disposeListenerAsync() async {
-    _subscription?.cancel();
+    await _subscription?.cancel();
     _subscription = null;
     onBarcodeScanned = null;
     _debounceTimer?.cancel();
@@ -81,11 +85,7 @@ class ScanService {
 
   static Future<bool> isScannerButtonPressedAsync(KeyEvent event) async {
     const scannerKeyCodes = [120, 121, 122, 293, 294, 73014444552];
-    final isScanner = scannerKeyCodes.contains(event.logicalKey.keyId);
-    if (isScanner) {
-      debugPrint("QR DEBUG: Hardware scanner key detected: ${event.logicalKey.keyId}");
-    }
-    return isScanner;
+    return scannerKeyCodes.contains(event.logicalKey.keyId);
   }
   
   static Future<void> clearScannedBarcodesAsync() async {

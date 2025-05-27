@@ -5,6 +5,7 @@ import 'package:architecture_scan_app/core/widgets/logo_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/di/dependencies.dart' as di;
+import '../../../../../core/services/get_translate_key.dart';
 import '../../../../../core/widgets/language_selector.dart';
 import '../bloc/login_bloc.dart';
 import '../bloc/login_event.dart';
@@ -65,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
             ConfirmationDialog.showAsync(
               context: context,
               title: context.multiLanguage.loginFailedTitleUPCASE,
-              message: state.message,
+              message: TranslateKey.getStringKey(context.multiLanguage, state.message),
               confirmText: context.multiLanguage.okButtonUPCASE,
               showCancelButton: false,
               onConfirm: () {},

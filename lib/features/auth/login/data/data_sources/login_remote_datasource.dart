@@ -45,11 +45,11 @@ class LoginRemoteDataSourceImpl implements LoginRemoteDataSource {
         throw AuthException(StringKey.invalidTokenMessage);
       }
     } on DioException catch (_) {
-      throw ServerException(StringKey.networkErrorMessage);
+      throw NetWorkException(StringKey.serverErrorMessage);
     } on AuthException {
       rethrow;
     } catch (e) {
-      throw ServerException(StringKey.serverErrorMessage);
+      throw NetWorkException(StringKey.networkErrorMessage);
     }
   }
   

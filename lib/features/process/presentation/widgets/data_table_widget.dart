@@ -1,5 +1,6 @@
 import 'package:architecture_scan_app/core/constants/app_colors.dart';
 import 'package:architecture_scan_app/core/localization/context_extension.dart';
+import 'package:architecture_scan_app/core/services/get_translate_key.dart';
 import 'package:architecture_scan_app/features/auth/login/domain/entities/user_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -49,7 +50,14 @@ class _ProcessingDataTableState extends State<ProcessingDataTable> {
           return const Center(child: CircularProgressIndicator());
 
         } else if (state is ProcessingError) {
-          return Center(child: Text('${context.multiLanguage.errorTitleUPCASE}: ${state.message}'));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Text(
+                '${context.multiLanguage.errorTitleUPCASE}: ${TranslateKey.getStringKey(context.multiLanguage,state.message)}'
+                ),
+            )
+            );
 
         } else if (state is ProcessingLoaded || state is ProcessingRefreshing) {
           final items = state is ProcessingLoaded

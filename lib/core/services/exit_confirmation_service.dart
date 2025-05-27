@@ -14,13 +14,16 @@ class BackButtonService {
   StreamSubscription? _subscription;
 
   bool _isDialogShowing = false;
+  bool _isDisposed = false;
 
   Future<void> initializeAsync(BuildContext context) async {
-    _subscription?.cancel();
+    if (_isDisposed) return;
+
+    await _subscription?.cancel();
     _subscription = _eventChannel.receiveBroadcastStream().listen(
       (_) {
         try {
-          if(!context.mounted){
+          if(!context.mounted || _isDisposed){
             return;
           }
 
@@ -43,7 +46,8 @@ class BackButtonService {
   }
 
   Future<void> disposeAsync() async {
-    _subscription?.cancel();
+    _isDisposed = true;
+    await _subscription?.cancel();
     _subscription = null;
     _isDialogShowing = false;
   }

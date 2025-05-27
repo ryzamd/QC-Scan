@@ -21,6 +21,22 @@ class CameraBloc extends Bloc<CameraEvent, CameraState> {
     on<CleanupCamera>(_onCleanupCameraAsync);
   }
 
+  @override
+  Future<void> close() async {
+    await _cleanupResourcesAsync();
+    return super.close();
+  }
+
+  Future<void> _cleanupResourcesAsync() async {
+    if (_isCameraDisposing) return;
+    _isCameraDisposing = true;
+
+    scannerController?.stop();
+    await scannerController?.dispose();
+    scannerController = null;
+    _isCameraDisposing = false;
+  }
+
   void _onInitializeCameraAsync(InitializeCamera event, Emitter<CameraState> emit) {
     if (_isCameraInitializing || scannerController != null) return;
     _isCameraInitializing = true;
@@ -37,6 +53,8 @@ class CameraBloc extends Bloc<CameraEvent, CameraState> {
       isActive: false,
       isTorchEnabled: _isTorchEnabled,
     ));
+    
+    _isCameraInitializing = false;
   }
 
   void _onToggleCameraAsync(ToggleCamera event, Emitter<CameraState> emit) {
@@ -77,13 +95,8 @@ class CameraBloc extends Bloc<CameraEvent, CameraState> {
     ));
   }
 
-  void _onCleanupCameraAsync(CleanupCamera event, Emitter<CameraState> emit) {
-    if (_isCameraDisposing) return;
-    _isCameraDisposing = true;
-
-    scannerController?.dispose();
-    scannerController = null;
-
+  void _onCleanupCameraAsync(CleanupCamera event, Emitter<CameraState> emit) async {
+    await _cleanupResourcesAsync();
     emit(CameraInitial());
   }
   

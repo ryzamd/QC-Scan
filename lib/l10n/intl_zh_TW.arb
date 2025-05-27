@@ -33,7 +33,7 @@
   "usernameHint": "請選擇用戶名",
   "passwordHint": "輸入密碼",
   "selectDepartmentLabel": "選擇部門",
-  "invalidCredentialsMessage": "憑證無效",
+  "invalidCredentialsMessage": "账户不存在",
   "loginSuccessMessage": "登入成功",
   "qcMenuTitle": "質檢選單",
   "qualityCheckMenuLabel": "品質檢查",
@@ -66,7 +66,7 @@
   "invalidTokenMessage": "無效或過期的令牌",
   "failedToGetMaterialInfoMessage": "獲取材料信息失敗",
   "unknownErrorMessage": "未知錯誤",
-  "eitherDeductionOrReasonsMessage": "輸入有誤",
+  "eitherDeductionOrReasonsMessage": "請輸入扣除金額",
   "reasonsRequiredMessage": "扣除數量時需要提供原因",
   "saveFailedMessage": "保存失敗",
   "processingLoadingMessage": "處理中...",
@@ -92,5 +92,8 @@
   "exitTheAppMessage": "確定要退出應用程序嗎？",
   "exitTitleUPCASE": "退出",
   "noDataMessageTable": "沒有數據",
-  "alreadyQuantityInspectedMessage": "已質檢數量"
+  "alreadyQuantityInspectedMessage": "已質檢數量",
+  "defaultDeductionButton": "虛擬",
+  "virtualDeductionButton": "真實",
+  "invalidQuantityNumberMessage": "數量無效"
 }

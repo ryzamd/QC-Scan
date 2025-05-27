@@ -44,7 +44,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
   bool _isDeductionDialogOpen = false;
   ScanRecordEntity? _currentScanRecord;
   bool isQC2 = false;
-  int optionFunction = 2;
+  late int optionFunction;
 
   CameraBloc? _cameraBloc;
 
@@ -58,14 +58,24 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
       context.read<ScanBloc>().add(BarcodeDetected(barcode));
     });
     context.read<CameraBloc>().add(InitializeCamera());
+
+    isQC2 = widget.isSpecialFeature;
+    optionFunction = isQC2 ? 2 : 1;
+
+    context.read<ScanBloc>().add(LoadReasonsEvent());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _focusNode.dispose();
+
+    if (_cameraBloc != null) {
+      _cameraBloc!.add(CleanupCamera());
+      _cameraBloc = null;
+    }
+
     ScanService.disposeScannerListenerAsync();
-    _cameraBloc?.add(CleanupCamera());
     super.dispose();
   }
 
@@ -113,11 +123,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
         }
       }
 
-      if (availableReasons.isEmpty) {
-        await scanBloc.remoteDataSource.getDeductionReasonsAsync().then((reasons) {
-          availableReasons = reasons;
-        });
-      }
+
 
     if (!mounted) return;
 
@@ -168,6 +174,7 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                   qcQtyOut: _currentScanRecord!.qcQtyOut,
                   qcQtyIn: _currentScanRecord!.qcQtyIn,
                   isQC2User: widget.isSpecialFeature,
+                  optionFunction: optionFunction,
                   reasons: reasons,
                 )
             );
@@ -399,8 +406,34 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                             ),
                                           ),
                                         ),
+                                      if (!widget.isSpecialFeature)
+                                        ElevatedButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                optionFunction = optionFunction == 2 ? 1 : 2;
+                                              });
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: optionFunction == 2 ? Colors.red : Colors.green.shade600,
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 32,
+                                                vertical: 12,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              optionFunction == 1 ? context.multiLanguage.defaultDeductionButton : context.multiLanguage.virtualDeductionButton,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
 
-                                        if (widget.isSpecialFeature) ...[
+                                        if (widget.isSpecialFeature)
                                           ElevatedButton(
                                             onPressed: () {
                                               setState(() {
@@ -426,8 +459,6 @@ class _ScanPageState extends State<ScanPage> with WidgetsBindingObserver {
                                               ),
                                             ),
                                           ),
-                                          
-                                        ],
                                       ],
                                     )
                           ),

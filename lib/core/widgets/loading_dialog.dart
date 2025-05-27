@@ -10,6 +10,9 @@ class LoadingDialog {
     if (isShowing) return;
 
     isShowing = true;
+
+    if (!context.mounted) return;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -30,6 +33,8 @@ class LoadingDialog {
         ),
       ),
     );
+
+    isShowing = false;
   }
 
   static Future<void> hideAsync(BuildContext context) async {

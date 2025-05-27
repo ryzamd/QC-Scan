@@ -33,7 +33,7 @@
   "usernameHint": "Please select username",
   "passwordHint": "Enter password",
   "selectDepartmentLabel": "Select Department",
-  "invalidCredentialsMessage": "Invalid credentials",
+  "invalidCredentialsMessage": "Wrong username or password",
   "loginSuccessMessage": "Login successful",
   "qcMenuTitle": "QC Menu",
   "qualityCheckMenuLabel": "Quality Check",
@@ -66,7 +66,7 @@
   "invalidTokenMessage": "Invalid or expired token",
   "failedToGetMaterialInfoMessage": "Failed to get material info",
   "unknownErrorMessage": "Unknown error",
-  "eitherDeductionOrReasonsMessage": "Invalid input",
+  "eitherDeductionOrReasonsMessage": "Please enter quantiy to deduct",
   "reasonsRequiredMessage": "Reasons are required when deducting quantity",
   "saveFailedMessage": "Save failed",
   "failedToGetDeductionReasons": "Failed to get deduction reasons",
@@ -92,5 +92,8 @@
   "exitTheAppMessage": "Are you sure you want to exit the app?",
   "exitTitleUPCASE": "EXIT",
   "noDataMessageTable": "No data",
-  "alreadyQuantityInspectedMessage": "Already quality inspected"
+  "alreadyQuantityInspectedMessage": "Already quality inspected",
+  "defaultDeductionButton": "Default",
+  "virtualDeductionButton": "Virtual",
+  "invalidQuantityNumberMessage": "Invalid quantity number"
 }

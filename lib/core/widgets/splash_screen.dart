@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -14,6 +16,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  Timer? _navigationTimer;
 
   @override
   void initState() {
@@ -27,6 +30,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     
     Future.delayed(const Duration(milliseconds: 4000), () {
       _controller.forward().then((_) {
+
+        if(!mounted) return;
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => const LoginPage(),
@@ -46,6 +51,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void dispose() {
     _controller.dispose();
+    _navigationTimer?.cancel();
     super.dispose();
   }
 
@@ -59,6 +65,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           child: Lottie.asset('assets/animations/splash_lottie.json',
             width: 500,
             height: 500,
+            frameRate: FrameRate(30),
           ),
         ),
       ),

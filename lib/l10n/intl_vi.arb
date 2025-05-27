@@ -33,7 +33,7 @@
   "usernameHint": "Chọn tên đăng nhập",
   "passwordHint": "Nhập mật khẩu",
   "selectDepartmentLabel": "Chọn phòng ban",
-  "invalidCredentialsMessage": "Thông tin đăng nhập không hợp lệ",
+  "invalidCredentialsMessage": "Sai tên đăng nhập hoặc mật khẩu",
   "loginSuccessMessage": "Đăng nhập thành công",
   "qcMenuTitle": "Menu QC",
   "qualityCheckMenuLabel": "Kiểm tra chất lượng",
@@ -66,7 +66,7 @@
   "invalidTokenMessage": "Token không hợp lệ hoặc hết hạn",
   "failedToGetMaterialInfoMessage": "Không thể lấy thông tin vật liệu",
   "unknownErrorMessage": "Lỗi không xác định",
-  "eitherDeductionOrReasonsMessage": "Dữ liệu không hợp lệ",
+  "eitherDeductionOrReasonsMessage": "Vui lòng nhập số lượng để khấu trừ",
   "reasonsRequiredMessage": "Cần có lý do khi khấu trừ số lượng",
   "saveFailedMessage": "Lưu thất bại",
   "failedToGetDeductionReasons": "Không thể lấy lý do khấu trừ",
@@ -92,5 +92,8 @@
   "exitTheAppMessage": "Bạn có chắc muốn thoát ứng dụng không?",
   "exitTitleUPCASE": "THOÁT",
   "noDataMessageTable": "Không có dữ liệu",
-  "alreadyQuantityInspectedMessage": "Đã kiểm tra chất lượng"
+  "alreadyQuantityInspectedMessage": "Đã kiểm tra chất lượng",
+  "defaultDeductionButton": "Mặc định",
+  "virtualDeductionButton": "Trừ ảo",
+  "invalidQuantityNumberMessage": "Số lượng không hợp lệ"
 }

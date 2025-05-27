@@ -9,5 +9,5 @@ abstract class ScanRepository {
   
   Future<Either<Failure, Map<String, String>>> getMaterialInfoRepositoryAsync(String barcode);
 
-  Future<Either<Failure, bool>> sendToProcessingRepositoryAsync(List<ScanRecordEntity> records);
+  // Future<Either<Failure, bool>> sendToProcessingRepositoryAsync(List<ScanRecordEntity> records);
 }

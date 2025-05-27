@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 abstract class ScanRemoteDataSource {
   Future<Map<String, String>> getMaterialInfoRemoteDataAsync(String code, String userName);
 
-  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, [List<String>? reasons]);
+  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, int optionFunction,[List<String>? reasons]);
 
   Future<bool> saveQC2DeductionRemoteDataAsync(String code, String userName, double deduction, int optionFunction, [List<String>? reasons]);
 
@@ -79,12 +79,13 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
   }
 
   @override
-  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, [List<String>? reasons]) async {
+  Future<bool> saveQualityInspectionRemoteDataAsync(String code, String userName, double deduction, int optionFunction,[List<String>? reasons]) async {
       try {
         final data = {
           'qc_code': code,
           'qc_UserName': userName,
           'qc_qty': deduction,
+          'number': optionFunction
         };
         
         if (reasons != null && reasons.isNotEmpty) {
@@ -140,7 +141,7 @@ class ScanRemoteDataSourceImpl implements ScanRemoteDataSource {
       throw ScanException(StringKey.networkErrorMessage);
 
     } catch (e) {
-      throw ServerException(StringKey.serverErrorMessage);
+      throw ServerException(e.toString());
     }
   }
   

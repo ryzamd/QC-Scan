@@ -47,6 +47,8 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _debounce = null;
     super.dispose();
   }
 
@@ -69,7 +71,7 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
           current is ProcessingUpdatedState || current is ProcessingError,
       listener: (context, state) {
 
-        if ((state is ProcessingUpdatedState || state is ProcessingError) && Navigator.of(context).canPop()) {
+        if ((state is ProcessingUpdatedState) && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
 
@@ -77,14 +79,12 @@ class _ProcessingPageState extends State<ProcessingPage> with WidgetsBindingObse
           _loadDataAsync();
          
         } else if (state is ProcessingError) {
-          _loadDataAsync();
           NotificationDialog.showAsync(
             context: context,
             title: context.multiLanguage.errorTitleUPCASE,
             message: TranslateKey.getStringKey(
                       context.multiLanguage,
-                      StringKey.errorLoadingDataMessage,
-                      args: {'details': state.message},
+                      state.message,
                     ),
             titleColor: Colors.red,
             buttonColor: Colors.red,

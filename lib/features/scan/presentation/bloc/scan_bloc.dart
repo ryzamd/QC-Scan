@@ -5,10 +5,10 @@ import 'package:architecture_scan_app/features/scan/data/datasources/scan_remote
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/network/network_infor.dart';
 import '../../../../core/services/get_translate_key.dart';
 import '../../domain/usecases/get_material_info.dart';
 import '../../domain/usecases/save_scan_record.dart';
-import '../../domain/usecases/send_to_processing.dart';
 import '../../data/models/scan_record_model.dart';
 import '../../../auth/login/domain/entities/user_entity.dart';
 import '../../data/datasources/scan_service_impl.dart';
@@ -19,20 +19,23 @@ import 'scan_state.dart';
 class ScanBloc extends Bloc<ScanEvent, ScanState> {
   final GetMaterialInfo getMaterialInfo;
   final SaveScanRecord saveScanRecord;
-  final SendToProcessing sendToProcessing;
   final UserEntity currentUser;
   final ScanRemoteDataSource remoteDataSource;
+  final NetworkInfo networkInfo;
 
   bool _isLoadingReasons = false;
 
   List<String> _cachedReasons = [];
 
+  static const int MAX_REASONS_CACHE = 50;
+  static const int MAX_HISTORY_ITEMS = 20;
+
   ScanBloc({
     required this.remoteDataSource,
     required this.getMaterialInfo,
     required this.saveScanRecord,
-    required this.sendToProcessing,
     required this.currentUser,
+    required this.networkInfo,
   }) : super(ScanInitial()) {
     on<BarcodeDetected>(_onBarcodeDetectedAsync);
     on<GetMaterialInfoEvent>(_onGetMaterialInfoAsync);
@@ -48,7 +51,11 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     on<ReasonsSelectedEvent>(_onReasonsSelected);
   }
 
-  
+  @override
+  Future<void> close() {
+    _cachedReasons.clear();
+    return super.close();
+  }
   
   Future<void> _onCancelClearScannedItemsAsync(CancelClearScannedItems event, Emitter<ScanState> emit) async {
     if (state is ShowClearConfirmationState) {
@@ -158,7 +165,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       (item) => item.isNotEmpty && item[0] == barcode,
     );
 
-    final List<List<String>> result = List.from(existingItems);
+    List<List<String>> result = List.from(existingItems);
+    if (result.length >= MAX_HISTORY_ITEMS) {
+      result = result.sublist(result.length - MAX_HISTORY_ITEMS + 1);
+    }
 
     if (!isAlreadyScanned) {
       result.add([
@@ -270,10 +280,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     }
   }
 
-  Future<void> _onHardwareScanButtonPressedAsync(
-    HardwareScanButtonPressed event,
-    Emitter<ScanState> emit
-  ) async {
+  Future<void> _onHardwareScanButtonPressedAsync(HardwareScanButtonPressed event, Emitter<ScanState> emit) async {
     if (event.scannedData.isEmpty) return;
     
     emit(ScanProcessingState(barcode: event.scannedData));
@@ -308,6 +315,14 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
 
   Future<void> _onConfirmDeductionAsync(ConfirmDeductionEvent event, Emitter<ScanState> emit) async {
+    if(!await networkInfo.isConnected) {
+      emit(ScanErrorState(
+        message: StringKey.networkErrorMessage,
+        previousState: state,
+      ));
+      return;
+    }
+
     try {
       List<String> selectedReasons = [];
 
@@ -319,7 +334,6 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         selectedReasons = event.reasons!;
       }
 
-      debugPrint('DEBUG: deduction=${event.deduction}, selectedReasons=$selectedReasons, isQC2User=${event.isQC2User}');
       if (!ScanBlocHelper.validateDeduction(event.deduction, selectedReasons, event.isQC2User)) {
         emit(ScanErrorState(
           message: event.isQC2User ? StringKey.eitherDeductionOrReasonsMessage : StringKey.reasonsRequiredMessage,
@@ -348,6 +362,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           event.barcode,
           event.userId,
           event.deduction,
+          event.optionFunction ?? 1,
           selectedReasons,
         );
       }
@@ -372,18 +387,32 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       ));
     }
   } catch (e) {
-      if((e as ServerException).message.contains(KeyFunction.ALREADY_INSPECTED)) {
+      final errorMap = <String, String>{
+        KeyFunction.INPUT_ERROR: StringKey.invalidQuantityNumberMessage,
+        KeyFunction.QUANTITY_NOT_ENOUGH: StringKey.quantityExceedsLimitMessage,
+        KeyFunction.NEGATIVE_NUMBER: StringKey.deductionMustBeGreaterThanZeroMessage,
+        KeyFunction.ALREADY_INSPECTED: StringKey.alreadyQuantityInspectedMessage,
+        KeyFunction.NO_DATA: StringKey.deductionExceedsQuantityMessage,
+        KeyFunction.QUANTITY_NOT_ENOUGH_QC1: StringKey.deductionExceedsQuantityMessage,
+        KeyFunction.QUANTITY_NOT_ENOUGH_QC2_DECREASE: StringKey.deductionExceedsQuantityMessage,
+      };
+
+      bool matched = false;
+      errorMap.forEach((key, message) {
+        if ((e as ServerException).message.contains(key)) {
+          emit(ScanErrorState(
+            message: message,
+            previousState: state,
+          ));
+          matched = true;
+        }
+      });
+
+      if (!matched) {
         emit(ScanErrorState(
-          message: StringKey.alreadyQuantityInspectedMessage,
+          message: StringKey.eitherDeductionOrReasonsMessage,
           previousState: state,
         ));
-      } else{
-        emit(
-          ScanErrorState(
-            message: StringKey.eitherDeductionOrReasonsMessage,
-            previousState: state,
-          ),
-        );
       }
       
     }
@@ -405,7 +434,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
 
     try {
       final reasons = await remoteDataSource.getDeductionReasonsAsync();
-      _cachedReasons = reasons;
+     _cachedReasons = reasons.take(MAX_REASONS_CACHE).toList();
       
       emit(ReasonsLoadedState(
         baseState: state is ReasonsLoadingState
@@ -415,7 +444,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       ));
     } catch (e) {
       emit(ScanErrorState(
-        message: 'Failed to load reasons: $e',
+        message: e.toString(),
         previousState: state is ReasonsLoadingState
             ? (state as ReasonsLoadingState).baseState
             : state,
